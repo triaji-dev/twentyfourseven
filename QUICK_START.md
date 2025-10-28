@@ -9,14 +9,23 @@ The easiest way to run the application:
 git clone https://github.com/triaji-dev/twentyfourseven.git
 cd twentyfourseven
 
-# Start all services with Docker Compose
+# Production mode (optimized builds)
 docker-compose up
+
+# OR Development mode (hot reload)
+docker-compose -f docker-compose.dev.yml up
 ```
 
 The application will be available at:
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:3001
 - PostgreSQL: localhost:5432
+
+**Note:** On first run, you need to seed the database with categories:
+```bash
+# After containers are running
+docker exec twentyfourseven-backend npm run prisma:seed
+```
 
 ## Option 2: Local Development
 

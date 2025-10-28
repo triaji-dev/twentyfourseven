@@ -14,4 +14,6 @@ RUN npm run build
 
 EXPOSE 3001
 
-CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed && npm start"]
+# Note: For production, run migrations separately before deploying
+# This CMD is suitable for development/demo purposes
+CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]

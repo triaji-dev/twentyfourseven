@@ -3,7 +3,7 @@ version: '3.8'
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: twentyfourseven-db
+    container_name: twentyfourseven-db-dev
     environment:
       POSTGRES_USER: twentyfourseven
       POSTGRES_PASSWORD: twentyfourseven
@@ -11,7 +11,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_dev:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U twentyfourseven"]
       interval: 5s
@@ -21,8 +21,8 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
-    container_name: twentyfourseven-backend
+      dockerfile: Dockerfile.dev
+    container_name: twentyfourseven-backend-dev
     environment:
       DATABASE_URL: postgresql://twentyfourseven:twentyfourseven@postgres:5432/twentyfourseven?schema=public
       PORT: 3001
@@ -32,20 +32,26 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    command: npm run dev
 
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        - REACT_APP_API_URL=http://localhost:3001
-    container_name: twentyfourseven-frontend
+      dockerfile: Dockerfile.dev
+    container_name: twentyfourseven-frontend-dev
     environment:
       REACT_APP_API_URL: http://localhost:3001
     ports:
       - "3000:3000"
     depends_on:
       - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm start
 
 volumes:
-  postgres_data:
+  postgres_data_dev:
