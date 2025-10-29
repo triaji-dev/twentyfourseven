@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TwentyFourSeven Time Tracker</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&display=swap');
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      body {
+        font-family: 'Inter', sans-serif;
+        font-weight: 300;
+        background-color: #fafafa;
+        color: #374151;
+      }
+      /* Styling for table cells */
+      .activity-cell {
+        width: 28px;
+        height: 28px;
+        text-align: center;
+        padding: 0;
+        border: 1px solid #f3f4f6;
+        font-size: 9px;
+        text-transform: uppercase;
+        font-weight: 400;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        outline: none;
+      }
+
+      /* Remove input-specific styling to prevent double borders */
+      td input.activity-cell {
+        border: none !important;
+        box-shadow: none !important;
+      }
+
+      td input.activity-cell:focus {
+        outline: none !important;
+        box-shadow: none !important;
+      }
+
+      /* Pastel Colors */
+      .S {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+      } /* Sleep - Soft Green */
+      .F {
+        background-color: #fff9e6;
+        color: #f57c00;
+      } /* Family - Soft Yellow */
+      .A {
+        background-color: #e3f2fd;
+        color: #1976d2;
+      } /* Architecture - Soft Blue */
+      .P {
+        background-color: #fce4ec;
+        color: #c2185b;
+      } /* Programming - Soft Pink */
+      .C {
+        background-color: #f3e5f5;
+        color: #7b1fa2;
+      } /* Creativity - Soft Purple */
+      .E {
+        background-color: #fff3e0;
+        color: #ef6c00;
+      } /* Entertainment - Soft Orange */
+      .empty {
+        background-color: #ffffff;
+      }
+
+      .activity-cell:hover {
+        transform: scale(1.05);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+
+      /* Hour header */
+      .hour-header {
+        width: 35px;
+        min-width: 35px;
+        text-align: right;
+        padding-right: 6px;
+        font-size: 9px;
+        font-weight: 300;
+        background-color: #fafafa;
+        border-right: 1px solid #f3f4f6;
+        color: #9ca3af;
+      }
+
+      /* Table responsive container */
+      .table-container {
+        overflow-x: auto;
+        overflow-y: auto;
+      }
+
+      .main-container {
+        height: calc(100vh - 100px);
+        overflow: hidden;
+      }
+
+      .table-section {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .table-wrapper {
+        flex: 1;
+        overflow: auto;
+        min-height: 0;
+      }
+
+      table {
+        border-collapse: collapse;
+        min-width: 100%;
+      }
+
+      /* Tooltip Style */
+      .tooltip {
+        position: absolute;
+        z-index: 50;
+        background-color: #374151;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 300;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.2s;
+        transform: translateY(-10px);
+        white-space: nowrap;
+      }
+
+      .tooltip-visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      /* Minimalist button style */
+      .nav-button {
+        background-color: transparent;
+        border: 1px solid #e5e7eb;
+        transition: all 0.2s ease;
+      }
+
+      .nav-button:hover {
+        background-color: #f9fafb;
+        border-color: #d1d5db;
+      }
+
+      /* Selected cell style */
+      .cell-selected {
+        box-shadow: inset 0 0 0 2px #3b82f6 !important;
+        z-index: 5;
+        position: relative;
+      }
+
+      /* Header styling */
+      h1 {
+        font-weight: 200;
+        letter-spacing: -0.02em;
+      }
+
+      h2 {
+        font-weight: 300;
+      }
+    </style>
+  </head>
+  <body class="p-3">
+    <!-- Header & Month Navigation -->
+    <header
+      class="flex flex-col md:flex-row items-center justify-between px-6 py-3 bg-white shadow-sm rounded-2xl mb-3"
+    >
+      <h1 class="text-3xl text-gray-700 mb-2 md:mb-0">twentyfourseven</h1>
+
+      <div class="flex items-center space-x-3">
+        <!-- Download Button -->
+        <button
+          id="downloadBtn"
+          class="nav-button p-2 rounded-full transition duration-200"
+          title="Download JSON"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5 text-gray-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.5"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+            />
+          </svg>
+        </button>
+
+        <!-- Upload Button -->
+        <button
+          id="uploadBtn"
+          class="nav-button p-2 rounded-full transition duration-200"
+          title="Upload JSON"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5 text-gray-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.5"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+            />
+          </svg>
+        </button>
+        <input
+          type="file"
+          id="fileInput"
+          accept=".json"
+          style="display: none"
+        />
+
+        <div class="h-6 w-px bg-gray-300"></div>
+
+        <!-- Month Navigation -->
+        <button
+          id="prevMonth"
+          class="nav-button p-2 rounded-full transition duration-200"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5 text-gray-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.5"
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+        </button>
+        <span
+          id="currentMonthYear"
+          class="text-lg font-light text-gray-700 min-w-[140px] text-center"
+        ></span>
+        <button
+          id="nextMonth"
+          class="nav-button p-2 rounded-full transition duration-200"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5 text-gray-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.5"
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-container grid grid-cols-1 lg:grid-cols-4 gap-3">
+      <!-- Table Area (3/4 on large screens) -->
+      <section
+        class="table-section lg:col-span-3 bg-white p-4 shadow-sm rounded-2xl"
+      >
+        <h2 class="text-base mb-3 text-gray-600">Hourly Activity Schedule</h2>
+        <div class="table-wrapper">
+          <div id="tableContainer" class="table-container">
+            <!-- The table will be generated by JavaScript here -->
+          </div>
+        </div>
+        <div id="tooltip" class="tooltip"></div>
+      </section>
+
+      <!-- Visualization Panel (1/4 on large screens) -->
+      <aside
+        class="lg:col-span-1 bg-white p-4 shadow-sm rounded-2xl overflow-y-auto"
+      >
+        <h2 class="text-base mb-3 text-gray-600">Monthly Statistics</h2>
+        <div class="flex justify-center mb-4">
+          <canvas
+            id="pieChartCanvas"
+            width="180"
+            height="180"
+            class="rounded-full"
+          ></canvas>
+        </div>
+
+        <!-- Legend -->
+        <div id="legendContainer" class="space-y-2 text-xs">
+          <h3
+            class="font-normal text-gray-500 border-b border-gray-100 pb-2 mb-2"
+          >
+            Categories
+          </h3>
+          <!-- The legend will be generated by JavaScript here -->
+        </div>
+      </aside>
+    </main>
+
+    <script>
+      // --- APPLICATION CONFIGURATION ---
+      const CATEGORIES = {
+        S: { name: 'Sleep', color: '#E8F5E9', darkColor: '#2E7D32' },
+        F: { name: 'Family', color: '#FFF9E6', darkColor: '#F57C00' },
+        A: { name: 'Architecture', color: '#E3F2FD', darkColor: '#1976D2' },
+        P: { name: 'Programming', color: '#FCE4EC', darkColor: '#C2185B' },
+        C: { name: 'Creativity', color: '#F3E5F5', darkColor: '#7B1FA2' },
+        E: { name: 'Entertainment', color: '#FFF3E0', darkColor: '#EF6C00' },
+      };
+      const VALID_VALUES = Object.keys(CATEGORIES);
+      const STORAGE_PREFIX = 'twentyfourseven';
+      const DAYS_OF_WEEK_FULL = [
+        'Sun',
+        'Mon',
+        'Tue',
+        'Wed',
+        'Thu',
+        'Fri',
+        'Sat',
+      ];
+      const DAY_ABBREVIATIONS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+      const MONTH_NAMES = [
+        'January',
+        'February',
+        'March',
+        'April',
+        'May',
+        'June',
+        'July',
+        'August',
+        'September',
+        'October',
+        'November',
+        'December',
+      ];
+
+      // --- GLOBAL STATE ---
+      let currentDate = new Date();
+      const tooltip = document.getElementById('tooltip');
+      let tooltipTimeout;
+      let selectedCells = new Set();
+      let isSelecting = false;
+      let selectionStart = null;
+      let clipboard = [];
+
+      // --- UTILITY FUNCTIONS ---
+
+      function getDaysInMonth(year, month) {
+        return new Date(year, month + 1, 0).getDate();
+      }
+
+      function loadActivity(year, month, day, hour) {
+        const id = `${STORAGE_PREFIX}-${year}-${month + 1}-${day}-${hour}`;
+        return localStorage.getItem(id) || '';
+      }
+
+      function saveActivity(year, month, day, hour, value) {
+        const id = `${STORAGE_PREFIX}-${year}-${month + 1}-${day}-${hour}`;
+        if (value === '') {
+          localStorage.removeItem(id);
+        } else {
+          localStorage.setItem(id, value);
+        }
+      }
+
+      function getCellClass(value) {
+        return VALID_VALUES.includes(value) ? value : 'empty';
+      }
+
+      // --- RENDERING FUNCTIONS ---
+
+      function createTable() {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const daysInMonth = getDaysInMonth(year, month);
+
+        let tableHTML = `
+                <table class="min-w-full text-center">
+                    <thead class="bg-gray-50 sticky top-0 z-10">
+                        <tr>
+                            <th class="hour-header bg-gray-50 border-none"></th>
+            `;
+
+        // Column Headers (Date)
+        for (let d = 1; d <= daysInMonth; d++) {
+          const dayIndex = new Date(year, month, d).getDay();
+          const dayAbbrev = DAY_ABBREVIATIONS[dayIndex];
+
+          tableHTML += `
+                    <th class="activity-cell bg-gray-50 text-[9px] text-gray-400 border-l border-gray-100 font-light">
+                        ${d} <span class="block font-extralight">${dayAbbrev}</span>
+                    </th>
+                `;
+        }
+        tableHTML += `</tr></thead><tbody id="activityTableBody">`;
+
+        // Hour Rows and Data Cells
+        for (let h = 0; h < 24; h++) {
+          tableHTML += `<tr><td class="hour-header">${h
+            .toString()
+            .padStart(2, '0')}:00</td>`;
+          for (let d = 1; d <= daysInMonth; d++) {
+            const value = loadActivity(year, month, d, h);
+            const cellClass = getCellClass(value);
+            const id = `cell-${year}-${month + 1}-${d}-${h}`;
+
+            tableHTML += `
+                        <td class="activity-cell ${cellClass} transition-all" 
+                            data-year="${year}" data-month="${
+              month + 1
+            }" data-day="${d}" data-hour="${h}"
+                            data-id="${id}"
+                            onmousedown="handleCellMouseDown(event, this)"
+                            onmouseenter="handleCellMouseEnter(event, this)"
+                        >
+                            <input 
+                                type="text" 
+                                value="${value}" 
+                                maxlength="1" 
+                                class="w-full h-full p-0 text-center bg-transparent"
+                                style="font-size: 9px; text-transform: uppercase; font-weight: 400; pointer-events: none;"
+                                onchange="handleCellChange(this)"
+                                oninput="handleCellInput(this)"
+                                onmouseover="showTooltip(event, this.value)"
+                                onmouseout="hideTooltip()"
+                            />
+                        </td>
+                    `;
+          }
+          tableHTML += `</tr>`;
+        }
+
+        tableHTML += `</tbody></table>`;
+        document.getElementById('tableContainer').innerHTML = tableHTML;
+        updateHeader();
+        updatePieChart();
+      }
+
+      function updateHeader() {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        document.getElementById(
+          'currentMonthYear'
+        ).textContent = `${MONTH_NAMES[month]} ${year}`;
+      }
+
+      function calculateMonthlyStats(year, month) {
+        const daysInMonth = getDaysInMonth(year, month);
+        const stats = VALID_VALUES.reduce(
+          (acc, key) => ({ ...acc, [key]: 0 }),
+          {}
+        );
+        let totalHours = 0;
+
+        for (let d = 1; d <= daysInMonth; d++) {
+          for (let h = 0; h < 24; h++) {
+            const activity = loadActivity(year, month, d, h);
+            if (activity && VALID_VALUES.includes(activity)) {
+              stats[activity]++;
+              totalHours++;
+            }
+          }
+        }
+        return { stats, totalHours };
+      }
+
+      function updatePieChart() {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const { stats, totalHours } = calculateMonthlyStats(year, month);
+        const canvas = document.getElementById('pieChartCanvas');
+        const ctx = canvas.getContext('2d');
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = 80;
+        let currentAngle = 0;
+
+        let legendHTML = '';
+
+        // Draw Pie Chart
+        VALID_VALUES.forEach(key => {
+          const count = stats[key];
+          if (count > 0) {
+            const sliceAngle = (count / totalHours) * 2 * Math.PI;
+            const color = CATEGORIES[key].color;
+            const percentage =
+              totalHours > 0 ? ((count / totalHours) * 100).toFixed(1) : 0;
+
+            ctx.beginPath();
+            ctx.arc(
+              centerX,
+              centerY,
+              radius,
+              currentAngle,
+              currentAngle + sliceAngle
+            );
+            ctx.lineTo(centerX, centerY);
+            ctx.fillStyle = color;
+            ctx.fill();
+
+            currentAngle += sliceAngle;
+
+            legendHTML += `
+                        <div class="flex items-center justify-between py-1">
+                            <div class="flex items-center">
+                                <span class="inline-block w-2.5 h-2.5 rounded-full mr-2" style="background-color: ${color};"></span>
+                                <span class="font-light text-gray-700">${key}: ${CATEGORIES[key].name}</span>
+                            </div>
+                            <span class="text-gray-500 font-light">${count}h (${percentage}%)</span>
+                        </div>
+                    `;
+          }
+        });
+
+        // Donut effect
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius * 0.5, 0, 2 * Math.PI);
+        ctx.fillStyle = 'white';
+        ctx.fill();
+
+        // Update Legend
+        const totalMaxHours = getDaysInMonth(year, month) * 24;
+        legendHTML += `
+                <div class="pt-3 mt-3 border-t border-gray-100 font-light flex justify-between text-gray-600">
+                    <span>Total Activity</span>
+                    <span>${totalHours} / ${totalMaxHours}h</span>
+                </div>
+            `;
+        document.getElementById('legendContainer').innerHTML = legendHTML;
+      }
+
+      // --- EVENT HANDLERS ---
+
+      window.handleCellMouseDown = function (event, cell) {
+        if (event.shiftKey && selectionStart) {
+          // Extend selection from start to current cell
+          event.preventDefault();
+          selectRectangle(selectionStart, cell);
+        } else if (event.ctrlKey || event.metaKey) {
+          // Add to selection
+          event.preventDefault();
+          toggleCellSelection(cell);
+          if (!selectionStart) {
+            selectionStart = cell;
+          }
+        } else {
+          // Start new selection or edit cell
+          event.preventDefault();
+
+          // If clicking on already selected cell with single selection, enable editing
+          if (selectedCells.size === 1 && selectedCells.has(cell.dataset.id)) {
+            enableCellEditing(cell);
+          } else {
+            clearSelection();
+            selectionStart = cell;
+            toggleCellSelection(cell);
+            isSelecting = true;
+          }
+        }
+      };
+
+      window.handleCellMouseEnter = function (event, cell) {
+        if (isSelecting && event.buttons === 1 && selectionStart) {
+          event.preventDefault();
+          selectRectangle(selectionStart, cell);
+        }
+      };
+
+      function enableCellEditing(cell) {
+        const input = cell.querySelector('input');
+        if (input) {
+          input.style.pointerEvents = 'auto';
+          input.focus();
+          input.select();
+        }
+      }
+
+      function disableCellEditing() {
+        document.querySelectorAll('td[data-id] input').forEach(input => {
+          input.style.pointerEvents = 'none';
+          input.blur();
+        });
+      }
+
+      function selectRectangle(startCell, endCell) {
+        const startDay = parseInt(startCell.dataset.day);
+        const startHour = parseInt(startCell.dataset.hour);
+        const endDay = parseInt(endCell.dataset.day);
+        const endHour = parseInt(endCell.dataset.hour);
+
+        const minDay = Math.min(startDay, endDay);
+        const maxDay = Math.max(startDay, endDay);
+        const minHour = Math.min(startHour, endHour);
+        const maxHour = Math.max(startHour, endHour);
+
+        // Clear previous selection
+        clearSelection();
+
+        // Select all cells in rectangle
+        for (let day = minDay; day <= maxDay; day++) {
+          for (let hour = minHour; hour <= maxHour; hour++) {
+            const year = parseInt(startCell.dataset.year);
+            const month = parseInt(startCell.dataset.month);
+            const cellId = `cell-${year}-${month}-${day}-${hour}`;
+            const cell = document.querySelector(`[data-id="${cellId}"]`);
+
+            if (cell) {
+              selectedCells.add(cellId);
+              cell.classList.add('cell-selected');
+            }
+          }
+        }
+      }
+
+      function toggleCellSelection(cell) {
+        const cellId = cell.dataset.id;
+        if (selectedCells.has(cellId)) {
+          selectedCells.delete(cellId);
+          cell.classList.remove('cell-selected');
+        } else {
+          selectedCells.add(cellId);
+          cell.classList.add('cell-selected');
+        }
+      }
+
+      function clearSelection() {
+        selectedCells.forEach(cellId => {
+          const cell = document.querySelector(`[data-id="${cellId}"]`);
+          if (cell) {
+            cell.classList.remove('cell-selected');
+          }
+        });
+        selectedCells.clear();
+      }
+
+      function getSelectedCellsData() {
+        const data = [];
+        selectedCells.forEach(cellId => {
+          const cell = document.querySelector(`[data-id="${cellId}"]`);
+          if (cell) {
+            const input = cell.querySelector('input');
+            data.push({
+              year: parseInt(cell.dataset.year),
+              month: parseInt(cell.dataset.month),
+              day: parseInt(cell.dataset.day),
+              hour: parseInt(cell.dataset.hour),
+              value: input.value,
+            });
+          }
+        });
+        // Sort by day then hour
+        return data.sort((a, b) => {
+          if (a.day !== b.day) return a.day - b.day;
+          return a.hour - b.hour;
+        });
+      }
+
+      function deleteSelectedCells() {
+        if (selectedCells.size === 0) return;
+
+        selectedCells.forEach(cellId => {
+          const cell = document.querySelector(`[data-id="${cellId}"]`);
+          if (cell) {
+            const input = cell.querySelector('input');
+            const year = parseInt(cell.dataset.year);
+            const month = parseInt(cell.dataset.month) - 1;
+            const day = parseInt(cell.dataset.day);
+            const hour = parseInt(cell.dataset.hour);
+
+            input.value = '';
+            cell.className =
+              'activity-cell ' + getCellClass('') + ' transition-all';
+            saveActivity(year, month, day, hour, '');
+          }
+        });
+
+        clearSelection();
+        updatePieChart();
+      }
+
+      function copyCells() {
+        if (selectedCells.size === 0) return;
+
+        clipboard = getSelectedCellsData().map(cell => cell.value);
+
+        // Also copy to system clipboard
+        const textData = clipboard.join('\n');
+        navigator.clipboard.writeText(textData).catch(err => {
+          console.log('Could not copy to clipboard:', err);
+        });
+      }
+
+      function pasteCells(pasteData = null) {
+        let dataToPaste = pasteData || clipboard;
+
+        if (!dataToPaste || dataToPaste.length === 0) return;
+
+        // Get the first selected cell or focused cell
+        let startCell = null;
+        if (selectedCells.size > 0) {
+          const firstCellId = Array.from(selectedCells)[0];
+          startCell = document.querySelector(`[data-id="${firstCellId}"]`);
+        } else {
+          startCell = document.activeElement.closest('td');
+        }
+
+        if (!startCell) return;
+
+        const startYear = parseInt(startCell.dataset.year);
+        const startMonth = parseInt(startCell.dataset.month);
+        const startDay = parseInt(startCell.dataset.day);
+        const startHour = parseInt(startCell.dataset.hour);
+
+        let currentDay = startDay;
+        let currentHour = startHour;
+        const year = startYear;
+        const month = startMonth;
+        const daysInMonth = getDaysInMonth(year, month - 1);
+
+        dataToPaste.forEach(value => {
+          if (currentDay > daysInMonth) return;
+
+          const cellId = `cell-${year}-${month}-${currentDay}-${currentHour}`;
+          const cell = document.querySelector(`[data-id="${cellId}"]`);
+
+          if (cell) {
+            const input = cell.querySelector('input');
+            const cleanValue = value.toUpperCase().trim();
+
+            if (VALID_VALUES.includes(cleanValue) || cleanValue === '') {
+              input.value = cleanValue;
+              cell.className =
+                'activity-cell ' + getCellClass(cleanValue) + ' transition-all';
+              saveActivity(
+                year,
+                month - 1,
+                currentDay,
+                currentHour,
+                cleanValue
+              );
+            }
+          }
+
+          currentHour++;
+          if (currentHour >= 24) {
+            currentHour = 0;
+            currentDay++;
+          }
+        });
+
+        clearSelection();
+        updatePieChart();
+      }
+
+      // Handle keyboard events
+      document.addEventListener('keydown', event => {
+        const activeElement = document.activeElement;
+        const isInputFocused =
+          activeElement.tagName === 'INPUT' &&
+          activeElement.closest('td[data-id]');
+
+        // If typing in a cell, allow normal input behavior
+        if (isInputFocused) {
+          // Escape to exit editing mode
+          if (event.key === 'Escape') {
+            disableCellEditing();
+            clearSelection();
+          }
+          // Enter to confirm and move to next cell
+          else if (event.key === 'Enter') {
+            event.preventDefault();
+            disableCellEditing();
+            const cell = activeElement.closest('td');
+            // Move to next hour or next day
+            const nextHour = parseInt(cell.dataset.hour) + 1;
+            const day = parseInt(cell.dataset.day);
+            const year = parseInt(cell.dataset.year);
+            const month = parseInt(cell.dataset.month);
+
+            if (nextHour < 24) {
+              const nextCellId = `cell-${year}-${month}-${day}-${nextHour}`;
+              const nextCell = document.querySelector(
+                `[data-id="${nextCellId}"]`
+              );
+              if (nextCell) {
+                clearSelection();
+                toggleCellSelection(nextCell);
+                enableCellEditing(nextCell);
+              }
+            }
+          }
+          return; // Don't process other keyboard shortcuts when editing
+        }
+
+        // Delete key
+        if (event.key === 'Delete' || event.key === 'Backspace') {
+          if (selectedCells.size > 0) {
+            event.preventDefault();
+            deleteSelectedCells();
+          }
+        }
+
+        // If single cell selected, allow typing to start editing
+        if (
+          selectedCells.size === 1 &&
+          event.key.length === 1 &&
+          !event.ctrlKey &&
+          !event.metaKey
+        ) {
+          const cellId = Array.from(selectedCells)[0];
+          const cell = document.querySelector(`[data-id="${cellId}"]`);
+          if (cell) {
+            enableCellEditing(cell);
+            const input = cell.querySelector('input');
+            if (input) {
+              input.value = '';
+              // Let the character be typed
+              setTimeout(() => {
+                input.value = event.key.toUpperCase();
+                handleCellInput(input);
+              }, 0);
+            }
+          }
+        }
+
+        // Ctrl+C or Cmd+C
+        if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
+          if (selectedCells.size > 0) {
+            event.preventDefault();
+            copyCells();
+          }
+        }
+
+        // Ctrl+V or Cmd+V
+        if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
+          event.preventDefault();
+
+          // Try to read from system clipboard
+          navigator.clipboard
+            .readText()
+            .then(text => {
+              if (text) {
+                // Parse clipboard data (handle both newline and tab separated)
+                const lines = text.split(/[\n\r]+/).filter(line => line.trim());
+                const values = [];
+
+                lines.forEach(line => {
+                  // Split by tab (for Excel/Sheets) or use the whole line
+                  const cells = line.split('\t');
+                  cells.forEach(cell => {
+                    const trimmed = cell.trim().toUpperCase();
+                    if (trimmed) {
+                      values.push(trimmed.charAt(0)); // Take first character only
+                    }
+                  });
+                });
+
+                if (values.length > 0) {
+                  pasteCells(values);
+                }
+              } else if (clipboard.length > 0) {
+                pasteCells();
+              }
+            })
+            .catch(err => {
+              // Fallback to internal clipboard
+              if (clipboard.length > 0) {
+                pasteCells();
+              }
+            });
+        }
+
+        // Ctrl+A or Cmd+A
+        if ((event.ctrlKey || event.metaKey) && event.key === 'a') {
+          event.preventDefault();
+          // Select all cells in current month
+          document.querySelectorAll('td[data-id]').forEach(cell => {
+            selectedCells.add(cell.dataset.id);
+            cell.classList.add('cell-selected');
+          });
+        }
+      });
+
+      // Stop selecting on mouse up
+      document.addEventListener('mouseup', () => {
+        isSelecting = false;
+        // If selection ended with single cell, enable editing
+        if (selectedCells.size === 1) {
+          const cellId = Array.from(selectedCells)[0];
+          const cell = document.querySelector(`[data-id="${cellId}"]`);
+          if (cell && !isSelecting) {
+            // Small delay to prevent immediate editing on single click
+            setTimeout(() => {
+              if (selectedCells.size === 1 && selectedCells.has(cellId)) {
+                enableCellEditing(cell);
+              }
+            }, 200);
+          }
+        }
+      });
+
+      // Clear selection start when clicking outside table
+      document.addEventListener('click', event => {
+        if (!event.target.closest('td[data-id]')) {
+          selectionStart = null;
+          if (!event.ctrlKey && !event.metaKey && !event.shiftKey) {
+            clearSelection();
+            disableCellEditing();
+          }
+        }
+      });
+
+      window.handleCellChange = function (inputElement) {
+        const parentCell = inputElement.closest('td');
+        const year = parseInt(parentCell.dataset.year);
+        const month = parseInt(parentCell.dataset.month) - 1;
+        const day = parseInt(parentCell.dataset.day);
+        const hour = parseInt(parentCell.dataset.hour);
+        let newValue = inputElement.value.toUpperCase().trim();
+
+        if (VALID_VALUES.includes(newValue)) {
+          inputElement.value = newValue;
+          parentCell.className = getCellClass(newValue) + ' transition-all';
+          inputElement.className =
+            'activity-cell ' +
+            getCellClass(newValue) +
+            ' w-full h-full p-0 border-none text-center bg-transparent focus:ring-1 focus:ring-gray-300';
+          saveActivity(year, month, day, hour, newValue);
+        } else if (newValue === '') {
+          inputElement.value = '';
+          parentCell.className = getCellClass('') + ' transition-all';
+          inputElement.className =
+            'activity-cell ' +
+            getCellClass('') +
+            ' w-full h-full p-0 border-none text-center bg-transparent focus:ring-1 focus:ring-gray-300';
+          saveActivity(year, month, day, hour, '');
+        } else {
+          const storedValue = loadActivity(year, month, day, hour);
+          inputElement.value = storedValue;
+        }
+
+        updatePieChart();
+      };
+
+      window.handleCellInput = function (inputElement) {
+        inputElement.value = inputElement.value.toUpperCase().slice(0, 1);
+      };
+
+      window.showTooltip = function (event, value) {
+        clearTimeout(tooltipTimeout);
+
+        const activityKey = value.toUpperCase();
+        let tooltipText = 'Type S, F, A, P, C, or E';
+
+        if (CATEGORIES[activityKey]) {
+          tooltipText = CATEGORIES[activityKey].name;
+        } else if (activityKey === '') {
+          tooltipText = 'Empty';
+        }
+
+        tooltip.textContent = tooltipText;
+        tooltip.classList.add('tooltip-visible');
+
+        const rect = event.target.getBoundingClientRect();
+        const bodyRect = document.body.getBoundingClientRect();
+
+        tooltip.style.left = `${
+          rect.left + rect.width / 2 - tooltip.offsetWidth / 2
+        }px`;
+        tooltip.style.top = `${rect.top - tooltip.offsetHeight - 5}px`;
+
+        if (parseFloat(tooltip.style.left) < 0) {
+          tooltip.style.left = '5px';
+        }
+        if (
+          parseFloat(tooltip.style.left) + tooltip.offsetWidth >
+          bodyRect.width
+        ) {
+          tooltip.style.left = `${bodyRect.width - tooltip.offsetWidth - 5}px`;
+        }
+      };
+
+      window.hideTooltip = function () {
+        tooltipTimeout = setTimeout(() => {
+          tooltip.classList.remove('tooltip-visible');
+        }, 100);
+      };
+
+      function changeMonth(delta) {
+        currentDate.setMonth(currentDate.getMonth() + delta);
+        createTable();
+      }
+
+      // --- DOWNLOAD / UPLOAD FUNCTIONS ---
+
+      function downloadData() {
+        // Collect all data from localStorage
+        const data = {};
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key.startsWith(STORAGE_PREFIX)) {
+            data[key] = localStorage.getItem(key);
+          }
+        }
+
+        // Create JSON blob
+        const jsonStr = JSON.stringify(data, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `twentyfourseven-backup-${
+          new Date().toISOString().split('T')[0]
+        }.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      function handleFileUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          try {
+            const data = JSON.parse(e.target.result);
+
+            // Confirm before overwriting
+            if (
+              confirm(
+                'This will overwrite your current data. Are you sure you want to continue?'
+              )
+            ) {
+              // Clear existing twentyfourseven data
+              const keysToRemove = [];
+              for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith(STORAGE_PREFIX)) {
+                  keysToRemove.push(key);
+                }
+              }
+              keysToRemove.forEach(key => localStorage.removeItem(key));
+
+              // Load new data
+              Object.keys(data).forEach(key => {
+                if (key.startsWith(STORAGE_PREFIX)) {
+                  localStorage.setItem(key, data[key]);
+                }
+              });
+
+              // Refresh the table
+              createTable();
+              alert('Data loaded successfully!');
+            }
+          } catch (error) {
+            alert('Error loading file: Invalid JSON format');
+            console.error(error);
+          }
+        };
+        reader.readAsText(file);
+
+        // Reset file input
+        event.target.value = '';
+      }
+
+      // --- INITIALIZATION ---
+      document.addEventListener('DOMContentLoaded', () => {
+        document
+          .getElementById('prevMonth')
+          .addEventListener('click', () => changeMonth(-1));
+        document
+          .getElementById('nextMonth')
+          .addEventListener('click', () => changeMonth(1));
+        createTable();
+      });
+    </script>
+  </body>
+</html>
