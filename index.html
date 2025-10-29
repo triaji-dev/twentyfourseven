@@ -28,8 +28,8 @@
       }
       /* Styling for table cells */
       .activity-cell {
-        width: 28px;
-        height: 28px;
+        width: 30px;
+        height: 30px;
         text-align: center;
         padding: 0;
         border: 1px solid #f3f4f6;
@@ -88,10 +88,10 @@
 
       /* Hour header */
       .hour-header {
-        width: 35px;
-        min-width: 35px;
+        width: 40px;
+        min-width: 40px;
         text-align: right;
-        padding-right: 6px;
+        padding-right: 8px;
         font-size: 9px;
         font-weight: 300;
         background-color: #fafafa;
@@ -186,60 +186,7 @@
     >
       <h1 class="text-3xl text-gray-700 mb-2 md:mb-0">twentyfourseven</h1>
 
-      <div class="flex items-center space-x-3">
-        <!-- Download Button -->
-        <button
-          id="downloadBtn"
-          class="nav-button p-2 rounded-full transition duration-200"
-          title="Download JSON"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-5 w-5 text-gray-500"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.5"
-              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-            />
-          </svg>
-        </button>
-
-        <!-- Upload Button -->
-        <button
-          id="uploadBtn"
-          class="nav-button p-2 rounded-full transition duration-200"
-          title="Upload JSON"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-5 w-5 text-gray-500"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.5"
-              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-            />
-          </svg>
-        </button>
-        <input
-          type="file"
-          id="fileInput"
-          accept=".json"
-          style="display: none"
-        />
-
-        <div class="h-6 w-px bg-gray-300"></div>
-
-        <!-- Month Navigation -->
+      <div class="flex items-center space-x-4">
         <button
           id="prevMonth"
           class="nav-button p-2 rounded-full transition duration-200"
@@ -305,19 +252,19 @@
         class="lg:col-span-1 bg-white p-4 shadow-sm rounded-2xl overflow-y-auto"
       >
         <h2 class="text-base mb-3 text-gray-600">Monthly Statistics</h2>
-        <div class="flex justify-center mb-4">
+        <div class="flex justify-center mb-6">
           <canvas
             id="pieChartCanvas"
-            width="180"
-            height="180"
+            width="200"
+            height="200"
             class="rounded-full"
           ></canvas>
         </div>
 
         <!-- Legend -->
-        <div id="legendContainer" class="space-y-2 text-xs">
+        <div id="legendContainer" class="space-y-3 text-xs">
           <h3
-            class="font-normal text-gray-500 border-b border-gray-100 pb-2 mb-2"
+            class="font-normal text-gray-500 border-b border-gray-100 pb-2 mb-3"
           >
             Categories
           </h3>
@@ -439,19 +386,20 @@
               month + 1
             }" data-day="${d}" data-hour="${h}"
                             data-id="${id}"
-                            onmousedown="handleCellMouseDown(event, this)"
-                            onmouseenter="handleCellMouseEnter(event, this)"
                         >
                             <input 
                                 type="text" 
                                 value="${value}" 
                                 maxlength="1" 
                                 class="w-full h-full p-0 text-center bg-transparent"
-                                style="font-size: 9px; text-transform: uppercase; font-weight: 400; pointer-events: none;"
+                                style="font-size: 9px; text-transform: uppercase; font-weight: 400;"
                                 onchange="handleCellChange(this)"
                                 oninput="handleCellInput(this)"
                                 onmouseover="showTooltip(event, this.value)"
                                 onmouseout="hideTooltip()"
+                                onmousedown="handleCellMouseDown(event, this)"
+                                onmouseenter="handleCellMouseEnter(event, this)"
+                                onfocus="handleCellFocus(this)"
                             />
                         </td>
                     `;
@@ -504,7 +452,7 @@
 
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
-        const radius = 80;
+        const radius = 90;
         let currentAngle = 0;
 
         let legendHTML = '';
@@ -563,56 +511,46 @@
 
       // --- EVENT HANDLERS ---
 
-      window.handleCellMouseDown = function (event, cell) {
+      window.handleCellMouseDown = function (event, inputElement) {
+        const parentCell = inputElement.closest('td');
+
         if (event.shiftKey && selectionStart) {
           // Extend selection from start to current cell
           event.preventDefault();
-          selectRectangle(selectionStart, cell);
+          selectRectangle(selectionStart, parentCell);
         } else if (event.ctrlKey || event.metaKey) {
           // Add to selection
           event.preventDefault();
-          toggleCellSelection(cell);
+          toggleCellSelection(parentCell);
           if (!selectionStart) {
-            selectionStart = cell;
+            selectionStart = parentCell;
           }
         } else {
-          // Start new selection or edit cell
+          // Start new selection
           event.preventDefault();
+          clearSelection();
+          selectionStart = parentCell;
+          toggleCellSelection(parentCell);
+          isSelecting = true;
+        }
+      };
 
-          // If clicking on already selected cell with single selection, enable editing
-          if (selectedCells.size === 1 && selectedCells.has(cell.dataset.id)) {
-            enableCellEditing(cell);
-          } else {
+      window.handleCellMouseEnter = function (event, inputElement) {
+        if (isSelecting && event.buttons === 1 && selectionStart) {
+          event.preventDefault();
+          const parentCell = inputElement.closest('td');
+          selectRectangle(selectionStart, parentCell);
+        }
+      };
+
+      window.handleCellFocus = function (inputElement) {
+        if (!isSelecting) {
+          const parentCell = inputElement.closest('td');
+          if (!selectedCells.has(parentCell.dataset.id)) {
             clearSelection();
-            selectionStart = cell;
-            toggleCellSelection(cell);
-            isSelecting = true;
           }
         }
       };
-
-      window.handleCellMouseEnter = function (event, cell) {
-        if (isSelecting && event.buttons === 1 && selectionStart) {
-          event.preventDefault();
-          selectRectangle(selectionStart, cell);
-        }
-      };
-
-      function enableCellEditing(cell) {
-        const input = cell.querySelector('input');
-        if (input) {
-          input.style.pointerEvents = 'auto';
-          input.focus();
-          input.select();
-        }
-      }
-
-      function disableCellEditing() {
-        document.querySelectorAll('td[data-id] input').forEach(input => {
-          input.style.pointerEvents = 'none';
-          input.blur();
-        });
-      }
 
       function selectRectangle(startCell, endCell) {
         const startDay = parseInt(startCell.dataset.day);
@@ -786,72 +724,14 @@
 
       // Handle keyboard events
       document.addEventListener('keydown', event => {
-        const activeElement = document.activeElement;
-        const isInputFocused =
-          activeElement.tagName === 'INPUT' &&
-          activeElement.closest('td[data-id]');
-
-        // If typing in a cell, allow normal input behavior
-        if (isInputFocused) {
-          // Escape to exit editing mode
-          if (event.key === 'Escape') {
-            disableCellEditing();
-            clearSelection();
-          }
-          // Enter to confirm and move to next cell
-          else if (event.key === 'Enter') {
-            event.preventDefault();
-            disableCellEditing();
-            const cell = activeElement.closest('td');
-            // Move to next hour or next day
-            const nextHour = parseInt(cell.dataset.hour) + 1;
-            const day = parseInt(cell.dataset.day);
-            const year = parseInt(cell.dataset.year);
-            const month = parseInt(cell.dataset.month);
-
-            if (nextHour < 24) {
-              const nextCellId = `cell-${year}-${month}-${day}-${nextHour}`;
-              const nextCell = document.querySelector(
-                `[data-id="${nextCellId}"]`
-              );
-              if (nextCell) {
-                clearSelection();
-                toggleCellSelection(nextCell);
-                enableCellEditing(nextCell);
-              }
-            }
-          }
-          return; // Don't process other keyboard shortcuts when editing
-        }
-
         // Delete key
         if (event.key === 'Delete' || event.key === 'Backspace') {
-          if (selectedCells.size > 0) {
+          if (
+            selectedCells.size > 0 &&
+            document.activeElement.tagName !== 'INPUT'
+          ) {
             event.preventDefault();
             deleteSelectedCells();
-          }
-        }
-
-        // If single cell selected, allow typing to start editing
-        if (
-          selectedCells.size === 1 &&
-          event.key.length === 1 &&
-          !event.ctrlKey &&
-          !event.metaKey
-        ) {
-          const cellId = Array.from(selectedCells)[0];
-          const cell = document.querySelector(`[data-id="${cellId}"]`);
-          if (cell) {
-            enableCellEditing(cell);
-            const input = cell.querySelector('input');
-            if (input) {
-              input.value = '';
-              // Let the character be typed
-              setTimeout(() => {
-                input.value = event.key.toUpperCase();
-                handleCellInput(input);
-              }, 0);
-            }
           }
         }
 
@@ -904,31 +784,23 @@
 
         // Ctrl+A or Cmd+A
         if ((event.ctrlKey || event.metaKey) && event.key === 'a') {
-          event.preventDefault();
-          // Select all cells in current month
-          document.querySelectorAll('td[data-id]').forEach(cell => {
-            selectedCells.add(cell.dataset.id);
-            cell.classList.add('cell-selected');
-          });
+          if (
+            document.activeElement.tagName !== 'INPUT' ||
+            document.activeElement.closest('td')
+          ) {
+            event.preventDefault();
+            // Select all cells in current month
+            document.querySelectorAll('td[data-id]').forEach(cell => {
+              selectedCells.add(cell.dataset.id);
+              cell.classList.add('cell-selected');
+            });
+          }
         }
       });
 
       // Stop selecting on mouse up
       document.addEventListener('mouseup', () => {
         isSelecting = false;
-        // If selection ended with single cell, enable editing
-        if (selectedCells.size === 1) {
-          const cellId = Array.from(selectedCells)[0];
-          const cell = document.querySelector(`[data-id="${cellId}"]`);
-          if (cell && !isSelecting) {
-            // Small delay to prevent immediate editing on single click
-            setTimeout(() => {
-              if (selectedCells.size === 1 && selectedCells.has(cellId)) {
-                enableCellEditing(cell);
-              }
-            }, 200);
-          }
-        }
       });
 
       // Clear selection start when clicking outside table
@@ -937,7 +809,6 @@
           selectionStart = null;
           if (!event.ctrlKey && !event.metaKey && !event.shiftKey) {
             clearSelection();
-            disableCellEditing();
           }
         }
       });
@@ -1021,82 +892,6 @@
       function changeMonth(delta) {
         currentDate.setMonth(currentDate.getMonth() + delta);
         createTable();
-      }
-
-      // --- DOWNLOAD / UPLOAD FUNCTIONS ---
-
-      function downloadData() {
-        // Collect all data from localStorage
-        const data = {};
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key.startsWith(STORAGE_PREFIX)) {
-            data[key] = localStorage.getItem(key);
-          }
-        }
-
-        // Create JSON blob
-        const jsonStr = JSON.stringify(data, null, 2);
-        const blob = new Blob([jsonStr], { type: 'application/json' });
-
-        // Create download link
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `twentyfourseven-backup-${
-          new Date().toISOString().split('T')[0]
-        }.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }
-
-      function handleFileUpload(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = function (e) {
-          try {
-            const data = JSON.parse(e.target.result);
-
-            // Confirm before overwriting
-            if (
-              confirm(
-                'This will overwrite your current data. Are you sure you want to continue?'
-              )
-            ) {
-              // Clear existing twentyfourseven data
-              const keysToRemove = [];
-              for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key.startsWith(STORAGE_PREFIX)) {
-                  keysToRemove.push(key);
-                }
-              }
-              keysToRemove.forEach(key => localStorage.removeItem(key));
-
-              // Load new data
-              Object.keys(data).forEach(key => {
-                if (key.startsWith(STORAGE_PREFIX)) {
-                  localStorage.setItem(key, data[key]);
-                }
-              });
-
-              // Refresh the table
-              createTable();
-              alert('Data loaded successfully!');
-            }
-          } catch (error) {
-            alert('Error loading file: Invalid JSON format');
-            console.error(error);
-          }
-        };
-        reader.readAsText(file);
-
-        // Reset file input
-        event.target.value = '';
       }
 
       // --- INITIALIZATION ---
