@@ -67,24 +67,35 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({ year, month, onUpd
 
   // Keyboard handlers would be added at App level for global scope
 
+const handlePaste = (e: React.ClipboardEvent) => {
+    const text = e.clipboardData.getData('text/plain');
+    useStore.getState().pasteToSelection(text);
+    e.preventDefault();
+  };
+
   return (
     <section className="table-section lg:col-span-3 bg-white p-4 shadow-sm rounded-2xl">
-      <h2 className="text-base mb-3 text-gray-600">Hourly Activity Schedule</h2>
+      <h2 className="text-base mb-3 text-gray-600">Time Blocks</h2>
       <div className="table-wrapper">
         <div className="table-container">
-          <table className="min-w-full text-center">
+          <table className="min-w-full text-center" onPaste={handlePaste}>
             <thead className="bg-gray-50 sticky top-0 z-10">
               <tr>
                 <th className="hour-header bg-gray-50 border-none"></th>
                 {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => {
                   const dayIndex = new Date(year, month, d).getDay();
                   const dayAbbrev = DAY_ABBREVIATIONS[dayIndex];
+                  const today = new Date();
+                  const isToday =
+                    today.getFullYear() === year &&
+                    today.getMonth() === month &&
+                    today.getDate() === d;
                   return (
                     <th
                       key={d}
-                      className="activity-cell bg-gray-50 text-[9px] text-gray-400 border-l border-gray-100 font-light"
+                      className={`activity-cell ${isToday ? 'bg-gray-300 text-black' : ''} text-[9px] text-gray-400 border-l border-gray-100 font-light`}
                     >
-                      {d} <span className="block font-extralight">{dayAbbrev}</span>
+                      {d} <span className="block">{dayAbbrev}</span>
                     </th>
                   );
                 })}
@@ -104,7 +115,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({ year, month, onUpd
                     return (
                       <td
                         key={`${cellId}-${dataVersion}`}
-                        className={`activity-cell ${cellClass} ${isSelected ? 'cell-selected' : ''} ${isCopied && !isSelected ? 'cell-copied' : ''}`}
+                        className={`activity-cell ${cellClass} ${isSelected ? 'cell-selected' : ''} ${isCopied && !isSelected ? 'cell-copied' : ''} ${(hour+1) % 6 === 0 ? 'border-b-gray-300 border-b-2' : ''}`}
                         onMouseDown={e => handleCellMouseDown(e, day, hour)}
                       >
                         <ActivityCell

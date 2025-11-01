@@ -29,35 +29,43 @@
   .activity-cell input {
     @apply border-none shadow-none outline-none w-full h-full p-0 text-center bg-transparent text-[9px] uppercase font-normal;
     color: inherit; /* Inherit text color from parent td */
+    caret-color: transparent; /* Hapus cursor berkedip */
+    cursor: pointer; /* Tampilkan pointer cursor */
+    user-select: none; /* Disable text selection */
+    -webkit-user-select: none; /* Safari */
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* IE/Edge */
   }
 
   .activity-cell input:focus {
     @apply outline-none shadow-none;
+    caret-color: transparent; /* Hapus cursor berkedip saat focus */
+    user-select: none; /* Disable text selection saat focus */
   }
 
   /* Pastel Colors */
   .S {
-    @apply bg-green-50 text-green-800;
+    background: #e8f5e9;
   }
 
   .F {
-    @apply bg-amber-50 text-orange-600;
+    background: #fff9e6;
   }
 
   .A {
-    @apply bg-blue-50 text-blue-700;
+    background: #e3f2fd;
   }
 
   .P {
-    @apply bg-pink-50 text-pink-700;
+    background: #fce4ec;
   }
 
   .C {
-    @apply bg-purple-50 text-purple-700;
+    background: #f3e5f5;
   }
 
   .E {
-    @apply bg-orange-50 text-orange-600;
+    background: #ebfdff;
   }
 
   .empty {

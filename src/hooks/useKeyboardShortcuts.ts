@@ -8,6 +8,10 @@ export const useKeyboardShortcuts = () => {
   const pasteToSelection = useStore(state => state.pasteToSelection);
   const deleteSelection = useStore(state => state.deleteSelection);
   const refreshStats = useStore(state => state.refreshStats);
+  const expandSelection = useStore(state => state.expandSelection);
+
+  const undo = useStore(state => state.undo);
+  const redo = useStore(state => state.redo);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -16,6 +20,46 @@ export const useKeyboardShortcuts = () => {
       const isCmdOrCtrl = e.ctrlKey || e.metaKey;
       const hasMultipleSelection = selectedCells.size > 1;
       const hasCopiedCells = copiedCells.length > 0;
+      const clearCopiedCells = useStore.getState().clearCopiedCells;
+
+      // Shift+Arrow: Expand selection (rectangle selection)
+      if (
+        e.shiftKey &&
+        ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)
+      ) {
+        // Blur input if focused, to allow rectangle selection
+        if (isInputFocused) {
+          (target as HTMLInputElement).blur();
+        }
+
+        e.preventDefault();
+
+        const directionMap: {
+          [key: string]: 'up' | 'down' | 'left' | 'right';
+        } = {
+          ArrowUp: 'up',
+          ArrowDown: 'down',
+          ArrowLeft: 'left',
+          ArrowRight: 'right',
+        };
+
+        expandSelection(directionMap[e.key]);
+        return;
+      }
+
+      // Undo: Ctrl+Z (global, termasuk saat input focus)
+      if (isCmdOrCtrl && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+        return;
+      }
+
+      // Redo: Ctrl+Shift+Z (global, termasuk saat input focus)
+      if (isCmdOrCtrl && e.key === 'z' && e.shiftKey) {
+        e.preventDefault();
+        redo();
+        return;
+      }
 
       // Copy: Ctrl+C / Cmd+C
       if (isCmdOrCtrl && e.key === 'c') {
@@ -41,6 +85,7 @@ export const useKeyboardShortcuts = () => {
           e.preventDefault();
           pasteToSelection();
           refreshStats();
+          clearCopiedCells();
           return;
         }
 
@@ -77,9 +122,13 @@ export const useKeyboardShortcuts = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
     selectedCells,
+    copiedCells,
     copySelection,
     pasteToSelection,
     deleteSelection,
     refreshStats,
+    undo,
+    redo,
+    expandSelection,
   ]);
 };

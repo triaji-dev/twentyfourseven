@@ -6,7 +6,7 @@ export const CATEGORIES: Categories = {
   A: { name: 'Architecture', color: '#E3F2FD', darkColor: '#1976D2' },
   P: { name: 'Programming', color: '#FCE4EC', darkColor: '#C2185B' },
   C: { name: 'Creativity', color: '#F3E5F5', darkColor: '#7B1FA2' },
-  E: { name: 'Entertainment', color: '#FFF3E0', darkColor: '#EF6C00' },
+  E: { name: 'Entertainment', color: '#EBFDFF', darkColor: '#EF6C00' },
 };
 
 export const VALID_VALUES = Object.keys(CATEGORIES) as Array<
