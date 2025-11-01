@@ -13,7 +13,7 @@ export const Header: React.FC<HeaderProps> = ({ currentDate, onPrevMonth, onNext
 
   return (
     <header className="flex flex-col md:flex-row items-center justify-between px-6 py-3 bg-white shadow-sm rounded-2xl mb-3">
-      <h1 className="text-3xl text-gray-700 mb-2 md:mb-0">twentyfourseven</h1>
+      <h1 className="text-3xl text-gray-700 mb-2 md:mb-0">247 - Time Tracker - <span className='text-gray-300'>v1.1</span></h1>
 
       <div className="flex items-center space-x-4">
         <button

@@ -21,6 +21,12 @@ interface AppState {
     day: number;
     hour: number;
   } | null;
+  selectionEnd: {
+    year: number;
+    month: number;
+    day: number;
+    hour: number;
+  } | null;
 
   // Clipboard state
   copiedCells: CopiedCell[];
@@ -31,6 +37,13 @@ interface AppState {
 
   // Stats cache
   statsCache: MonthStats | null;
+
+  // Undo/Redo state
+  history: Array<{ [cellId: string]: ActivityKey }>;
+  future: Array<{ [cellId: string]: ActivityKey }>;
+  pushHistory: () => void;
+  undo: () => void;
+  redo: () => void;
 
   // Actions
   setCurrentDate: (date: Date) => void;
@@ -43,6 +56,10 @@ interface AppState {
   setSelectionStart: (
     start: { year: number; month: number; day: number; hour: number } | null
   ) => void;
+  setSelectionEnd: (
+    end: { year: number; month: number; day: number; hour: number } | null
+  ) => void;
+  expandSelection: (direction: 'up' | 'down' | 'left' | 'right') => void;
   toggleCellSelection: (cellId: string) => void;
   clearSelection: () => void;
   selectRectangle: (
@@ -52,12 +69,44 @@ interface AppState {
 
   // Clipboard actions
   copySelection: () => void;
-  pasteToSelection: () => void;
+  pasteToSelection: (clipboardText?: string) => void;
   deleteSelection: () => void;
+  clearCopiedCells: () => void;
 
   // Stats actions
   calculateStats: (year: number, month: number) => MonthStats;
   refreshStats: () => void;
+}
+
+// Fungsi untuk mengambil semua nilai cell
+export function getAllCellValues(
+  year: number,
+  month: number
+): { [cellId: string]: ActivityKey } {
+  const daysInMonth = getDaysInMonth(year, month);
+  const result: { [cellId: string]: ActivityKey } = {};
+  for (let day = 1; day <= daysInMonth; day++) {
+    for (let hour = 0; hour < 24; hour++) {
+      const value = loadActivity(year, month, day, hour);
+      const cellId = `cell-${year}-${month + 1}-${day}-${hour}`;
+      result[cellId] = value || '';
+    }
+  }
+  return result;
+}
+
+// Fungsi untuk mengembalikan semua nilai cell
+export function restoreCellValues(
+  values: { [cellId: string]: ActivityKey },
+  year: number,
+  month: number
+) {
+  Object.entries(values).forEach(([cellId, value]) => {
+    const parts = cellId.split('-');
+    const day = parseInt(parts[3]);
+    const hour = parseInt(parts[4]);
+    saveActivity(year, month, day, hour, value);
+  });
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -66,10 +115,76 @@ export const useStore = create<AppState>((set, get) => ({
   selectedCells: new Set(),
   isSelecting: false,
   selectionStart: null,
+  selectionEnd: null,
   copiedCells: [],
   copiedCellIds: new Set(),
   dataVersion: 0,
   statsCache: null,
+  clearCopiedCells: () => set({ copiedCellIds: new Set(), copiedCells: [] }),
+
+  history: [],
+  future: [],
+  pushHistory: () => {
+    const year = get().currentDate.getFullYear();
+    const month = get().currentDate.getMonth();
+    const current = getAllCellValues(year, month);
+    set(state => ({
+      history: [...state.history, current],
+      future: [],
+    }));
+  },
+  undo: () => {
+    const state = get();
+    if (state.history.length === 0) return;
+
+    const year = state.currentDate.getFullYear();
+    const month = state.currentDate.getMonth();
+
+    // Simpan state saat ini ke future sebelum restore
+    const current = getAllCellValues(year, month);
+
+    // Ambil state sebelumnya dari history
+    const prev = state.history[state.history.length - 1];
+
+    // Restore ke state sebelumnya
+    restoreCellValues(prev, year, month);
+
+    // Update store
+    set({
+      history: state.history.slice(0, -1),
+      future: [current, ...state.future],
+      dataVersion: state.dataVersion + 1, // Trigger re-render
+    });
+
+    // Refresh stats setelah undo
+    get().refreshStats();
+  },
+  redo: () => {
+    const state = get();
+    if (state.future.length === 0) return;
+
+    const year = state.currentDate.getFullYear();
+    const month = state.currentDate.getMonth();
+
+    // Simpan state saat ini ke history sebelum restore
+    const current = getAllCellValues(year, month);
+
+    // Ambil state berikutnya dari future
+    const next = state.future[0];
+
+    // Restore ke state berikutnya
+    restoreCellValues(next, year, month);
+
+    // Update store
+    set({
+      history: [...state.history, current],
+      future: state.future.slice(1),
+      dataVersion: state.dataVersion + 1, // Trigger re-render
+    });
+
+    // Refresh stats setelah redo
+    get().refreshStats();
+  },
 
   // Date actions
   setCurrentDate: (date: Date) => set({ currentDate: date }),
@@ -93,7 +208,46 @@ export const useStore = create<AppState>((set, get) => ({
 
   setIsSelecting: (selecting: boolean) => set({ isSelecting: selecting }),
 
-  setSelectionStart: start => set({ selectionStart: start }),
+  setSelectionStart: start =>
+    set({ selectionStart: start, selectionEnd: start }),
+
+  setSelectionEnd: end => set({ selectionEnd: end }),
+
+  expandSelection: (direction: 'up' | 'down' | 'left' | 'right') => {
+    const { selectionStart, selectionEnd, currentDate } = get();
+
+    // Ensure we have a start and end
+    if (!selectionStart) {
+      return;
+    }
+
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    // Use selectionEnd if exists, otherwise use selectionStart
+    let endDay = selectionEnd ? selectionEnd.day : selectionStart.day;
+    let endHour = selectionEnd ? selectionEnd.hour : selectionStart.hour;
+
+    // Move end position based on direction
+    if (direction === 'right') {
+      endDay = Math.min(endDay + 1, daysInMonth);
+    } else if (direction === 'left') {
+      endDay = Math.max(endDay - 1, 1);
+    } else if (direction === 'down') {
+      endHour = Math.min(endHour + 1, 23);
+    } else if (direction === 'up') {
+      endHour = Math.max(endHour - 1, 0);
+    }
+
+    const newEnd = { year, month, day: endDay, hour: endHour };
+
+    // Update selectionEnd
+    set({ selectionEnd: newEnd });
+
+    // Select rectangle from start to new end
+    get().selectRectangle(selectionStart, newEnd);
+  },
 
   toggleCellSelection: (cellId: string) =>
     set(state => {
@@ -153,16 +307,63 @@ export const useStore = create<AppState>((set, get) => ({
     });
   },
 
-  pasteToSelection: () => {
+  pasteToSelection: (clipboardText?: string) => {
     const {
       selectedCells,
       copiedCells,
       currentDate,
       refreshStats,
       dataVersion,
+      pushHistory,
     } = get();
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
+
+    pushHistory();
+
+    // Jika ada clipboardText (dari event paste), parse sebagai TSV
+    if (clipboardText) {
+      const rows = clipboardText.trim().split('\n');
+      const data = rows.map(row => row.split('\t'));
+
+      // Ambil anchor cell
+      const selectedArray = Array.from(selectedCells);
+      if (selectedArray.length === 0) return;
+      const anchorCellId = selectedArray[0];
+      const anchorParts = anchorCellId.split('-');
+      const anchorDay = parseInt(anchorParts[3]);
+      const anchorHour = parseInt(anchorParts[4]);
+
+      // Paste data ke grid dengan validasi tipe ActivityKey
+      // Row di spreadsheet = Hour (vertikal di grid)
+      // Column di spreadsheet = Day (horizontal di grid)
+      const daysInMonth = getDaysInMonth(year, month);
+
+      for (let r = 0; r < data.length; r++) {
+        for (let c = 0; c < data[r].length; c++) {
+          const targetHour = anchorHour + r; // Row spreadsheet -> Hour grid
+          const targetDay = anchorDay + c; // Column spreadsheet -> Day grid
+
+          const value = (data[r][c] || '')
+            .toString()
+            .trim()
+            .toUpperCase() as ActivityKey;
+
+          if (
+            targetDay >= 1 &&
+            targetDay <= daysInMonth &&
+            targetHour >= 0 &&
+            targetHour < 24 &&
+            (value === '' || ['S', 'F', 'A', 'P', 'C', 'E'].includes(value))
+          ) {
+            saveActivity(year, month, targetDay, targetHour, value);
+          }
+        }
+      }
+      set({ dataVersion: dataVersion + 1 });
+      refreshStats();
+      return;
+    }
 
     if (copiedCells.length === 0) return;
 
@@ -249,9 +450,17 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   deleteSelection: () => {
-    const { selectedCells, currentDate, refreshStats, dataVersion } = get();
+    const {
+      selectedCells,
+      currentDate,
+      refreshStats,
+      dataVersion,
+      pushHistory,
+    } = get();
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
+
+    pushHistory();
 
     if (selectedCells.size === 0) return;
 
