@@ -24,12 +24,12 @@
 
 @layer components {
   .activity-cell {
-    @apply w-[32px] h-[32px] text-center p-0 border border-gray-800/50 text-[10px] uppercase font-medium cursor-pointer outline-none;
+    @apply w-[30px] h-[30px] text-center p-0 border border-gray-800/50 text-[9px] uppercase font-medium cursor-pointer outline-none;
     transition: all 0.15s ease;
   }
 
   .activity-cell input {
-    @apply border-none shadow-none outline-none w-full h-full p-0 text-center bg-transparent text-[10px] uppercase font-medium;
+    @apply border-none shadow-none outline-none w-full h-full p-0 text-center bg-transparent text-[9px] uppercase font-medium;
     color: inherit;
     caret-color: transparent;
     cursor: pointer;
@@ -45,43 +45,7 @@
     user-select: none;
   }
 
-  /* Modern Dark Theme - Synced with Chart Colors */
-  .S {
-    background: #10b981;
-    color: #d1fae5;
-    box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.2);
-  }
-
-  .F {
-    background: #f97316;
-    color: #ffedd5;
-    box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.2);
-  }
-
-  .A {
-    background: #0284c7;
-    color: #dbeafe;
-    box-shadow: 0 0 0 1px rgba(2, 132, 199, 0.2);
-  }
-
-  .P {
-    background: #db2777;
-    color: #fce7f3;
-    box-shadow: 0 0 0 1px rgba(219, 39, 119, 0.2);
-  }
-
-  .C {
-    background: #8b5cf6;
-    color: #ede9fe;
-    box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.2);
-  }
-
-  .E {
-    background: #06b6d4;
-    color: #cffafe;
-    box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.2);
-  }
-
+  /* Empty cell styling - dynamic colors applied via inline styles */
   .empty {
     background: #171717;
     color: #525252;
@@ -181,7 +145,7 @@
   }
 
   .action-button {
-    @apply flex items-center space-x-2 px-3 py-2 rounded-lg transition-all;
+    @apply flex items-center space-x-1.5 px-2 py-1.5 rounded-md transition-all text-xs;
     background: #262626;
     color: #a3a3a3;
   }

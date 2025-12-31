@@ -31,8 +31,11 @@ export const saveActivity = (
 };
 
 export const getCellClass = (value: ActivityKey): string => {
-  const validValues = ['S', 'F', 'A', 'P', 'C', 'E'];
-  return validValues.includes(value) ? value : 'empty';
+  // Return value as class if it's a single uppercase letter, else empty
+  if (value && /^[A-Z]$/.test(value)) {
+    return value;
+  }
+  return 'empty';
 };
 
 // Export all twentyfourseven data to JSON
@@ -77,13 +80,14 @@ export const importAllData = (
       const content = e.target?.result as string;
       const data = JSON.parse(content) as Record<string, string>;
 
-      // Validate data structure
-      const validValues = ['S', 'F', 'A', 'P', 'C', 'E', ''];
       let importedCount = 0;
 
       for (const [key, value] of Object.entries(data)) {
-        // Validate key format (twentyfourseven-YYYY-M-D-H)
-        if (key.startsWith(STORAGE_PREFIX) && validValues.includes(value)) {
+        // Validate key format (twentyfourseven-YYYY-M-D-H) and value (single letter or empty)
+        const isValidKey = key.startsWith(STORAGE_PREFIX) && key !== STORAGE_PREFIX + '-settings';
+        const isValidValue = value === '' || /^[A-Z]$/.test(value);
+        
+        if (isValidKey && isValidValue) {
           if (value === '') {
             localStorage.removeItem(key);
           } else {

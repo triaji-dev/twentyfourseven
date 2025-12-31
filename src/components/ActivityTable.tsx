@@ -1,9 +1,9 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { ActivityCell } from './ActivityCell';
-import { getDaysInMonth, loadActivity, getCellClass } from '../utils/storage';
+import { getDaysInMonth, loadActivity } from '../utils/storage';
 import { DAY_ABBREVIATIONS } from '../constants';
 import { useStore } from '../store/useStore';
-
+import { useSettings } from '../store/useSettings';
 interface ActivityTableProps {
   year: number;
   month: number;
@@ -21,6 +21,16 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({ year, month, onUpd
   const toggleCellSelection = useStore((state) => state.toggleCellSelection);
   const clearSelection = useStore((state) => state.clearSelection);
   const selectRectangle = useStore((state) => state.selectRectangle);
+  const categories = useSettings((state) => state.categories);
+  
+  // Create a map for faster category lookup
+  const categoryMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    categories.forEach(cat => {
+      map[cat.key] = cat.color;
+    });
+    return map;
+  }, [categories]);
   
   const daysInMonth = getDaysInMonth(year, month);
 
@@ -115,12 +125,25 @@ const handlePaste = (e: React.ClipboardEvent) => {
                     const cellId = `cell-${year}-${month + 1}-${day}-${hour}`;
                     const isSelected = selectedCells.has(cellId);
                     const isCopied = copiedCellIds.has(cellId);
-                    const cellClass = getCellClass(value);
+                    const cellColor = categoryMap[value];
+                    
+                    // Dynamic style based on category color
+                    const cellStyle: React.CSSProperties = cellColor
+                      ? {
+                          backgroundColor: cellColor,
+                          color: '#ffffff',
+                          boxShadow: `0 0 0 1px ${cellColor}33`,
+                        }
+                      : {
+                          backgroundColor: '#171717',
+                          color: '#525252',
+                        };
                     
                     return (
                       <td
                         key={`${cellId}-${dataVersion}`}
-                        className={`activity-cell ${cellClass} ${isSelected ? 'cell-selected' : ''} ${isCopied && !isSelected ? 'cell-copied' : ''} ${(hour+1) % 6 === 0 ? 'border-b-gray-300 border-b-2' : ''}`}
+                        className={`activity-cell ${isSelected ? 'cell-selected' : ''} ${isCopied && !isSelected ? 'cell-copied' : ''} ${(hour+1) % 6 === 0 ? 'border-b-gray-300 border-b-2' : ''}`}
+                        style={cellStyle}
                         onMouseDown={e => handleCellMouseDown(e, day, hour)}
                       >
                         <ActivityCell

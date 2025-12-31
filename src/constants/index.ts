@@ -1,19 +1,6 @@
-import type { Categories } from '../types';
-
-export const CATEGORIES: Categories = {
-  S: { name: 'Sleep', color: '#E8F5E9', darkColor: '#2E7D32' },
-  F: { name: 'Family', color: '#FFF9E6', darkColor: '#F57C00' },
-  A: { name: 'Architecture', color: '#E3F2FD', darkColor: '#1976D2' },
-  P: { name: 'Programming', color: '#FCE4EC', darkColor: '#C2185B' },
-  C: { name: 'Creativity', color: '#F3E5F5', darkColor: '#7B1FA2' },
-  E: { name: 'Entertainment', color: '#EBFDFF', darkColor: '#EF6C00' },
-};
-
-export const VALID_VALUES = Object.keys(CATEGORIES) as Array<
-  keyof typeof CATEGORIES
->;
-
 export const STORAGE_PREFIX = 'twentyfourseven';
+export const SETTINGS_KEY = 'twentyfourseven-settings';
+
 
 export const DAYS_OF_WEEK_FULL = [
   'Sun',

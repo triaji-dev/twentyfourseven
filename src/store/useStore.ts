@@ -354,7 +354,7 @@ export const useStore = create<AppState>((set, get) => ({
             targetDay <= daysInMonth &&
             targetHour >= 0 &&
             targetHour < 24 &&
-            (value === '' || ['S', 'F', 'A', 'P', 'C', 'E'].includes(value))
+            (value === '' || /^[A-Z]$/.test(value))
           ) {
             saveActivity(year, month, targetDay, targetHour, value);
           }
@@ -482,21 +482,14 @@ export const useStore = create<AppState>((set, get) => ({
   // Stats actions
   calculateStats: (year: number, month: number) => {
     const daysInMonth = getDaysInMonth(year, month);
-    const stats: Record<string, number> = {
-      S: 0,
-      F: 0,
-      A: 0,
-      P: 0,
-      C: 0,
-      E: 0,
-    };
+    const stats: Record<string, number> = {};
     let totalHours = 0;
 
     for (let d = 1; d <= daysInMonth; d++) {
       for (let h = 0; h < 24; h++) {
         const activity = loadActivity(year, month, d, h);
-        if (activity && ['S', 'F', 'A', 'P', 'C', 'E'].includes(activity)) {
-          stats[activity]++;
+        if (activity && /^[A-Z]$/.test(activity)) {
+          stats[activity] = (stats[activity] || 0) + 1;
           totalHours++;
         }
       }

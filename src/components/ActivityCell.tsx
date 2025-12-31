@@ -1,8 +1,8 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import type { ActivityKey } from '../types';
-import { VALID_VALUES } from '../constants';
 import { saveActivity } from '../utils/storage';
 import { useStore } from '../store/useStore';
+import { useSettings } from '../store/useSettings';
 
 interface ActivityCellProps {
   year: number;
@@ -28,6 +28,10 @@ export const ActivityCell: React.FC<ActivityCellProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState(value);
   const [shouldReplace, setShouldReplace] = useState(false);
+  const categories = useSettings((state) => state.categories);
+  
+  // Memoize valid keys to prevent infinite loops
+  const validKeys = useMemo(() => categories.map(cat => cat.key), [categories]);
 
   useEffect(() => {
     setInputValue(value);
@@ -36,12 +40,13 @@ export const ActivityCell: React.FC<ActivityCellProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let newValue = e.target.value.toUpperCase().trim() as ActivityKey;
 
-    if (VALID_VALUES.includes(newValue as any) || newValue === '') {
+    // Accept valid category keys or empty string
+    if (validKeys.includes(newValue) || newValue === '') {
       setInputValue(newValue);
       useStore.getState().pushHistory();
       saveActivity(year, month, day, hour, newValue);
       onChange();
-      setShouldReplace(false); // Reset flag setelah input
+      setShouldReplace(false);
     } else {
       setInputValue(value);
     }

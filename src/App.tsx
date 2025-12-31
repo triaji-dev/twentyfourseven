@@ -1,6 +1,7 @@
 import { Header } from './components/Header';
 import { ActivityTable } from './components/ActivityTable';
 import { Stats } from './components/Stats';
+import { SettingsModal } from './components/SettingsModal';
 import { useStore } from './store/useStore';
 import { useKeyboardShortcuts, useStats } from './hooks';
 import './index.css';
@@ -30,8 +31,12 @@ function App() {
         <ActivityTable year={year} month={month} onUpdate={refreshStats} />
         <Stats stats={stats} year={year} month={month} />
       </main>
+
+      {/* Settings Modal */}
+      <SettingsModal />
     </div>
   );
 }
 
 export default App;
+

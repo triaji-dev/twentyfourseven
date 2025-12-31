@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
-import { CATEGORIES } from '../constants';
 import { getDaysInMonth } from '../utils/storage';
+import { useSettings } from '../store/useSettings';
 import type { MonthStats } from '../types';
 
 interface StatsProps {
@@ -11,6 +11,7 @@ interface StatsProps {
 
 export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const categories = useSettings((state) => state.categories);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -28,27 +29,16 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
 
     const { stats: data, totalHours } = stats;
 
-    // Color mapping untuk chart
-    const colors: { [key: string]: string } = {
-      S: '#10b981',
-      F: '#f97316',
-      A: '#0284c7',
-      P: '#db2777',
-      C: '#8b5cf6',
-      E: '#06b6d4',
-    };
-
-    // Draw Pie Chart
-    Object.entries(CATEGORIES).forEach(([key]) => {
-      const count = data[key] || 0;
+    // Draw Pie Chart using dynamic categories
+    categories.forEach((category) => {
+      const count = data[category.key] || 0;
       if (count > 0) {
         const sliceAngle = (count / totalHours) * 2 * Math.PI;
-        const color = colors[key];
 
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
         ctx.lineTo(centerX, centerY);
-        ctx.fillStyle = color;
+        ctx.fillStyle = category.color;
         ctx.fill();
 
         currentAngle += sliceAngle;
@@ -60,7 +50,7 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
     ctx.arc(centerX, centerY, radius * 0.5, 0, 2 * Math.PI);
     ctx.fillStyle = '#171717';
     ctx.fill();
-  }, [stats]);
+  }, [stats, categories]);
 
   const totalMaxHours = getDaysInMonth(year, month) * 24;
 
@@ -77,31 +67,22 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
           Categories
         </h3>
 
-        {Object.entries(CATEGORIES).map(([key, category]) => {
-          const count = stats.stats[key] || 0;
+        {categories.map((category) => {
+          const count = stats.stats[category.key] || 0;
           const percentage =
             stats.totalHours > 0 ? ((count / stats.totalHours) * 100).toFixed(1) : 0;
 
           if (count === 0) return null;
 
-          const colors: { [key: string]: string } = {
-            S: '#10b981',
-            F: '#f97316',
-            A: '#0284c7',
-            P: '#db2777',
-            C: '#8b5cf6',
-            E: '#06b6d4',
-          };
-
           return (
-            <div key={key} className="flex items-center justify-between py-1">
+            <div key={category.key} className="flex items-center justify-between py-1">
               <div className="flex items-center">
                 <span
                   className="inline-block w-2.5 h-2.5 rounded-full mr-2"
-                  style={{ backgroundColor: colors[key] }}
+                  style={{ backgroundColor: category.color }}
                 />
                 <span className="font-normal" style={{ color: '#a3a3a3' }}>
-                  {key}: {category.name}
+                  {category.key}: {category.name}
                 </span>
               </div>
               <span className="font-normal" style={{ color: '#737373' }}>
