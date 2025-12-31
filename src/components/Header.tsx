@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { MONTH_NAMES } from '../constants';
+import { exportAllData, importAllData } from '../utils/storage';
 
 interface HeaderProps {
   currentDate: Date;
@@ -10,19 +11,103 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ currentDate, onPrevMonth, onNextMonth }) => {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDownload = () => {
+    exportAllData();
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    importAllData(
+      file,
+      () => {
+        // Reload page to refresh all data
+        window.location.reload();
+      },
+      (error) => {
+        alert(error);
+      }
+    );
+
+    // Reset input value so the same file can be selected again
+    e.target.value = '';
+  };
 
   return (
-    <header className="flex flex-col md:flex-row items-center justify-between px-6 py-3 bg-white shadow-sm rounded-2xl mb-3">
-      <h1 className="text-3xl text-gray-700 mb-2 md:mb-0">247 - Time Tracker - <span className='text-gray-300'>v1.1</span></h1>
+    <header className="flex flex-col md:flex-row items-center justify-between px-6 py-4 rounded-xl mb-3" style={{ background: '#171717', border: '1px solid #262626' }}>
+      <h1 className="text-xl font-medium mb-2 md:mb-0" style={{ color: '#e5e5e5' }}>
+        247 <span className="font-light text-sm" style={{ color: '#737373' }}>Time Tracker</span>
+      </h1>
 
       <div className="flex items-center space-x-4">
+        {/* Download JSON Button */}
         <button
-          onClick={onPrevMonth}
-          className="nav-button p-2 rounded-full transition duration-200"
+          onClick={handleDownload}
+          className="action-button"
+          title="Download JSON backup"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5 text-gray-500"
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+            />
+          </svg>
+          <span className="text-sm hidden sm:inline">Download</span>
+        </button>
+
+        {/* Upload JSON Button */}
+        <button
+          onClick={handleUploadClick}
+          className="action-button"
+          title="Upload JSON backup"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+            />
+          </svg>
+          <span className="text-sm hidden sm:inline">Upload</span>
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json"
+          onChange={handleFileChange}
+          className="hidden"
+        />
+
+        {/* Month Navigation */}
+        <button
+          onClick={onPrevMonth}
+          className="nav-button p-2 rounded-lg transition duration-200"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-5 w-5"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -35,16 +120,16 @@ export const Header: React.FC<HeaderProps> = ({ currentDate, onPrevMonth, onNext
             />
           </svg>
         </button>
-        <span className="text-lg font-light text-gray-700 min-w-[140px] text-center">
+        <span className="text-lg font-normal min-w-[140px] text-center" style={{ color: '#e5e5e5' }}>
           {MONTH_NAMES[month]} {year}
         </span>
         <button
           onClick={onNextMonth}
-          className="nav-button p-2 rounded-full transition duration-200"
+          className="nav-button p-2 rounded-lg transition duration-200"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5 text-gray-500"
+            className="h-5 w-5"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"

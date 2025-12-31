@@ -74,14 +74,14 @@ const handlePaste = (e: React.ClipboardEvent) => {
   };
 
   return (
-    <section className="table-section lg:col-span-3 bg-white p-4 shadow-sm rounded-2xl">
-      <h2 className="text-base mb-3 text-gray-600">Time Blocks</h2>
+    <section className="table-section lg:col-span-3 p-4 rounded-xl" style={{ background: '#171717', border: '1px solid #262626' }}>
+      <h2 className="text-base font-normal mb-3" style={{ color: '#a3a3a3' }}>Time Blocks</h2>
       <div className="table-wrapper">
         <div className="table-container">
           <table className="min-w-full text-center" onPaste={handlePaste}>
-            <thead className="bg-gray-50 sticky top-0 z-10">
+            <thead className="sticky top-0 z-10" style={{ background: '#0a0a0a' }}>
               <tr>
-                <th className="hour-header bg-gray-50 border-none"></th>
+                <th className="hour-header border-none" style={{ background: '#0a0a0a' }}></th>
                 {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => {
                   const dayIndex = new Date(year, month, d).getDay();
                   const dayAbbrev = DAY_ABBREVIATIONS[dayIndex];
@@ -93,9 +93,14 @@ const handlePaste = (e: React.ClipboardEvent) => {
                   return (
                     <th
                       key={d}
-                      className={`activity-cell ${isToday ? 'bg-gray-300 text-black' : ''} text-[9px] text-gray-400 border-l border-gray-100 font-light`}
+                      className={`activity-cell ${isToday ? 'font-bold animate-pulse' : ''} text-[10px] border-l font-normal`}
+                      style={{ 
+                        background: isToday ? '#0a0a0a' : '#0a0a0a',
+                        color: isToday ? '#e5e5e5' : '#737373',
+                        borderColor: '#262626'
+                      }}
                     >
-                      {d} <span className="block">{dayAbbrev}</span>
+                      {d} <span className={`${isToday ? 'font-bold' : ''} block font-light`}>{dayAbbrev}</span>
                     </th>
                   );
                 })}
