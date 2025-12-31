@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -16,68 +16,86 @@
   }
 
   body {
-    @apply font-sans font-light bg-gray-50 text-gray-700;
+    @apply font-sans font-light;
+    background: #0a0a0a;
+    color: #e5e5e5;
   }
 }
 
 @layer components {
   .activity-cell {
-    @apply w-[30px] h-[30px] text-center p-0 border border-gray-100 text-[9px] uppercase font-normal cursor-pointer outline-none;
-    transition: background-color 0.2s ease, color 0.2s ease, filter 0.2s ease;
+    @apply w-[32px] h-[32px] text-center p-0 border border-gray-800/50 text-[10px] uppercase font-medium cursor-pointer outline-none;
+    transition: all 0.15s ease;
   }
 
   .activity-cell input {
-    @apply border-none shadow-none outline-none w-full h-full p-0 text-center bg-transparent text-[9px] uppercase font-normal;
-    color: inherit; /* Inherit text color from parent td */
-    caret-color: transparent; /* Hapus cursor berkedip */
-    cursor: pointer; /* Tampilkan pointer cursor */
-    user-select: none; /* Disable text selection */
-    -webkit-user-select: none; /* Safari */
-    -moz-user-select: none; /* Firefox */
-    -ms-user-select: none; /* IE/Edge */
+    @apply border-none shadow-none outline-none w-full h-full p-0 text-center bg-transparent text-[10px] uppercase font-medium;
+    color: inherit;
+    caret-color: transparent;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
   }
 
   .activity-cell input:focus {
     @apply outline-none shadow-none;
-    caret-color: transparent; /* Hapus cursor berkedip saat focus */
-    user-select: none; /* Disable text selection saat focus */
+    caret-color: transparent;
+    user-select: none;
   }
 
-  /* Pastel Colors */
+  /* Modern Dark Theme - Synced with Chart Colors */
   .S {
-    background: #e8f5e9;
+    background: #10b981;
+    color: #d1fae5;
+    box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.2);
   }
 
   .F {
-    background: #fff9e6;
+    background: #f97316;
+    color: #ffedd5;
+    box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.2);
   }
 
   .A {
-    background: #e3f2fd;
+    background: #0284c7;
+    color: #dbeafe;
+    box-shadow: 0 0 0 1px rgba(2, 132, 199, 0.2);
   }
 
   .P {
-    background: #fce4ec;
+    background: #db2777;
+    color: #fce7f3;
+    box-shadow: 0 0 0 1px rgba(219, 39, 119, 0.2);
   }
 
   .C {
-    background: #f3e5f5;
+    background: #8b5cf6;
+    color: #ede9fe;
+    box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.2);
   }
 
   .E {
-    background: #ebfdff;
+    background: #06b6d4;
+    color: #cffafe;
+    box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.2);
   }
 
   .empty {
-    @apply bg-white;
+    background: #171717;
+    color: #525252;
   }
 
-  .activity-cell:hover {
-    @apply brightness-95;
+  .activity-cell:hover:not(.cell-selected) {
+    transform: scale(1.05);
+    filter: brightness(1.15);
   }
 
   .hour-header {
-    @apply w-10 min-w-[40px] text-right pr-2 text-[9px] font-light bg-gray-50 border-r border-gray-100 text-gray-400;
+    @apply w-10 min-w-[40px] text-right pr-3 text-[10px] font-normal border-r border-gray-800/50;
+    background: #0a0a0a;
+    color: #737373;
     user-select: none;
     -webkit-user-select: none;
     -moz-user-select: none;
@@ -86,6 +104,26 @@
 
   .table-container {
     @apply overflow-x-auto overflow-y-auto;
+    scrollbar-width: thin;
+    scrollbar-color: #404040 #171717;
+  }
+
+  .table-container::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .table-container::-webkit-scrollbar-track {
+    background: #171717;
+  }
+
+  .table-container::-webkit-scrollbar-thumb {
+    background: #404040;
+    border-radius: 4px;
+  }
+
+  .table-container::-webkit-scrollbar-thumb:hover {
+    background: #525252;
   }
 
   .main-container {
@@ -120,7 +158,10 @@
   }
 
   .tooltip {
-    @apply absolute z-50 bg-gray-700 text-white px-3 py-1.5 rounded-md text-[11px] font-light pointer-events-none opacity-0 transition-opacity -translate-y-2 whitespace-nowrap;
+    @apply absolute z-50 px-3 py-1.5 rounded-lg text-[11px] font-normal pointer-events-none opacity-0 transition-opacity -translate-y-2 whitespace-nowrap;
+    background: #262626;
+    color: #e5e5e5;
+    border: 1px solid #404040;
   }
 
   .tooltip-visible {
@@ -128,19 +169,36 @@
   }
 
   .nav-button {
-    @apply bg-transparent border border-gray-200 transition-all;
+    @apply bg-transparent border transition-all font-normal;
+    border-color: #404040;
+    color: #a3a3a3;
   }
 
   .nav-button:hover {
-    @apply bg-gray-50 border-gray-300;
+    background: #171717;
+    border-color: #525252;
+    color: #e5e5e5;
+  }
+
+  .action-button {
+    @apply flex items-center space-x-2 px-3 py-2 rounded-lg transition-all;
+    background: #262626;
+    color: #a3a3a3;
+  }
+
+  .action-button:hover {
+    background: #333333;
+    color: #e5e5e5;
   }
 
   .cell-selected {
-    @apply shadow-[inset_0_0_0_2px_#3b82f6] z-[5] relative;
+    box-shadow: inset 0 0 0 2px #3b82f6, 0 0 8px rgba(59, 130, 246, 0.3);
+    @apply z-[5] relative;
   }
 
   .cell-copied {
-    @apply shadow-[inset_0_0_0_2px_#10b981] z-[4] relative;
+    box-shadow: inset 0 0 0 2px #10b981, 0 0 8px rgba(16, 185, 129, 0.3);
+    @apply z-[4] relative;
     animation: copiedPulse 0.5s ease-in-out;
   }
 
