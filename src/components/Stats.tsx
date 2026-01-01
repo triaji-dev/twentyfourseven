@@ -132,9 +132,9 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
           onClick={() => setActiveTab('alltime')}
           className="flex-1 px-2 py-1.5 text-xs rounded-md transition-all"
           style={{
-            background: activeTab === 'alltime' ? '#b91c1c' : 'transparent',
-            color: activeTab === 'alltime' ? '#ffffff' : '#737373',
-            border: activeTab === 'alltime' ? '1px solid #dc2626' : '1px solid transparent',
+            background: activeTab === 'alltime' ? '#262626' : 'transparent',
+            color: activeTab === 'alltime' ? '#e5e5e5' : '#737373',
+            border: activeTab === 'alltime' ? '1px solid #404040' : '1px solid transparent',
           }}
         >
           All Time Statistic
