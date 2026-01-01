@@ -64,11 +64,15 @@ export const ActivityCell: React.FC<ActivityCellProps> = ({
     }
   };
 
+  const setActiveCell = useStore(state => state.setActiveCell);
+
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     // Set flag untuk replace saat focus
     setShouldReplace(true);
     // Select all text agar terlihat jelas
     e.target.select();
+    // Set active cell untuk Stats panel
+    setActiveCell({ year, month, day, hour });
     // Panggil onFocus prop
     onFocus();
   };

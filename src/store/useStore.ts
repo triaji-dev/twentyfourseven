@@ -8,6 +8,13 @@ interface CopiedCell {
   value: ActivityKey;
 }
 
+interface ActiveCell {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+}
+
 interface AppState {
   // Current date state
   currentDate: Date;
@@ -34,6 +41,9 @@ interface AppState {
 
   // Data update trigger
   dataVersion: number;
+
+  // Active cell tracking
+  activeCell: ActiveCell | null;
 
   // Stats cache
   statsCache: MonthStats | null;
@@ -73,8 +83,13 @@ interface AppState {
   deleteSelection: () => void;
   clearCopiedCells: () => void;
 
+  // Active cell actions
+  setActiveCell: (cell: ActiveCell | null) => void;
+
   // Stats actions
   calculateStats: (year: number, month: number) => MonthStats;
+  calculateDayStats: (year: number, month: number, day: number) => MonthStats;
+  calculateAllTimeStats: () => MonthStats;
   refreshStats: () => void;
 }
 
@@ -119,6 +134,7 @@ export const useStore = create<AppState>((set, get) => ({
   copiedCells: [],
   copiedCellIds: new Set(),
   dataVersion: 0,
+  activeCell: null,
   statsCache: null,
   clearCopiedCells: () => set({ copiedCellIds: new Set(), copiedCells: [] }),
 
@@ -499,6 +515,42 @@ export const useStore = create<AppState>((set, get) => ({
     set({ statsCache: result });
     return result;
   },
+
+  calculateDayStats: (year: number, month: number, day: number) => {
+    const stats: Record<string, number> = {};
+    let totalHours = 0;
+
+    for (let h = 0; h < 24; h++) {
+      const activity = loadActivity(year, month, day, h);
+      if (activity && /^[A-Z]$/.test(activity)) {
+        stats[activity] = (stats[activity] || 0) + 1;
+        totalHours++;
+      }
+    }
+
+    return { stats, totalHours };
+  },
+
+  calculateAllTimeStats: () => {
+    const stats: Record<string, number> = {};
+    let totalHours = 0;
+
+    // Iterate through all localStorage keys with our prefix
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('twentyfourseven-') && key !== 'twentyfourseven-settings') {
+        const value = localStorage.getItem(key);
+        if (value && /^[A-Z]$/.test(value)) {
+          stats[value] = (stats[value] || 0) + 1;
+          totalHours++;
+        }
+      }
+    }
+
+    return { stats, totalHours };
+  },
+
+  setActiveCell: (cell: ActiveCell | null) => set({ activeCell: cell }),
 
   refreshStats: () => {
     const { currentDate, calculateStats } = get();
