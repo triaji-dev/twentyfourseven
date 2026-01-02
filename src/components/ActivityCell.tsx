@@ -151,7 +151,7 @@ const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
       onDrop={handleDrop}
       draggable={false}
       className="w-full h-full p-0 text-center bg-transparent"
-      style={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 400 }}
+      style={{ fontSize: '8px', textTransform: 'uppercase', fontWeight: 400 }}
       data-year={year}
       data-month={month + 1}
       data-day={day}

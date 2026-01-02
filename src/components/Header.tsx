@@ -42,7 +42,7 @@ export const Header: React.FC<HeaderProps> = ({ currentDate, onPrevMonth, onNext
 
   return (
     <header 
-      className="flex items-center justify-between px-5 py-3 rounded-xl mb-3"
+      className="flex items-center justify-between px-5 py-2 rounded-xl mb-2"
       style={{ 
         background: 'linear-gradient(135deg, rgba(23, 23, 23, 0.95) 0%, rgba(38, 38, 38, 0.9) 100%)',
         backdropFilter: 'blur(12px)',
@@ -60,14 +60,14 @@ export const Header: React.FC<HeaderProps> = ({ currentDate, onPrevMonth, onNext
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)'
           }}
         >
-          <img src="/logo/247.svg" alt="247" className="w-8 h-8" style={{ filter: 'brightness(0) invert(1)' }} />
+          <img src="/logo/247.svg" alt="247" className="w-11 h-11" style={{ filter: 'brightness(0) invert(1)' }} />
         </div>
         <div className="flex flex-col">
           <span className="text-base font-medium tracking-tight" style={{ color: '#f5f5f5' }}>
             TwentyFourSeven
           </span>
           <span className="text-[10px] font-normal tracking-wider uppercase" style={{ color: '#525252' }}>
-            Time Tracker
+            SelfTracker
           </span>
         </div>
       </div>

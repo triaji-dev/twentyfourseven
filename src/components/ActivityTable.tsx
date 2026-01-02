@@ -21,6 +21,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({ year, month, onUpd
   const toggleCellSelection = useStore((state) => state.toggleCellSelection);
   const clearSelection = useStore((state) => state.clearSelection);
   const selectRectangle = useStore((state) => state.selectRectangle);
+  const activeCell = useStore((state) => state.activeCell);
   const categories = useSettings((state) => state.categories);
   
   // Create a map for faster category lookup
@@ -84,13 +85,39 @@ const handlePaste = (e: React.ClipboardEvent) => {
   };
 
   return (
-    <section className="table-section lg:col-span-3 p-4 rounded-xl" style={{ background: '#171717', border: '1px solid #262626' }}>
-      <h2 className="text-base font-normal mb-3" style={{ color: '#a3a3a3' }}>Time Blocks</h2>
+    <section className="table-section p-4 lg:col-span-3 p-2 rounded-xl" style={{ background: '#171717', border: '1px solid #262626' }}>
+      <h2 className="text-sm font-normal mb-2" style={{ color: '#a3a3a3' }}>Activity Tracker</h2>
       <div className="table-wrapper">
         <div className="table-container">
           <table className="min-w-full text-center" onPaste={handlePaste}>
             <thead className="sticky top-0 z-10" style={{ background: '#0a0a0a' }}>
-              <tr>
+              {/* Date Row */}
+              <tr style={{ height: '20px' }}>
+                <th className="hour-header border-none" style={{ background: '#0a0a0a' }}></th>
+                {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => {
+                  const today = new Date();
+                  const isToday =
+                    today.getFullYear() === year &&
+                    today.getMonth() === month &&
+                    today.getDate() === d;
+                  const isActiveDate = activeCell?.year === year && activeCell?.month === month && activeCell?.day === d;
+                  
+                  return (
+                    <th
+                      key={`date-${d}`}
+                      className={`activity-cell ${isToday ? 'font-bold text-white' : 'text-[#737373]'} ${isActiveDate ? 'bg-[#1a1a1a] text-[#e5e5e5]' : ''} text-[10px] border-l font-normal border-b-0`}
+                      style={{ 
+                        background: isActiveDate ? '#1a1a1a' : '#0a0a0a',
+                        borderColor: '#262626'
+                      }}
+                    >
+                      {d}
+                    </th>
+                  );
+                })}
+              </tr>
+              {/* Day Initial Row */}
+              <tr style={{ height: '20px' }}>
                 <th className="hour-header border-none" style={{ background: '#0a0a0a' }}></th>
                 {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => {
                   const dayIndex = new Date(year, month, d).getDay();
@@ -100,17 +127,18 @@ const handlePaste = (e: React.ClipboardEvent) => {
                     today.getFullYear() === year &&
                     today.getMonth() === month &&
                     today.getDate() === d;
+                  const isActiveDate = activeCell?.year === year && activeCell?.month === month && activeCell?.day === d;
+                  
                   return (
                     <th
-                      key={d}
-                      className={`activity-cell ${isToday ? 'font-bold animate-pulse' : ''} text-[10px] border-l font-normal`}
+                      key={`day-${d}`}
+                      className={`activity-cell ${isToday ? 'font-bold text-white' : 'text-[#525252]'} ${isActiveDate ? 'bg-[#1a1a1a] text-[#e5e5e5]' : ''} text-[8px] border-l font-light border-t-0`}
                       style={{ 
-                        background: isToday ? '#0a0a0a' : '#0a0a0a',
-                        color: isToday ? '#e5e5e5' : '#737373',
+                        background: isActiveDate ? '#1a1a1a' : '#0a0a0a',
                         borderColor: '#262626'
                       }}
                     >
-                      {d} <span className={`${isToday ? 'font-bold' : ''} block font-light`}>{dayAbbrev}</span>
+                      {dayAbbrev}
                     </th>
                   );
                 })}

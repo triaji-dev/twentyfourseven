@@ -20,14 +20,14 @@ function App() {
   const stats = useStats(year, month);
 
   return (
-    <div className="p-3 h-screen overflow-hidden">
+    <div className="p-2 h-screen overflow-hidden">
       <Header
         currentDate={currentDate}
         onPrevMonth={prevMonth}
         onNextMonth={nextMonth}
       />
 
-      <main className="main-container grid grid-cols-1 lg:grid-cols-4 gap-3">
+      <main className="main-container grid grid-cols-1 lg:grid-cols-4 gap-2">
         <ActivityTable year={year} month={month} onUpdate={refreshStats} />
         <Stats stats={stats} year={year} month={month} />
       </main>

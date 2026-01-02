@@ -85,7 +85,12 @@ export const importAllData = (
       for (const [key, value] of Object.entries(data)) {
         // Validate key format (twentyfourseven-YYYY-M-D-H) and value (single letter or empty)
         const isValidKey = key.startsWith(STORAGE_PREFIX) && key !== STORAGE_PREFIX + '-settings';
-        const isValidValue = value === '' || /^[A-Z]$/.test(value);
+        
+        // Validation:
+        // 1. Notes: accept any string (it's stringified JSON)
+        // 2. Activity: accept single uppercase letter or empty string
+        const isNote = key.includes('-notes-');
+        const isValidValue = isNote || (value === '' || /^[A-Z]$/.test(value));
         
         if (isValidKey && isValidValue) {
           if (value === '') {
