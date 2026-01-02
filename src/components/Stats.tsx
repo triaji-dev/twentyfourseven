@@ -455,8 +455,9 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
 
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
-    const radius = 90;
-    let currentAngle = 0;
+    const outerRadius = 90;
+    const innerRadius = 65;
+    let currentAngle = -0.5 * Math.PI; // Start from top
 
     const { stats: data, totalHours } = displayStats;
 
@@ -464,19 +465,40 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
       const count = data[category.key] || 0;
       if (count > 0) {
         const sliceAngle = (count / totalHours) * 2 * Math.PI;
+        
         ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
-        ctx.lineTo(centerX, centerY);
+        // Create donut segment path
+        ctx.arc(centerX, centerY, outerRadius, currentAngle, currentAngle + sliceAngle, false);
+        ctx.arc(centerX, centerY, innerRadius, currentAngle + sliceAngle, currentAngle, true);
+        ctx.closePath();
+        
         ctx.fillStyle = category.color;
         ctx.fill();
+        
+        // Segment separation
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#171717';
+        ctx.stroke();
+        
         currentAngle += sliceAngle;
       }
     });
-
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius * 0.5, 0, 2 * Math.PI);
-    ctx.fillStyle = '#171717';
-    ctx.fill();
+    
+    // Center Text
+    if (totalHours > 0) {
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        // Total Hours
+        ctx.font = '600 24px sans-serif';
+        ctx.fillStyle = '#e5e5e5';
+        ctx.fillText(totalHours.toString(), centerX, centerY - 8);
+        
+        // Label
+        ctx.font = '400 10px sans-serif';
+        ctx.fillStyle = '#737373';
+        ctx.fillText('HOURS', centerX, centerY + 10);
+    }
   }, [displayStats, categories, mainTab]);
 
   const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -497,13 +519,14 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
     const dy = y - centerY;
     const distance = Math.sqrt(dx * dx + dy * dy);
     
-    // Donut chart radius 90, inner hole ~45
-    if (distance < 45 || distance > 90) {
+    // Donut chart inner/outer radius check (65-90)
+    if (distance < 65 || distance > 90) {
       setTooltip(prev => ({ ...prev, visible: false }));
       return;
     }
     
-    let angle = Math.atan2(dy, dx);
+    const rawAngle = Math.atan2(dy, dx);
+    let angle = rawAngle + Math.PI / 2; // Adjust for Top start
     if (angle < 0) angle += 2 * Math.PI;
     
     let currentStartAngle = 0;
@@ -547,7 +570,7 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
       <div className="flex gap-4 mb-6 flex-shrink-0">
         <button
           onClick={() => setMainTab('statistic')}
-          className={`text-xs font-medium transition-colors ${mainTab === 'statistic' ? 'text-white' : 'text-[#737373] hover:text-[#a3a3a3]'}`}
+          className={`text-sm font-medium transition-colors ${mainTab === 'statistic' ? 'text-white' : 'text-[#737373] hover:text-[#a3a3a3]'}`}
            style={{
             background: mainTab === 'statistic' ? '#262626' : 'transparent',
             padding: '4px 12px',
@@ -558,7 +581,7 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
         </button>
         <button
           onClick={() => setMainTab('notes')}
-          className={`text-xs font-medium transition-colors ${mainTab === 'notes' ? 'text-white' : 'text-[#737373] hover:text-[#a3a3a3]'}`}
+          className={`text-sm font-medium transition-colors ${mainTab === 'notes' ? 'text-white' : 'text-[#737373] hover:text-[#a3a3a3]'}`}
            style={{
             background: mainTab === 'notes' ? '#262626' : 'transparent',
             padding: '4px 12px',
