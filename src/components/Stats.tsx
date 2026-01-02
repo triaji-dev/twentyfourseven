@@ -3,7 +3,7 @@ import { getDaysInMonth } from '../utils/storage';
 import { useSettings } from '../store/useSettings';
 import { useStore } from '../store/useStore';
 import type { MonthStats } from '../types';
-import { Palette, X, Type, CheckSquare, AlertCircle, Link as LinkIcon, MoreHorizontal } from 'lucide-react';
+import { X, Type, CheckSquare, AlertCircle, Link as LinkIcon, MoreHorizontal } from 'lucide-react';
 
 type NoteType = 'text' | 'link' | 'todo' | 'important';
 
