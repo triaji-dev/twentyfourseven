@@ -108,7 +108,7 @@ export const SettingsModal: React.FC = () => {
                   value={category.color}
                   onChange={(e) => handleUpdateCategory(category.key, 'color', e.target.value)}
                   className="w-8 h-8 rounded cursor-pointer"
-                  style={{ border: 'none', padding: 0 }}
+                  style={{ border: 'none', padding: 0, backgroundColor: 'transparent' }}
                 />
                 
                 {/* Key Input */}
@@ -191,7 +191,7 @@ export const SettingsModal: React.FC = () => {
                 value={newCategory.color}
                 onChange={(e) => setNewCategory({ ...newCategory, color: e.target.value })}
                 className="w-8 h-8 rounded cursor-pointer"
-                style={{ border: 'none', padding: 0 }}
+                style={{ border: 'none', padding: 0, backgroundColor: 'transparent' }}
               />
               
               {/* Key Input */}

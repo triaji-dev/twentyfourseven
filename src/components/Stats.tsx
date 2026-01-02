@@ -3,6 +3,7 @@ import { getDaysInMonth } from '../utils/storage';
 import { useSettings } from '../store/useSettings';
 import { useStore } from '../store/useStore';
 import type { MonthStats } from '../types';
+import { Palette, X } from 'lucide-react';
 
 type StatsTab = 'daily' | 'monthly' | 'alltime';
 
@@ -19,8 +20,15 @@ const MONTH_NAMES = [
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+const NOTE_COLORS = [
+  '#ffadad', '#ffd6a5', '#fdffb6', '#caffbf', // Red, Orange, Yellow, Green
+  '#9bf6ff', '#a0c4ff', '#bdb2ff', '#ffc6ff', // Cyan, Blue, Purple, Pink
+  '#e5e5e5', '#fbbf24', '#f87171', '#a3a3a3'  // White, Amber, Redish, Gray
+];
+
 export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const initialRender = useRef(true);
   const categories = useSettings((state) => state.categories);
   const activeCell = useStore((state) => state.activeCell);
   const calculateDayStats = useStore((state) => state.calculateDayStats);
@@ -32,6 +40,7 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
     id: string;
     content: string;
     createdAt: string; // ISO string
+    color?: string;
   }
 
   const [activeTab, setActiveTab] = useState<StatsTab>('monthly');
@@ -41,11 +50,15 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
   const [notes, setNotes] = useState<Record<number, NoteItem[]>>({});
   const [newNote, setNewNote] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [isViewAll, setIsViewAll] = useState(false);
   const [allTimeNotes, setAllTimeNotes] = useState<Array<{ date: Date; notes: NoteItem[] }>>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
+  const [colorPickerNoteId, setColorPickerNoteId] = useState<string | null>(null);
+  const [isViewAll, setIsViewAll] = useState(true);
   
   // Actions
   const setActiveCell = useStore((state) => state.setActiveCell);
+  const triggerUpdate = useStore((state) => state.triggerUpdate);
 
   // Helper to fetch all notes
   const fetchAllNotes = () => {
@@ -98,52 +111,60 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
     }
   }, [year, month]);
 
-  // Load all notes when entering view all
+  // Load all notes initially
+
   useEffect(() => {
-    if (isViewAll) {
-      setAllTimeNotes(fetchAllNotes());
+    setAllTimeNotes(fetchAllNotes());
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (colorPickerNoteId) {
+        const target = event.target as HTMLElement;
+        if (!target.closest(`[data-picker-id="${colorPickerNoteId}"]`)) {
+          setColorPickerNoteId(null);
+        }
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [colorPickerNoteId]);
+
+  useEffect(() => {
+    if (initialRender.current) {
+      initialRender.current = false;
+      return;
     }
-  }, [isViewAll, year, month, notes]); // Refresh if current notes change
+    if (activeCell) {
+      setIsViewAll(false);
+    }
+  }, [activeCell]);
 
   // ... handleAddNote same ...
   // ... handleDeleteNote same ...
   
-  // Toggle View All
-  const toggleViewAll = () => {
-    if (isViewAll) {
-      setIsViewAll(false);
-    } else {
-      setActiveCell(null); // Clear specific day selection
-      setIsViewAll(true);
-    }
-  };
-
   // Filtered Notes Logic
   const getFilteredNotes = () => {
     let result: Array<{ date: Date; notes: NoteItem[] }> = [];
 
-    if (isViewAll) {
-      result = allTimeNotes;
-    } else if (activeCell) {
-       // Single day
-       const dayNotes = notes[activeCell.day] || [];
-       if (dayNotes.length > 0) {
-         result = [{
-           date: new Date(year, month, activeCell.day),
-           notes: dayNotes
-         }];
+    if (activeCell && !isViewAll) {
+       if (activeCell.year === year && activeCell.month === month) {
+           const dayNotes = notes[activeCell.day] || [];
+           if (dayNotes.length > 0) {
+             result = [{
+               date: new Date(year, month, activeCell.day),
+               notes: dayNotes
+             }];
+           }
+       } else {
+           result = allTimeNotes.filter(item => 
+              item.date.getFullYear() === activeCell.year &&
+              item.date.getMonth() === activeCell.month &&
+              item.date.getDate() === activeCell.day
+           );
        }
     } else {
-      // Current Month
-      Object.entries(notes).forEach(([d, items]) => {
-         if (items.length > 0) {
-           result.push({
-             date: new Date(year, month, parseInt(d)),
-             notes: items
-           });
-         }
-      });
-      result.sort((a, b) => a.date.getDate() - b.date.getDate());
+      result = allTimeNotes;
     }
 
     if (searchQuery.trim()) {
@@ -202,8 +223,81 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
         setNotes(updatedNotes);
         localStorage.setItem(`twentyfourseven-notes-${year}-${month}`, JSON.stringify(updatedNotes));
         setNewNote('');
+        setAllTimeNotes(fetchAllNotes());
+        triggerUpdate();
       }
     }
+  };
+
+  const handleStartEdit = (note: NoteItem) => {
+    setEditingId(note.id);
+    setEditContent(note.content);
+  };
+
+  const handleSaveEdit = (date: Date, noteId: string) => {
+    if (!editContent.trim()) {
+      setEditingId(null);
+      return;
+    }
+    
+    const y = date.getFullYear();
+    const m = date.getMonth();
+    const d = date.getDate();
+    const key = `twentyfourseven-notes-${y}-${m}`;
+    
+    let monthNotes: Record<number, NoteItem[]> = {};
+    try {
+        const saved = localStorage.getItem(key);
+        monthNotes = saved ? JSON.parse(saved) : {};
+    } catch(e) {
+        monthNotes = {};
+    }
+    
+    const dayNotes = monthNotes[d] || [];
+    const updatedDayNotes = dayNotes.map((n: NoteItem) => n.id === noteId ? { ...n, content: editContent } : n);
+    
+    const updatedMonthNotes = { ...monthNotes, [d]: updatedDayNotes };
+    localStorage.setItem(key, JSON.stringify(updatedMonthNotes));
+    
+    if (y === year && m === month) {
+        setNotes(updatedMonthNotes);
+    } 
+    
+    
+    setAllTimeNotes(fetchAllNotes());
+    triggerUpdate();
+    
+    setEditingId(null);
+  };
+
+  const handleUpdateNoteColor = (date: Date, noteId: string, color: string) => {
+    const y = date.getFullYear();
+    const m = date.getMonth();
+    const d = date.getDate();
+    const key = `twentyfourseven-notes-${y}-${m}`;
+    
+    let monthNotes: Record<number, NoteItem[]> = {};
+    try {
+        const saved = localStorage.getItem(key);
+        monthNotes = saved ? JSON.parse(saved) : {};
+    } catch(e) {
+        monthNotes = {};
+    }
+    
+    const dayNotes = monthNotes[d] || [];
+    const updatedDayNotes = dayNotes.map((n: NoteItem) => n.id === noteId ? { ...n, color } : n);
+    
+    const updatedMonthNotes = { ...monthNotes, [d]: updatedDayNotes };
+    localStorage.setItem(key, JSON.stringify(updatedMonthNotes));
+    
+    if (y === year && m === month) {
+        setNotes(updatedMonthNotes);
+    } 
+    
+    setAllTimeNotes(fetchAllNotes());
+    triggerUpdate();
+    
+    setColorPickerNoteId(null);
   };
 
   const handleDeleteNote = (day: number, noteId: string) => {
@@ -221,6 +315,9 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
 
     setNotes(updatedNotes);
     localStorage.setItem(`twentyfourseven-notes-${year}-${month}`, JSON.stringify(updatedNotes));
+    
+    setAllTimeNotes(fetchAllNotes());
+    triggerUpdate();
   };
 
 
@@ -297,7 +394,7 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
       <div className="flex gap-4 mb-6 flex-shrink-0">
         <button
           onClick={() => setMainTab('statistic')}
-          className={`text-sm font-medium transition-colors ${mainTab === 'statistic' ? 'text-white' : 'text-[#737373] hover:text-[#a3a3a3]'}`}
+          className={`text-xs font-medium transition-colors ${mainTab === 'statistic' ? 'text-white' : 'text-[#737373] hover:text-[#a3a3a3]'}`}
            style={{
             background: mainTab === 'statistic' ? '#262626' : 'transparent',
             padding: '4px 12px',
@@ -308,7 +405,7 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
         </button>
         <button
           onClick={() => setMainTab('notes')}
-          className={`text-sm font-medium transition-colors ${mainTab === 'notes' ? 'text-white' : 'text-[#737373] hover:text-[#a3a3a3]'}`}
+          className={`text-xs font-medium transition-colors ${mainTab === 'notes' ? 'text-white' : 'text-[#737373] hover:text-[#a3a3a3]'}`}
            style={{
             background: mainTab === 'notes' ? '#262626' : 'transparent',
             padding: '4px 12px',
@@ -385,19 +482,31 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
               if (count === 0) return null;
 
               return (
-                <div key={category.key} className="flex items-center justify-between py-1">
-                  <div className="flex items-center">
-                    <span
-                      className="inline-block w-2.5 h-2.5 rounded-full mr-2"
-                      style={{ backgroundColor: category.color }}
-                    />
-                    <span className="font-normal" style={{ color: '#a3a3a3' }}>
-                      {category.key}: {category.name}
+                <div key={category.key} className="relative py-1.5 px-2 rounded-md overflow-hidden group hover:bg-[#1a1a1a] transition-colors">
+                  {/* Bar Chart Background */}
+                  <div 
+                    className="absolute top-0 left-0 bottom-0 bg-[#404040] transition-all duration-500 ease-out"
+                    style={{ 
+                      width: `${percentage}%`,
+                      opacity: 0.4
+                    }}
+                  />
+                  
+                  {/* Content */}
+                  <div className="relative z-10 flex items-center justify-between">
+                    <div className="flex items-center">
+                      <span
+                        className="inline-block w-2.5 h-2.5 rounded-full mr-2 shadow-sm"
+                        style={{ backgroundColor: category.color }}
+                      />
+                      <span className="font-normal" style={{ color: '#d4d4d4' }}>
+                         {category.name}
+                      </span>
+                    </div>
+                    <span className="font-medium font-mono" style={{ color: '#737373' }}>
+                      {count}h <span className="text-[#404040] mx-1">/</span> {percentage}%
                     </span>
                   </div>
-                  <span className="font-normal" style={{ color: '#737373' }}>
-                    {count}h ({percentage}%)
-                  </span>
                 </div>
               );
             })}
@@ -413,26 +522,32 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
       ) : (
         <div className="flex flex-col h-full">
            {/* Search & See All Header */}
-           <div className="flex items-center justify-between mb-6 gap-3">
-             <div className="relative flex-1">
-               <input 
-                 type="text" 
-                 placeholder="Search notes..." 
-                 value={searchQuery}
-                 onChange={(e) => setSearchQuery(e.target.value)}
-                 className="w-full bg-[#0a0a0a] border border-[#262626] focus:border-[#404040] outline-none text-xs text-[#e5e5e5] placeholder-[#525252] pl-3 py-2 rounded-lg transition-colors"
-               />
-             </div>
-             <button 
-               onClick={toggleViewAll}
-               className="text-[11px] font-medium whitespace-nowrap text-[#737373] hover:text-[#e5e5e5] transition-colors"
-             >
-               {isViewAll ? 'Monthly Notes' : 'All Notes'}
-             </button>
-           </div>
+              <div className="flex items-center justify-between mb-6 gap-3">
+                <div className="relative flex-1">
+                  <input 
+                    type="text" 
+                    placeholder="Filter notes..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-[#0a0a0a] border border-[#262626] focus:border-[#404040] outline-none text-xs text-[#e5e5e5] placeholder-[#525252] pl-3 h-8 rounded-lg transition-colors"
+                  />
+                </div>
+                {activeCell && (
+                  <button
+                    onClick={() => setIsViewAll(!isViewAll)}
+                    className={`h-8 flex items-center justify-center whitespace-nowrap px-3 text-xs font-medium rounded-lg transition-colors border ${
+                      isViewAll 
+                        ? 'bg-[#404040] text-[#e5e5e5] border-[#404040]' 
+                        : 'bg-transparent text-[#737373] border-[#262626] hover:text-[#e5e5e5] hover:border-[#404040]'
+                    }`}
+                  >
+                    {isViewAll ? 'View Day' : 'View All'}
+                  </button>
+                )}
+              </div>
 
            {/* Notes List */}
-           <div className="flex flex-col flex-1 overflow-y-auto custom-scrollbar mb-2 pr-1">
+           <div className="flex flex-col flex-1 overflow-y-auto custom-scrollbar mb-2 pr-3">
               {filteredNotes.length === 0 ? (
                 <div className="text-xs text-[#525252] italic text-center mt-10">
                   {searchQuery ? 'No notes found matching your search.' : 'No notes available.'}
@@ -447,9 +562,16 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
                                          activeCell.day === group.date.getDate();
 
                    return (
-                     <div key={groupIndex} className="mb-8 last:mb-0">
+
+                     <div 
+                       key={groupIndex} 
+                       className={`${isViewAll ? 'mb-4 p-3 rounded-xl border border-[#262626] bg-[#1c1c1c]' : 'mb-8 last:mb-0'}`}
+                     >
                        <div 
                          onClick={() => {
+                           if (isViewAll) {
+                               setIsViewAll(false);
+                           }
                            if (!isTodayActive) {
                              setActiveCell({ 
                                year: group.date.getFullYear(), 
@@ -457,46 +579,152 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
                                day: group.date.getDate(), 
                                hour: 0 
                              });
-                             setIsViewAll(false); // Switch to day view
                            }
                          }}
-                         className={`text-[13px] font-medium mb-3 ${!isTodayActive ? 'cursor-pointer hover:text-[#d4d4d4]' : ''} transition-colors flex items-center gap-2`}
+                         className={`text-[13px] font-medium mb-3 ${!isTodayActive || isViewAll ? 'cursor-pointer group/date' : ''} transition-all flex items-center justify-between gap-2`}
                          style={{ color: isTodayActive ? '#e5e5e5' : '#737373' }}
                        >
-                          {dateStr}
+                          <span className={`${!isTodayActive || isViewAll ? 'group-hover/date:text-[#e5e5e5]' : ''} transition-colors`}>
+                            {dateStr}
+                          </span>
                           {isTodayActive && <div className="w-1.5 h-1.5 rounded-full bg-[#262626]" />}
+                          {isViewAll && (
+                            <span className="text-[10px] text-[#525252] opacity-0 group-hover/date:opacity-100 transition-opacity uppercase tracking-wider">
+                              Open Day
+                            </span>
+                          )}
                        </div>
-                       <ul className="space-y-2">
-                         {group.notes.map((note) => (
-                           <li key={note.id} className="group flex items-start text-[13px] text-[#a3a3a3] leading-[14px] pl-1 hover:text-[#d4d4d4] transition-colors">
-                             <span className="mr-3 mt-[5px] w-1 h-1 rounded-full bg-[#404040] flex-shrink-0 group-hover:bg-[#737373] transition-colors" />
-                             <span className="flex-1 break-words whitespace-pre-wrap min-w-0 font-light">
-                               {note.content.split(/(https?:\/\/[^\s]+)/g).map((part, i) => 
-                                 part.match(/(https?:\/\/[^\s]+)/g) ? (
-                                   <a 
-                                     key={i} 
-                                     href={part} 
-                                     target="_blank" 
-                                     rel="noopener noreferrer" 
-                                     className="text-[#e5e5e5] hover:underline"
-                                     onClick={(e) => e.stopPropagation()}
+                       <ul className={`space-y-${isViewAll ? '0.5' : '2.5'}`}>
+                         {(isViewAll ? group.notes.slice(0, 3) : group.notes).map((note) => (
+                           <li 
+                             key={note.id} 
+                             onClick={() => {
+                               if (isViewAll) {
+                                  setIsViewAll(false);
+                                  setActiveCell({ 
+                                    year: group.date.getFullYear(), 
+                                    month: group.date.getMonth(), 
+                                    day: group.date.getDate(), 
+                                    hour: 0 
+                                  });
+                               }
+                             }}
+                             className={`group flex flex-col relative text-[11px] leading-5 pl-1 transition-colors ${isViewAll ? 'cursor-pointer hover:bg-[#262626]/50 rounded px-1 -ml-1 py-0.5' : ''}`}
+                           >
+                             <div className="flex items-start gap-2 w-full">
+                               <span 
+                                  className={`flex-shrink-0 bg-[#404040] transition-colors ${
+                                    isViewAll 
+                                      ? 'mt-[8px] w-1 h-1 rounded-full group-hover:bg-[#737373]'
+                                      : 'mt-[8px] w-1 h-1 rounded-full group-hover:bg-[#737373]'
+                                  }`} 
+                               />
+                               
+                               {editingId === note.id ? (
+                                  <textarea 
+                                    autoFocus
+                                    value={editContent}
+                                    style={{ color: note.color || '#e5e5e5' }}
+                                    onChange={(e) => {
+                                      setEditContent(e.target.value);
+                                      e.target.style.height = 'auto';
+                                      e.target.style.height = e.target.scrollHeight + 'px';
+                                    }}
+                                    onFocus={(e) => {
+                                      e.target.style.height = 'auto';
+                                      e.target.style.height = e.target.scrollHeight + 'px';
+                                      e.target.setSelectionRange(e.target.value.length, e.target.value.length);
+                                    }}
+                                    onBlur={() => handleSaveEdit(group.date, note.id)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSaveEdit(group.date, note.id);
+                                      }
+                                    }}
+                                    className="flex-1 bg-[#1a1a1a] border-b border-[#404040] outline-none min-w-0 font-light resize-none overflow-hidden leading-5 text-[11px] py-0 block"
+                                    rows={1}
+                                  />
+                               ) : (
+                                   <span 
+                                     className={`flex-1 break-words whitespace-pre-wrap min-w-0 font-light select-text ${isViewAll ? 'cursor-pointer' : 'cursor-text'}`}
+                                     style={{ color: note.color || '#a3a3a3' }}
+                                     onDoubleClick={() => isTodayActive && handleStartEdit(note)}
                                    >
-                                     {part}
-                                   </a>
-                                 ) : part
+                                     {note.content.split(/(https?:\/\/[^\s]+)/g).map((part, i) => 
+                                       part.match(/(https?:\/\/[^\s]+)/g) ? (
+                                         <a 
+                                           key={i} 
+                                           href={part} 
+                                           target="_blank" 
+                                           rel="noopener noreferrer" 
+                                           className="hover:underline" // Removed explicit color to inherit parent color
+                                           style={{ color: 'inherit' }} 
+                                           onClick={(e) => e.stopPropagation()}
+                                         >
+                                           {part}
+                                         </a>
+                                       ) : part
+                                     )}
+                                   </span>
                                )}
-                             </span>
-                             {isTodayActive && (
-                               <button 
-                                 onClick={() => handleDeleteNote(group.date.getDate(), note.id)}
-                                 className="opacity-0 group-hover:opacity-100 ml-3 text-[#525252] hover:text-[#a3a3a3] transition-all"
-                                 title="Delete note"
-                               >
-                                 ×
-                               </button>
-                             )}
+
+                               {isTodayActive && editingId !== note.id && (
+                                 <div className={`flex gap-1 transition-opacity ${colorPickerNoteId === note.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                                    <div className="relative" data-picker-id={note.id}>
+                                     <button 
+                                       onClick={() => setColorPickerNoteId(colorPickerNoteId === note.id ? null : note.id)}
+                                       className="text-[#525252] hover:text-[#e5e5e5] px-1"
+                                       title="Change color"
+                                     >
+                                       <Palette size={14} />
+                                     </button>
+                                     
+                                     {/* Dropdown Color Picker */}
+                                     {colorPickerNoteId === note.id && (
+                                       <div className="absolute right-0 top-6 w-[120px] bg-[#171717] border border-[#262626] rounded-xl p-2 shadow-xl z-50 grid grid-cols-4 gap-1.5">
+                                          {NOTE_COLORS.map(c => (
+                                            <button
+                                              key={c}
+                                              onClick={() => handleUpdateNoteColor(group.date, note.id, c)}
+                                              className="w-4 h-4 rounded-full border border-[#404040] hover:scale-125 transition-transform"
+                                              style={{ backgroundColor: c }}
+                                              title={c}
+                                            />
+                                          ))}
+                                       </div>
+                                     )}
+                                   </div>
+                                   <button 
+                                     onClick={() => handleDeleteNote(group.date.getDate(), note.id)}
+                                     className="text-[#525252] hover:text-[#ef4444] px-1"
+                                     title="Delete note"
+                                   >
+                                     <X size={14} />
+                                   </button>
+                                 </div>
+                               )}
+                             </div>
+                             
+
                            </li>
                          ))}
+                         {isViewAll && group.notes.length > 3 && (
+                           <li 
+                             onClick={() => {
+                                setIsViewAll(false);
+                                setActiveCell({ 
+                                  year: group.date.getFullYear(), 
+                                  month: group.date.getMonth(), 
+                                  day: group.date.getDate(), 
+                                  hour: 0 
+                                });
+                             }}
+                             className="pl-1 text-xs text-[#525252] italic cursor-pointer hover:text-[#e5e5e5] transition-colors"
+                           >
+                             + {group.notes.length - 3} more notes...
+                           </li>
+                         )}
                        </ul>
                      </div>
                    );

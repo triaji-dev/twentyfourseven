@@ -15,6 +15,18 @@ export const loadActivity = (
   return (localStorage.getItem(id) as ActivityKey) || '';
 };
 
+export const getNotes = (year: number, month: number, day: number): any[] => {
+  const montlyNotesId = `${STORAGE_PREFIX}-notes-${year}-${month}`;
+  const stored = localStorage.getItem(montlyNotesId);
+  if (!stored) return [];
+  try {
+    const notesByDay = JSON.parse(stored);
+    return notesByDay[day] || [];
+  } catch {
+    return [];
+  }
+};
+
 export const saveActivity = (
   year: number,
   month: number,

@@ -91,6 +91,7 @@ interface AppState {
   calculateDayStats: (year: number, month: number, day: number) => MonthStats;
   calculateAllTimeStats: () => MonthStats;
   refreshStats: () => void;
+  triggerUpdate: () => void;
 }
 
 // Fungsi untuk mengambil semua nilai cell
@@ -558,4 +559,5 @@ export const useStore = create<AppState>((set, get) => ({
     const month = currentDate.getMonth();
     calculateStats(year, month);
   },
+  triggerUpdate: () => set(state => ({ dataVersion: state.dataVersion + 1 })),
 }));

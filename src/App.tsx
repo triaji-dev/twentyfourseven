@@ -19,12 +19,29 @@ function App() {
   useKeyboardShortcuts();
   const stats = useStats(year, month);
 
+
+
   return (
     <div className="p-2 h-screen overflow-hidden">
       <Header
         currentDate={currentDate}
         onPrevMonth={prevMonth}
         onNextMonth={nextMonth}
+        onMonthSelect={(monthIndex) => {
+          const newDate = new Date(currentDate);
+          newDate.setMonth(monthIndex);
+          useStore.getState().setCurrentDate(newDate);
+        }}
+        onYearSelect={(year) => {
+          const newDate = new Date(currentDate);
+          newDate.setFullYear(year);
+          useStore.getState().setCurrentDate(newDate);
+        }}
+        onDateSelect={(date) => {
+          const newDate = new Date(currentDate);
+          newDate.setDate(date);
+          useStore.getState().setCurrentDate(newDate);
+        }}
       />
 
       <main className="main-container grid grid-cols-1 lg:grid-cols-4 gap-2">

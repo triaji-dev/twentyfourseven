@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { ActivityCell } from './ActivityCell';
-import { getDaysInMonth, loadActivity } from '../utils/storage';
+import { getDaysInMonth, loadActivity, getNotes } from '../utils/storage';
 import { DAY_ABBREVIATIONS } from '../constants';
 import { useStore } from '../store/useStore';
 import { useSettings } from '../store/useSettings';
@@ -22,6 +22,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({ year, month, onUpd
   const clearSelection = useStore((state) => state.clearSelection);
   const selectRectangle = useStore((state) => state.selectRectangle);
   const activeCell = useStore((state) => state.activeCell);
+  const setActiveCell = useStore((state) => state.setActiveCell);
   const categories = useSettings((state) => state.categories);
   
   // Create a map for faster category lookup
@@ -105,13 +106,17 @@ const handlePaste = (e: React.ClipboardEvent) => {
                   return (
                     <th
                       key={`date-${d}`}
-                      className={`activity-cell ${isToday ? 'font-bold text-white' : 'text-[#737373]'} ${isActiveDate ? 'bg-[#1a1a1a] text-[#e5e5e5]' : ''} text-[10px] border-l font-normal border-b-0`}
+                      className={`activity-cell relative pt-3 ${isToday ? 'font-bold text-white' : 'text-[#737373]'} ${isActiveDate ? 'bg-[#1a1a1a] text-[#e5e5e5]' : ''} text-[10px] border-l font-normal border-b-0 cursor-pointer hover:bg-[#1a1a1a] transition-colors`}
+                      onClick={() => setActiveCell({ year, month, day: d, hour: 0 })}
                       style={{ 
                         background: isActiveDate ? '#1a1a1a' : '#0a0a0a',
                         borderColor: '#262626'
                       }}
                     >
                       {d}
+                      {getNotes(year, month, d).length > 0 && (
+                        <span className="absolute top-[3px] left-1/2 -translate-x-1/2 w-[3px] h-[3px] rounded-full bg-[#a3a3a3]"></span>
+                      )}
                     </th>
                   );
                 })}
@@ -132,7 +137,8 @@ const handlePaste = (e: React.ClipboardEvent) => {
                   return (
                     <th
                       key={`day-${d}`}
-                      className={`activity-cell ${isToday ? 'font-bold text-white' : 'text-[#525252]'} ${isActiveDate ? 'bg-[#1a1a1a] text-[#e5e5e5]' : ''} text-[8px] border-l font-light border-t-0`}
+                      className={`activity-cell ${isToday ? 'font-bold text-white' : 'text-[#525252]'} ${isActiveDate ? 'bg-[#1a1a1a] text-[#e5e5e5]' : ''} text-[8px] border-l font-light border-t-0 cursor-pointer hover:bg-[#1a1a1a] transition-colors`}
+                      onClick={() => setActiveCell({ year, month, day: d, hour: 0 })}
                       style={{ 
                         background: isActiveDate ? '#1a1a1a' : '#0a0a0a',
                         borderColor: '#262626'
@@ -147,7 +153,7 @@ const handlePaste = (e: React.ClipboardEvent) => {
             <tbody>
               {Array.from({ length: 24 }, (_, hour) => (
                 <tr key={hour}>
-                  <td className="hour-header">{hour.toString().padStart(2, '0')}:00</td>
+                  <td className="hour-header">{hour.toString().padStart(2, '0')}</td>
                   {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
                     const value = loadActivity(year, month, day, hour);
                     const cellId = `cell-${year}-${month + 1}-${day}-${hour}`;
@@ -170,7 +176,7 @@ const handlePaste = (e: React.ClipboardEvent) => {
                     return (
                       <td
                         key={`${cellId}-${dataVersion}`}
-                        className={`activity-cell ${isSelected ? 'cell-selected' : ''} ${isCopied && !isSelected ? 'cell-copied' : ''} ${(hour+1) % 6 === 0 ? 'border-b-gray-300 border-b-2' : ''}`}
+                        className={`activity-cell ${isSelected ? 'cell-selected' : ''} ${isCopied && !isSelected ? 'cell-copied' : ''} ${(hour+1) % 6 === 0 ? 'border-b-gray-700 border-b-2' : ''}`}
                         style={cellStyle}
                         onMouseDown={e => handleCellMouseDown(e, day, hour)}
                       >

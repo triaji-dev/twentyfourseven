@@ -144,7 +144,7 @@
   /* Let's make hour header fixed and cells flex-1 */
   
   .hour-header {
-    @apply w-[40px] flex-none text-right pr-2 text-[10px] font-normal border-r border-gray-800/50 flex items-center justify-end;
+    @apply w-[40px] flex-none text-right text-[10px] font-normal border-r border-gray-800/50 flex items-center justify-center;
     background: #0a0a0a;
     color: #737373;
     user-select: none;
