@@ -3,7 +3,16 @@ import { getDaysInMonth } from '../utils/storage';
 import { useSettings } from '../store/useSettings';
 import { useStore } from '../store/useStore';
 import type { MonthStats } from '../types';
-import { Palette, X } from 'lucide-react';
+import { Palette, X, Type, CheckSquare, AlertCircle, Link as LinkIcon, MoreHorizontal } from 'lucide-react';
+
+type NoteType = 'text' | 'link' | 'todo' | 'important';
+
+const NOTE_TYPES: Record<NoteType, { color: string; label: string; icon: any }> = {
+  text: { color: '#a3a3a3', label: 'Text', icon: Type },
+  link: { color: '#a0c4ff', label: 'Link', icon: LinkIcon },
+  todo: { color: '#fdffb6', label: 'Todo', icon: CheckSquare },
+  important: { color: '#f87171', label: 'Important', icon: AlertCircle }
+};
 
 type StatsTab = 'daily' | 'monthly' | 'alltime';
 
@@ -20,11 +29,31 @@ const MONTH_NAMES = [
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-const NOTE_COLORS = [
-  '#ffadad', '#ffd6a5', '#fdffb6', '#caffbf', // Red, Orange, Yellow, Green
-  '#9bf6ff', '#a0c4ff', '#bdb2ff', '#ffc6ff', // Cyan, Blue, Purple, Pink
-  '#e5e5e5', '#fbbf24', '#f87171', '#a3a3a3'  // White, Amber, Redish, Gray
-];
+
+
+const processNoteContent = (content: string, currentType?: NoteType): { type: NoteType; content: string } => {
+  let newType = currentType;
+  let cleanContent = content;
+
+  // 1. Check for Prefixes (Highest priority for explicit intent)
+  if (/^todo\s/i.test(content)) {
+    newType = 'todo';
+    cleanContent = content.replace(/^todo\s/i, '');
+  } else if (/^!\s?/.test(content)) {
+    newType = 'important';
+    cleanContent = content.replace(/^!\s?/, '');
+  } else {
+    // No explicit prefix found.
+    // Preservative logic: If current type is todo/important, keep it.
+    // Only auto-switch between text/link if current is text/link/undefined.
+    if (!newType || newType === 'text' || newType === 'link') {
+      const hasLink = /((?:https?:\/\/|www\.)[^\s]+)/.test(content);
+      newType = hasLink ? 'link' : 'text';
+    }
+  }
+  
+  return { type: newType as NoteType, content: cleanContent };
+};
 
 export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -40,8 +69,20 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
     id: string;
     content: string;
     createdAt: string; // ISO string
-    color?: string;
+    type?: NoteType;
+    isDone?: boolean;
+    color?: string; // Legacy
   }
+
+  const [tooltip, setTooltip] = useState<{
+    x: number;
+    y: number;
+    visible: boolean;
+    category?: string;
+    hours?: number;
+    percentage?: string;
+    color?: string;
+  }>({ x: 0, y: 0, visible: false });
 
   const [activeTab, setActiveTab] = useState<StatsTab>('monthly');
   const [mainTab, setMainTab] = useState<'statistic' | 'notes'>('statistic');
@@ -53,7 +94,7 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
   const [allTimeNotes, setAllTimeNotes] = useState<Array<{ date: Date; notes: NoteItem[] }>>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
-  const [colorPickerNoteId, setColorPickerNoteId] = useState<string | null>(null);
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [isViewAll, setIsViewAll] = useState(true);
   
   // Actions
@@ -72,7 +113,10 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
             try {
               const monthNotes = JSON.parse(localStorage.getItem(key) || '{}');
               Object.entries(monthNotes).forEach(([d, dayNotes]) => {
-                  const items = dayNotes as NoteItem[];
+                  const items = (dayNotes as NoteItem[]).map(note => {
+                      const { type, content } = processNoteContent(note.content, note.type);
+                      return { ...note, type, content };
+                  });
                   if (items.length > 0) {
                     all.push({
                       date: new Date(y, m, parseInt(d)),
@@ -101,7 +145,18 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
         if (Array.isArray(parsed)) {
           setNotes({});
         } else {
-          setNotes(parsed);
+          // Apply auto-detection for links
+          const processed = { ...parsed };
+          Object.keys(processed).forEach(key => {
+             const day = parseInt(key);
+             if (Array.isArray(processed[day])) {
+                  processed[day] = processed[day].map((note: NoteItem) => {
+                       const { type, content } = processNoteContent(note.content, note.type);
+                       return { ...note, type, content };
+                  });
+             }
+          });
+          setNotes(processed);
         }
       } catch (e) {
         setNotes({});
@@ -119,16 +174,16 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (colorPickerNoteId) {
+      if (menuOpenId) {
         const target = event.target as HTMLElement;
-        if (!target.closest(`[data-picker-id="${colorPickerNoteId}"]`)) {
-          setColorPickerNoteId(null);
+        if (!target.closest(`[data-picker-id="${menuOpenId}"]`)) {
+          setMenuOpenId(null);
         }
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [colorPickerNoteId]);
+  }, [menuOpenId]);
 
   useEffect(() => {
     if (initialRender.current) {
@@ -209,11 +264,15 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
       }
 
       if (entries.length > 0) {
-        const newItems: NoteItem[] = entries.map(content => ({
-          id: Math.random().toString(36).substr(2, 9),
-          content,
-          createdAt: new Date().toISOString()
-        }));
+        const newItems: NoteItem[] = entries.map(entryContent => {
+          const { type, content } = processNoteContent(entryContent);
+          return {
+            id: Math.random().toString(36).substr(2, 9),
+            content, // Use cleaned content (without prefix)
+            createdAt: new Date().toISOString(),
+            type
+          };
+        });
 
         const updatedNotes = {
           ...notes,
@@ -254,7 +313,13 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
     }
     
     const dayNotes = monthNotes[d] || [];
-    const updatedDayNotes = dayNotes.map((n: NoteItem) => n.id === noteId ? { ...n, content: editContent } : n);
+    const updatedDayNotes = dayNotes.map((n: NoteItem) => {
+        if (n.id === noteId) {
+            const { type, content } = processNoteContent(editContent, n.type);
+            return { ...n, content, type };
+        }
+        return n;
+    });
     
     const updatedMonthNotes = { ...monthNotes, [d]: updatedDayNotes };
     localStorage.setItem(key, JSON.stringify(updatedMonthNotes));
@@ -270,7 +335,7 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
     setEditingId(null);
   };
 
-  const handleUpdateNoteColor = (date: Date, noteId: string, color: string) => {
+  const handleUpdateNoteType = (date: Date, noteId: string, type: NoteType) => {
     const y = date.getFullYear();
     const m = date.getMonth();
     const d = date.getDate();
@@ -285,7 +350,7 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
     }
     
     const dayNotes = monthNotes[d] || [];
-    const updatedDayNotes = dayNotes.map((n: NoteItem) => n.id === noteId ? { ...n, color } : n);
+    const updatedDayNotes = dayNotes.map((n: NoteItem) => n.id === noteId ? { ...n, type } : n);
     
     const updatedMonthNotes = { ...monthNotes, [d]: updatedDayNotes };
     localStorage.setItem(key, JSON.stringify(updatedMonthNotes));
@@ -297,7 +362,33 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
     setAllTimeNotes(fetchAllNotes());
     triggerUpdate();
     
-    setColorPickerNoteId(null);
+    setMenuOpenId(null);
+  };
+
+  const handleToggleTodo = (date: Date, noteId: string) => {
+    const y = date.getFullYear();
+    const m = date.getMonth();
+    const d = date.getDate();
+    const key = `twentyfourseven-notes-${y}-${m}`;
+    
+    let monthNotes: Record<number, NoteItem[]> = {};
+    try {
+        const saved = localStorage.getItem(key);
+        monthNotes = saved ? JSON.parse(saved) : {};
+    } catch(e) {
+        monthNotes = {};
+    }
+    
+    const dayNotes = monthNotes[d] || [];
+    const updatedDayNotes = dayNotes.map((n: NoteItem) => n.id === noteId ? { ...n, isDone: !n.isDone } : n);
+    const updatedMonthNotes = { ...monthNotes, [d]: updatedDayNotes };
+    localStorage.setItem(key, JSON.stringify(updatedMonthNotes));
+    
+    if (y === year && m === month) {
+        setNotes(updatedMonthNotes);
+    } 
+    setAllTimeNotes(fetchAllNotes());
+    triggerUpdate();
   };
 
   const handleDeleteNote = (day: number, noteId: string) => {
@@ -388,6 +479,68 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
     ctx.fill();
   }, [displayStats, categories, mainTab]);
 
+  const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+    
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    
+    const dx = x - centerX;
+    const dy = y - centerY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    // Donut chart radius 90, inner hole ~45
+    if (distance < 45 || distance > 90) {
+      setTooltip(prev => ({ ...prev, visible: false }));
+      return;
+    }
+    
+    let angle = Math.atan2(dy, dx);
+    if (angle < 0) angle += 2 * Math.PI;
+    
+    let currentStartAngle = 0;
+    const { stats: data, totalHours } = displayStats;
+    let found = false;
+
+    for (const category of categories) {
+      const count = data[category.key] || 0;
+      if (count > 0) {
+        const sliceAngle = (count / totalHours) * 2 * Math.PI;
+        
+        if (angle >= currentStartAngle && angle < currentStartAngle + sliceAngle) {
+          setTooltip({
+            x: e.clientX,
+            y: e.clientY,
+            visible: true,
+            category: category.name,
+            hours: count,
+            percentage: ((count / totalHours) * 100).toFixed(1),
+            color: category.color
+          });
+          found = true;
+          break;
+        }
+        currentStartAngle += sliceAngle;
+      }
+    }
+    
+    if (!found) {
+        setTooltip(prev => ({ ...prev, visible: false }));
+    }
+  };
+
+  const handleCanvasMouseLeave = () => {
+    setTooltip(prev => ({ ...prev, visible: false }));
+  };
+
   return (
     <aside className="lg:col-span-1 p-4 rounded-xl overflow-hidden flex flex-col" style={{ background: '#171717', border: '1px solid #262626' }}>
       {/* Main Tabs */}
@@ -460,8 +613,29 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
           </h2>
 
           {displayStats.totalHours > 0 ? (
-            <div className="flex justify-center mb-6">
-              <canvas ref={canvasRef} width="200" height="200" className="rounded-full" />
+            <div className="flex justify-center mb-6 relative">
+              <canvas 
+                ref={canvasRef} 
+                width="200" 
+                height="200" 
+                className="rounded-full cursor-crosshair"
+                onMouseMove={handleCanvasMouseMove}
+                onMouseLeave={handleCanvasMouseLeave}
+              />
+              {tooltip.visible && (
+                <div 
+                  className="fixed z-50 px-3 py-2 bg-[#171717] border border-[#262626] rounded-lg shadow-xl pointer-events-none transform -translate-x-1/2 -translate-y-full mt-[-8px]"
+                  style={{ top: tooltip.y, left: tooltip.x }}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: tooltip.color }} />
+                    <span className="text-xs font-medium text-[#e5e5e5] whitespace-nowrap">{tooltip.category}</span>
+                  </div>
+                  <div className="text-[10px] text-[#a3a3a3]">
+                    {tooltip.hours}h <span className="mx-1">•</span> {tooltip.percentage}%
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex justify-center items-center mb-6 h-[200px]" style={{ color: '#525252' }}>
@@ -613,18 +787,30 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
                            >
                              <div className="flex items-start gap-2 w-full">
                                <span 
-                                  className={`flex-shrink-0 bg-[#404040] transition-colors ${
-                                    isViewAll 
-                                      ? 'mt-[8px] w-1 h-1 rounded-full group-hover:bg-[#737373]'
-                                      : 'mt-[8px] w-1 h-1 rounded-full group-hover:bg-[#737373]'
-                                  }`} 
+                                 className={`flex-shrink-0 mt-[7px] transition-colors cursor-pointer ${
+                                   note.type === 'todo' 
+                                     ? 'w-1.5 h-1.5 border rounded-[1px]' 
+                                     : 'w-1.5 h-1.5 rounded-full'
+                                 }`}
+                                 style={{ 
+                                   backgroundColor: note.type === 'todo' 
+                                      ? (note.isDone ? NOTE_TYPES.todo.color : 'transparent') 
+                                      : (note.type ? NOTE_TYPES[note.type].color : NOTE_TYPES.text.color),
+                                   borderColor: note.type === 'todo' ? NOTE_TYPES.todo.color : 'transparent',
+                                 }}
+                                 onClick={(e) => {
+                                    if (isTodayActive) {
+                                      e.stopPropagation();
+                                      handleToggleTodo(group.date, note.id);
+                                    }
+                                 }}
                                />
                                
                                {editingId === note.id ? (
                                   <textarea 
                                     autoFocus
                                     value={editContent}
-                                    style={{ color: note.color || '#e5e5e5' }}
+                                    style={{ color: note.type ? NOTE_TYPES[note.type].color : NOTE_TYPES.text.color }}
                                     onChange={(e) => {
                                       setEditContent(e.target.value);
                                       e.target.style.height = 'auto';
@@ -637,6 +823,7 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
                                     }}
                                     onBlur={() => handleSaveEdit(group.date, note.id)}
                                     onKeyDown={(e) => {
+                                      e.stopPropagation();
                                       if (e.key === 'Enter' && !e.shiftKey) {
                                         e.preventDefault();
                                         handleSaveEdit(group.date, note.id);
@@ -647,15 +834,15 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
                                   />
                                ) : (
                                    <span 
-                                     className={`flex-1 break-words whitespace-pre-wrap min-w-0 font-light select-text ${isViewAll ? 'cursor-pointer' : 'cursor-text'}`}
-                                     style={{ color: note.color || '#a3a3a3' }}
+                                     className={`flex-1 break-words whitespace-pre-wrap min-w-0 font-light select-text ${isViewAll ? 'cursor-pointer' : 'cursor-text'} ${note.isDone ? 'line-through opacity-50' : ''}`}
+                                     style={{ color: note.type ? NOTE_TYPES[note.type].color : NOTE_TYPES.text.color }}
                                      onDoubleClick={() => isTodayActive && handleStartEdit(note)}
                                    >
-                                     {note.content.split(/(https?:\/\/[^\s]+)/g).map((part, i) => 
-                                       part.match(/(https?:\/\/[^\s]+)/g) ? (
+                                     {note.content.split(/((?:https?:\/\/|www\.)[^\s]+)/g).map((part, i) => 
+                                       part.match(/((?:https?:\/\/|www\.)[^\s]+)/g) ? (
                                          <a 
                                            key={i} 
-                                           href={part} 
+                                           href={part.startsWith('www.') ? `http://${part}` : part} 
                                            target="_blank" 
                                            rel="noopener noreferrer" 
                                            className="hover:underline" // Removed explicit color to inherit parent color
@@ -670,34 +857,42 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
                                )}
 
                                {isTodayActive && editingId !== note.id && (
-                                 <div className={`flex gap-1 transition-opacity ${colorPickerNoteId === note.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                                    <div className="relative" data-picker-id={note.id}>
+                                   <div className={`flex items-center gap-1 h-5 transition-opacity ${menuOpenId === note.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                                    <div className="relative flex items-center" data-picker-id={note.id}>
                                      <button 
-                                       onClick={() => setColorPickerNoteId(colorPickerNoteId === note.id ? null : note.id)}
-                                       className="text-[#525252] hover:text-[#e5e5e5] px-1"
-                                       title="Change color"
+                                       onClick={() => setMenuOpenId(menuOpenId === note.id ? null : note.id)}
+                                       className="text-[#525252] hover:text-[#e5e5e5] px-1 flex items-center justify-center h-full"
+                                       title="Change type"
                                      >
-                                       <Palette size={14} />
+                                       <MoreHorizontal size={14} />
                                      </button>
                                      
-                                     {/* Dropdown Color Picker */}
-                                     {colorPickerNoteId === note.id && (
-                                       <div className="absolute right-0 top-6 w-[120px] bg-[#171717] border border-[#262626] rounded-xl p-2 shadow-xl z-50 grid grid-cols-4 gap-1.5">
-                                          {NOTE_COLORS.map(c => (
-                                            <button
-                                              key={c}
-                                              onClick={() => handleUpdateNoteColor(group.date, note.id, c)}
-                                              className="w-4 h-4 rounded-full border border-[#404040] hover:scale-125 transition-transform"
-                                              style={{ backgroundColor: c }}
-                                              title={c}
-                                            />
-                                          ))}
+                                     {/* Dropdown Type Picker */}
+                                     {menuOpenId === note.id && (
+                                       <div className="absolute right-0 top-6 w-[140px] bg-[#171717] border border-[#262626] rounded-xl p-2 shadow-xl z-50 flex flex-col gap-1">
+                                          {(Object.keys(NOTE_TYPES) as NoteType[])
+                                            .filter(t => t !== 'link')
+                                            .map((type) => {
+                                            const config = NOTE_TYPES[type];
+                                            const Icon = config.icon;
+                                            return (
+                                              <button
+                                                key={type}
+                                                onClick={() => handleUpdateNoteType(group.date, note.id, type)}
+                                                className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[#262626] transition-colors text-xs text-left w-full"
+                                                style={{ color: config.color }}
+                                              >
+                                                <Icon size={14} />
+                                                <span>{config.label}</span>
+                                              </button>
+                                            );
+                                          })}
                                        </div>
                                      )}
                                    </div>
                                    <button 
                                      onClick={() => handleDeleteNote(group.date.getDate(), note.id)}
-                                     className="text-[#525252] hover:text-[#ef4444] px-1"
+                                     className="text-[#525252] hover:text-[#ef4444] px-1 flex items-center justify-center h-full"
                                      title="Delete note"
                                    >
                                      <X size={14} />
