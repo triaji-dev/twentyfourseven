@@ -28,6 +28,9 @@ export const ActivityCell: React.FC<ActivityCellProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState(value);
   const [shouldReplace, setShouldReplace] = useState(false);
+  const setActiveCell = useStore(state => state.setActiveCell);
+  const setActiveStatsDate = useStore(state => state.setActiveStatsDate);
+  const setActivePanel = useStore(state => state.setActivePanel);
   const categories = useSettings((state) => state.categories);
   
   // Memoize valid keys to prevent infinite loops
@@ -45,6 +48,9 @@ export const ActivityCell: React.FC<ActivityCellProps> = ({
       setInputValue(newValue);
       useStore.getState().pushHistory();
       saveActivity(year, month, day, hour, newValue);
+      setActiveCell({ year, month, day, hour });
+      setActiveStatsDate({ year, month, day, hour });
+      setActivePanel('statistic');
       onChange();
       setShouldReplace(false);
     } else {
@@ -64,15 +70,13 @@ export const ActivityCell: React.FC<ActivityCellProps> = ({
     }
   };
 
-  const setActiveCell = useStore(state => state.setActiveCell);
 
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     // Set flag untuk replace saat focus
     setShouldReplace(true);
     // Select all text agar terlihat jelas
     e.target.select();
-    // Set active cell untuk Stats panel
-    setActiveCell({ year, month, day, hour });
+    setActiveStatsDate({ year, month, day, hour });
     // Panggil onFocus prop
     onFocus();
   };

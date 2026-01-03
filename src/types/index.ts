@@ -29,3 +29,14 @@ export const DEFAULT_CATEGORIES: DynamicCategory[] = [
   { key: 'C', name: 'Creativity', color: '#8b5cf6' },
   { key: 'E', name: 'Entertainment', color: '#06b6d4' },
 ];
+
+export type NoteType = 'text' | 'link' | 'todo' | 'important';
+
+export interface NoteItem {
+  id: string;
+  content: string;
+  createdAt: string; // ISO string
+  type?: NoteType;
+  isDone?: boolean;
+  color?: string; // Legacy
+}

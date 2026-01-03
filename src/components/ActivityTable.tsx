@@ -115,8 +115,9 @@ const handlePaste = (e: React.ClipboardEvent) => {
                   return (
                     <th
                       key={`date-${d}`}
-                      className={`activity-cell relative pt-3 ${isToday ? 'font-bold text-white' : 'text-[#737373]'} ${isActiveDate ? 'bg-[#1a1a1a] text-[#e5e5e5]' : ''} text-[10px] border-l font-normal border-b-0 cursor-pointer hover:bg-[#1a1a1a] transition-colors`}
                       onClick={() => setActiveCell({ year, month, day: d, hour: 0 })}
+                      className={`activity-cell relative pt-3 ${isToday ? 'font-bold text-white' : 'text-[#737373]'} ${isActiveDate ? 'bg-[#1a1a1a] text-[#e5e5e5]' : ''} text-[10px] border-l font-normal border-b-0 cursor-pointer hover:bg-[#1a1a1a] transition-colors`}
+                      
                       style={{ 
                         background: isActiveDate ? '#1a1a1a' : '#0a0a0a',
                         borderColor: '#262626'
@@ -147,7 +148,7 @@ const handlePaste = (e: React.ClipboardEvent) => {
                     <th
                       key={`day-${d}`}
                       className={`activity-cell ${isToday ? 'font-bold text-white' : 'text-[#525252]'} ${isActiveDate ? 'bg-[#1a1a1a] text-[#e5e5e5]' : ''} text-[8px] border-l font-light border-t-0 cursor-pointer hover:bg-[#1a1a1a] transition-colors`}
-                      onClick={() => setActiveCell({ year, month, day: d, hour: 0 })}
+                      
                       style={{ 
                         background: isActiveDate ? '#1a1a1a' : '#0a0a0a',
                         borderColor: '#262626'

@@ -16,7 +16,7 @@ export const useKeyboardShortcuts = () => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
-      const isInputFocused = target.tagName === 'INPUT';
+      const isInputFocused = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
       const isCmdOrCtrl = e.ctrlKey || e.metaKey;
       const hasMultipleSelection = selectedCells.size > 1;
       const hasCopiedCells = copiedCells.length > 0;

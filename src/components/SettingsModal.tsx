@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSettings } from '../store/useSettings';
 import type { DynamicCategory } from '../types';
+import { X, Trash2, Plus } from 'lucide-react';
 
 export const SettingsModal: React.FC = () => {
   const isOpen = useSettings((state) => state.isSettingsOpen);
@@ -64,192 +65,160 @@ export const SettingsModal: React.FC = () => {
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.8)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-6"
       onClick={handleClose}
     >
       <div 
-        className="w-full max-w-lg max-h-[80vh] overflow-y-auto rounded-xl p-6"
-        style={{ backgroundColor: '#171717', border: '1px solid #262626' }}
+        className="w-full max-w-[340px] bg-[#0a0a0a] border border-[#262626] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] animate-in fade-in zoom-in-95 duration-300"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-medium" style={{ color: '#e5e5e5' }}>
+        <div className="flex items-center justify-between px-5 py-4 bg-[#0a0a0a]">
+          <h2 className="text-sm font-medium tracking-tight text-[#e5e5e5]">
             Settings
           </h2>
           <button
             onClick={handleClose}
-            className="p-2 rounded-lg transition-all"
-            style={{ color: '#a3a3a3' }}
+            className="p-1 rounded-full text-[#525252] hover:text-[#e5e5e5] hover:bg-[#262626] transition-all"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <X size={16} />
           </button>
         </div>
 
         {/* Categories Section */}
-        <div className="mb-6">
-          <h3 className="text-sm font-medium mb-4" style={{ color: '#a3a3a3' }}>
-            Categories
-          </h3>
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-5 pb-5 pt-1">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-[10px] font-semibold text-[#525252] uppercase tracking-[0.15em]">
+              Categories
+            </h3>
+          </div>
           
-          <div className="space-y-3">
+          <div className="space-y-0.5 mb-5">
             {draftCategories.map((category) => (
               <div 
                 key={category.key}
-                className="flex items-center gap-3 p-3 rounded-lg"
-                style={{ backgroundColor: '#262626' }}
+                className="flex items-center gap-3 py-1.5 group"
               >
                 {/* Color Picker */}
-                <input
-                  type="color"
-                  value={category.color}
-                  onChange={(e) => handleUpdateCategory(category.key, 'color', e.target.value)}
-                  className="w-8 h-8 rounded cursor-pointer"
-                  style={{ border: 'none', padding: 0, backgroundColor: 'transparent' }}
-                />
+                <div className="relative w-3.5 h-3.5 shrink-0 rounded-full border border-white/10 group-hover:scale-110 transition-transform cursor-pointer">
+                  <div 
+                    className="absolute inset-0 rounded-full" 
+                    style={{ backgroundColor: category.color }} 
+                  />
+                  <input
+                    type="color"
+                    value={category.color}
+                    onChange={(e) => handleUpdateCategory(category.key, 'color', e.target.value)}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                </div>
                 
-                {/* Key Input */}
-                <input
-                  type="text"
-                  value={category.key}
-                  maxLength={1}
-                  onChange={(e) => {
-                    const newKey = e.target.value.toUpperCase();
-                    if (newKey && draftCategories.some(cat => cat.key === newKey && cat.key !== category.key)) {
-                      alert('Key already exists!');
-                      return;
-                    }
-                    handleUpdateCategory(category.key, 'key', newKey);
-                  }}
-                  className="w-10 h-8 text-center rounded text-sm font-medium"
-                  style={{ 
-                    backgroundColor: '#333333', 
-                    color: '#e5e5e5',
-                    border: '1px solid #404040'
-                  }}
-                />
+                {/* Key - Small badge style */}
+                <div className="relative group/key">
+                  <input
+                    type="text"
+                    value={category.key}
+                    maxLength={1}
+                    onChange={(e) => {
+                      const newKey = e.target.value.toUpperCase();
+                      if (newKey && draftCategories.some(cat => cat.key === newKey && cat.key !== category.key)) {
+                        return;
+                      }
+                      handleUpdateCategory(category.key, 'key', newKey);
+                    }}
+                    className="w-5 h-5 text-center rounded bg-[#171717] border border-[#262626] text-[10px] font-bold text-[#737373] focus:text-[#e5e5e5] focus:border-[#525252] outline-none transition-all uppercase"
+                  />
+                </div>
                 
                 {/* Name Input */}
                 <input
                   type="text"
                   value={category.name}
                   onChange={(e) => handleUpdateCategory(category.key, 'name', e.target.value)}
-                  placeholder="Category name"
-                  className="flex-1 h-8 px-3 rounded text-sm"
-                  style={{ 
-                    backgroundColor: '#333333', 
-                    color: '#e5e5e5',
-                    border: '1px solid #404040'
-                  }}
+                  placeholder="Category Name"
+                  className="flex-1 bg-transparent text-xs text-[#e5e5e5] placeholder-[#404040] outline-none transition-all border-b border-transparent focus:border-[#262626] py-0.5"
                 />
                 
                 {/* Delete Button */}
                 <button
                   onClick={() => handleDeleteCategory(category.key)}
-                  className="p-2 rounded transition-all hover:bg-red-900/30"
-                  style={{ color: '#ef4444' }}
-                  title="Delete category"
+                  className="p-1 text-[#404040] hover:text-[#ef4444] transition-colors opacity-0 group-hover:opacity-100"
+                  title="Remove"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
+                  <Trash2 size={12} />
                 </button>
               </div>
             ))}
           </div>
-        </div>
 
-        {/* Add New Category */}
-        {!showAddForm ? (
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="w-full py-3 rounded-lg text-sm font-medium transition-all"
-            style={{ 
-              backgroundColor: '#262626', 
-              color: '#a3a3a3',
-              border: '1px dashed #404040'
-            }}
-          >
-            + Add New Category
-          </button>
-        ) : (
-          <div 
-            className="p-4 rounded-lg space-y-3"
-            style={{ backgroundColor: '#262626', border: '1px solid #404040' }}
-          >
-            <h4 className="text-sm font-medium" style={{ color: '#e5e5e5' }}>
-              New Category
-            </h4>
-            
-            <div className="flex items-center gap-3">
-              {/* Color Picker */}
-              <input
-                type="color"
-                value={newCategory.color}
-                onChange={(e) => setNewCategory({ ...newCategory, color: e.target.value })}
-                className="w-8 h-8 rounded cursor-pointer"
-                style={{ border: 'none', padding: 0, backgroundColor: 'transparent' }}
-              />
+          {/* Add New Category */}
+          {!showAddForm ? (
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="group flex items-center gap-2 text-[10px] font-medium text-[#525252] hover:text-[#a3a3a3] transition-colors pl-0.5"
+            >
+              <div className="w-4 h-4 rounded-full border border-dashed border-[#404040] flex items-center justify-center group-hover:border-[#737373]">
+                <Plus size={10} />
+              </div>
+              Add category
+            </button>
+          ) : (
+            <div className="mt-2 p-3 rounded-xl bg-[#171717] border border-[#262626] animate-in slide-in-from-top-1 duration-200">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="relative w-4 h-4 shrink-0 rounded-full border border-white/10">
+                  <div className="absolute inset-0 rounded-full" style={{ backgroundColor: newCategory.color }} />
+                  <input
+                    type="color"
+                    value={newCategory.color}
+                    onChange={(e) => setNewCategory({ ...newCategory, color: e.target.value })}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                </div>
+                
+                <input
+                  type="text"
+                  value={newCategory.key}
+                  maxLength={1}
+                  onChange={(e) => setNewCategory({ ...newCategory, key: e.target.value.toUpperCase() })}
+                  placeholder="K"
+                  className="w-5 h-5 text-center rounded bg-[#0a0a0a] border border-[#262626] text-[10px] font-bold text-[#e5e5e5] outline-none placeholder-[#404040] uppercase"
+                />
+                
+                <input
+                  type="text"
+                  value={newCategory.name}
+                  onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                  placeholder="New Category Name"
+                  className="flex-1 bg-transparent text-xs text-[#e5e5e5] outline-none placeholder-[#404040] border-b border-[#262626]"
+                />
+              </div>
               
-              {/* Key Input */}
-              <input
-                type="text"
-                value={newCategory.key}
-                maxLength={1}
-                onChange={(e) => setNewCategory({ ...newCategory, key: e.target.value.toUpperCase() })}
-                placeholder="K"
-                className="w-10 h-8 text-center rounded text-sm font-medium"
-                style={{ 
-                  backgroundColor: '#333333', 
-                  color: '#e5e5e5',
-                  border: '1px solid #404040'
-                }}
-              />
-              
-              {/* Name Input */}
-              <input
-                type="text"
-                value={newCategory.name}
-                onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                placeholder="Category name"
-                className="flex-1 h-8 px-3 rounded text-sm"
-                style={{ 
-                  backgroundColor: '#333333', 
-                  color: '#e5e5e5',
-                  border: '1px solid #404040'
-                }}
-              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleAddCategory}
+                  className="flex-1 py-1 px-3 rounded-lg text-[10px] font-semibold bg-[#e5e5e5] text-black hover:bg-white transition-all transform active:scale-95"
+                >
+                  Confirm
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setNewCategory({ key: '', name: '', color: '#10b981' });
+                  }}
+                  className="flex-1 py-1 px-3 rounded-lg text-[10px] font-semibold text-[#737373] hover:text-white hover:bg-[#262626] transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
-            
-            <div className="flex gap-2">
-              <button
-                onClick={handleAddCategory}
-                className="flex-1 py-2 rounded-lg text-sm font-medium transition-all"
-                style={{ backgroundColor: '#10b981', color: '#ffffff' }}
-              >
-                Add
-              </button>
-              <button
-                onClick={() => {
-                  setShowAddForm(false);
-                  setNewCategory({ key: '', name: '', color: '#10b981' });
-                }}
-                className="flex-1 py-2 rounded-lg text-sm font-medium transition-all"
-                style={{ backgroundColor: '#404040', color: '#a3a3a3' }}
-              >
-                Cancel
-              </button>
-            </div>
+          )}
+          
+          <div className="mt-8 mb-1">
+            <p className="text-[9px] text-[#404040] text-center tracking-tight">
+              Changes applied on close
+            </p>
           </div>
-        )}
-
-        {/* Info */}
-        <p className="mt-4 text-xs" style={{ color: '#525252' }}>
-          Changes will be applied when you close this dialog.
-        </p>
+        </div>
       </div>
     </div>
   );
