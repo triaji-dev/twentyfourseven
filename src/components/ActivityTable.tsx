@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useEffect } from 'react';
 import { ActivityCell } from './ActivityCell';
 import { getDaysInMonth, loadActivity, getNotes } from '../utils/storage';
 import { DAY_ABBREVIATIONS } from '../constants';
@@ -35,6 +35,15 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({ year, month, onUpd
   }, [categories]);
   
   const daysInMonth = getDaysInMonth(year, month);
+
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      setIsSelecting(false);
+    };
+
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
+  }, [setIsSelecting]);
 
   const handleCellMouseDown = useCallback(
     (e: React.MouseEvent, day: number, hour: number) => {

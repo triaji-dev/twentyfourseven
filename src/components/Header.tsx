@@ -12,10 +12,9 @@ interface HeaderProps {
   onDateSelect: (date: number) => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ currentDate, onPrevMonth, onNextMonth, onMonthSelect, onYearSelect, onDateSelect }) => {
+export const Header: React.FC<HeaderProps> = ({ currentDate, onPrevMonth, onNextMonth, onMonthSelect, onYearSelect }) => {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
-  const date = currentDate.getDate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const openSettings = useSettings((state) => state.openSettings);
   const [rotation, setRotation] = useState(0);
@@ -23,9 +22,6 @@ export const Header: React.FC<HeaderProps> = ({ currentDate, onPrevMonth, onNext
   const monthPickerRef = useRef<HTMLDivElement>(null);
   const [isYearPickerOpen, setIsYearPickerOpen] = useState(false);
   const yearPickerRef = useRef<HTMLDivElement>(null);
-  const [viewYear, setViewYear] = useState(year);
-  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
-  const datePickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -35,8 +31,8 @@ export const Header: React.FC<HeaderProps> = ({ currentDate, onPrevMonth, onNext
       if (yearPickerRef.current && !yearPickerRef.current.contains(event.target as Node)) {
         setIsYearPickerOpen(false);
       }
-      if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
-        setIsDatePickerOpen(false);
+      if (yearPickerRef.current && !yearPickerRef.current.contains(event.target as Node)) {
+        setIsYearPickerOpen(false);
       }
     };
 
@@ -274,66 +270,14 @@ export const Header: React.FC<HeaderProps> = ({ currentDate, onPrevMonth, onNext
             </svg>
           </button>
 
-          <div className="flex items-center gap-2 px-3 relative">
-            {/* Date Picker */}
-            <div className="relative" ref={datePickerRef}>
-              <button 
-                onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
-                className="text-sm font-medium min-w-[20px] text-center hover:text-[#a3a3a3] transition-colors"
-                style={{ color: '#f5f5f5' }}
-              >
-                {date}
-              </button>
-              
-              {isDatePickerOpen && (
-                <div 
-                  className="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-3 rounded-xl w-[200px] z-50 shadow-xl"
-                  style={{ 
-                    background: '#171717',
-                    border: '1px solid #262626'
-                  }}
-                >
-                  <div className="grid grid-cols-7 gap-1 mb-2">
-                    {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(d => (
-                      <div key={d} className="text-[10px] text-center text-[#525252] font-medium">
-                        {d}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-7 gap-1">
-                    {Array.from({ length: (new Date(year, month, 1).getDay() + 6) % 7 }).map((_, i) => (
-                      <div key={`empty-${i}`} />
-                    ))}
-                    {Array.from({ length: new Date(year, month + 1, 0).getDate() }).map((_, i) => {
-                      const d = i + 1;
-                      return (
-                        <button
-                          key={d}
-                          onClick={() => {
-                            onDateSelect(d);
-                            setIsDatePickerOpen(false);
-                          }}
-                          className={`w-6 h-6 flex items-center justify-center text-xs rounded transition-colors ${
-                            date === d 
-                              ? 'bg-[#262626] text-white font-medium' 
-                              : 'text-[#737373] hover:bg-[#262626] hover:text-[#e5e5e5]'
-                          }`}
-                        >
-                          {d}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
+          <div className="flex items-center relative">
+
 
             {/* Month Picker wrapper moved from parent to here for strict click outside logic if needed, or keep ref on individual */}
             <div className="relative" ref={monthPickerRef}>
               <button 
                 onClick={() => setIsMonthPickerOpen(!isMonthPickerOpen)}
-                className="text-sm font-medium min-w-[90px] text-center hover:text-[#a3a3a3] transition-colors"
-                style={{ color: '#f5f5f5' }}
+                className="text-sm font-medium text-center hover:text-[#a3a3a3] transition-colors min-w-[90px] px-2"
               >
                 {MONTH_NAMES[month]}
               </button>
@@ -370,66 +314,77 @@ export const Header: React.FC<HeaderProps> = ({ currentDate, onPrevMonth, onNext
               <button 
                 onClick={() => {
                   setIsYearPickerOpen(!isYearPickerOpen);
-                  setViewYear(year);
                 }}
-                className="text-sm font-medium hover:text-[#a3a3a3] transition-colors"
-                style={{ color: '#f5f5f5' }}
+                className="text-sm font-medium hover:text-[#a3a3a3] transition-colors px-2 min-w-[60px]"
               >
                 {year}
               </button>
 
               {isYearPickerOpen && (
                 <div 
-                  className="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-1 rounded-xl flex flex-col items-center gap-1 w-[80px] z-50 shadow-xl"
+                  className="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-1 rounded-xl flex flex-col items-center gap-0.5 w-[80px] z-50 shadow-xl"
                   style={{ 
                     background: '#171717',
                     border: '1px solid #262626'
                   }}
+                  onWheel={(e) => {
+                    e.preventDefault();
+                    if (e.deltaY < 0) {
+                      onYearSelect(year - 1);
+                    } else {
+                      onYearSelect(year + 1);
+                    }
+                  }}
                 >
+                  {/* Arrow Up */}
                   <button
-                    onClick={() => setViewYear(viewYear - 1)}
-                    className="w-full flex items-center justify-center py-1 text-[#737373] hover:text-[#e5e5e5] hover:bg-[#262626] rounded transition-colors"
+                    onClick={(e) => {
+                       e.stopPropagation();
+                       onYearSelect(year - 1);
+                    }}
+                    className="w-full flex items-center justify-center py-1 text-[#525252] hover:text-[#e5e5e5] hover:bg-[#262626] rounded transition-colors"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                     </svg>
                   </button>
 
+                  {/* Previous Year (darker) */}
                   <button
-                    onClick={() => {
-                      onYearSelect(viewYear - 1);
-                      setIsYearPickerOpen(false);
+                    onClick={(e) => {
+                       e.stopPropagation();
+                       onYearSelect(year - 1);
                     }}
-                    className={`w-full py-1 text-xs rounded transition-colors ${year === (viewYear - 1) ? 'bg-[#262626] text-white font-medium' : 'text-[#737373] hover:text-[#e5e5e5] hover:bg-[#262626]'}`}
+                    className="w-full py-1 text-[10px] text-center text-[#525252] hover:text-[#a3a3a3] hover:bg-[#262626] rounded transition-colors cursor-pointer"
                   >
-                    {viewYear - 1}
-                  </button>
-                  
-                  <button
-                    onClick={() => {
-                      onYearSelect(viewYear);
-                      setIsYearPickerOpen(false);
-                    }}
-                    className={`w-full py-1 text-xs rounded transition-colors ${year === viewYear ? 'bg-[#262626] text-white font-medium' : 'text-[#737373] hover:text-[#e5e5e5] hover:bg-[#262626]'}`}
-                  >
-                    {viewYear}
-                  </button>
-                  
-                  <button
-                    onClick={() => {
-                      onYearSelect(viewYear + 1);
-                      setIsYearPickerOpen(false);
-                    }}
-                    className={`w-full py-1 text-xs rounded transition-colors ${year === (viewYear + 1) ? 'bg-[#262626] text-white font-medium' : 'text-[#737373] hover:text-[#e5e5e5] hover:bg-[#262626]'}`}
-                  >
-                    {viewYear + 1}
+                    {year - 1}
                   </button>
 
+                  {/* Selected Year */}
+                  <div className="w-full py-1.5 text-xs text-center font-medium text-white bg-[#262626] rounded">
+                    {year}
+                  </div>
+
+                  {/* Next Year (darker) */}
                   <button
-                    onClick={() => setViewYear(viewYear + 1)}
-                    className="w-full flex items-center justify-center py-1 text-[#737373] hover:text-[#e5e5e5] hover:bg-[#262626] rounded transition-colors"
+                    onClick={(e) => {
+                       e.stopPropagation();
+                       onYearSelect(year + 1);
+                    }}
+                    className="w-full py-1 text-[10px] text-center text-[#525252] hover:text-[#a3a3a3] hover:bg-[#262626] rounded transition-colors cursor-pointer"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    {year + 1}
+                  </button>
+
+                  {/* Arrow Down */}
+                  <button
+                    onClick={(e) => {
+                       e.stopPropagation();
+                       onYearSelect(year + 1);
+                    }}
+                    className="w-full flex items-center justify-center py-1 text-[#525252] hover:text-[#e5e5e5] hover:bg-[#262626] rounded transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>

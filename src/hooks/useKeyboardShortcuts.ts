@@ -63,16 +63,19 @@ export const useKeyboardShortcuts = () => {
 
       // Copy: Ctrl+C / Cmd+C
       if (isCmdOrCtrl && e.key === 'c') {
+        const selection = window.getSelection();
+        const hasTextSelection = selection && selection.toString().length > 0;
+
+        // If user has text selected on the page (not just in input), allow default copy
+        if (hasTextSelection) {
+          return;
+        }
+
         // If multiple cells selected, copy them (even if input is focused)
         if (hasMultipleSelection) {
           e.preventDefault();
           copySelection();
           return;
-        }
-
-        // Don't prevent default if user is selecting text in input
-        if (isInputFocused && window.getSelection()?.toString()) {
-          return; // Allow normal copy in input fields
         }
 
         e.preventDefault();

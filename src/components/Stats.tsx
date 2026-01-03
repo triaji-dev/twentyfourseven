@@ -58,6 +58,7 @@ const processNoteContent = (content: string, currentType?: NoteType): { type: No
 export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const initialRender = useRef(true);
+  const lastMouseDownRef = useRef<{ x: number; y: number } | null>(null);
   const categories = useSettings((state) => state.categories);
   const activeCell = useStore((state) => state.activeCell);
   const calculateDayStats = useStore((state) => state.calculateDayStats);
@@ -96,6 +97,8 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
   const [editContent, setEditContent] = useState('');
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [isViewAll, setIsViewAll] = useState(true);
+  const [draggedNote, setDraggedNote] = useState<{ id: string; date: Date } | null>(null);
+  const [dragOverNoteId, setDragOverNoteId] = useState<string | null>(null);
   
   // Actions
   const setActiveCell = useStore((state) => state.setActiveCell);
@@ -245,9 +248,13 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
 
 
   // Save notes handler
-  const handleAddNote = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && newNote.trim() && activeCell) {
+  const handleAddNote = (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    e.stopPropagation();
+    if (e.key === 'Enter' && !e.shiftKey && newNote.trim() && activeCell) {
+      e.preventDefault();
       const day = activeCell.day;
+      const targetYear = activeCell.year;
+      const targetMonth = activeCell.month;
       const input = newNote.trim();
       let entries: string[] = [];
 
@@ -274,16 +281,40 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
           };
         });
 
+        const key = `twentyfourseven-notes-${targetYear}-${targetMonth}`;
+        let currentMonthNotes: Record<number, NoteItem[]> = {};
+
+        // If target matches current view, use state. Otherwise load from storage.
+        if (targetYear === year && targetMonth === month) {
+             currentMonthNotes = { ...notes };
+        } else {
+             try {
+                const saved = localStorage.getItem(key);
+                currentMonthNotes = saved ? JSON.parse(saved) : {};
+             } catch(e) {
+                currentMonthNotes = {};
+             }
+        }
+
         const updatedNotes = {
-          ...notes,
-          [day]: [...(notes[day] || []), ...newItems]
+          ...currentMonthNotes,
+          [day]: [...(currentMonthNotes[day] || []), ...newItems]
         };
         
-        setNotes(updatedNotes);
-        localStorage.setItem(`twentyfourseven-notes-${year}-${month}`, JSON.stringify(updatedNotes));
+        localStorage.setItem(key, JSON.stringify(updatedNotes));
+        
+        if (targetYear === year && targetMonth === month) {
+            setNotes(updatedNotes);
+        }
+
         setNewNote('');
         setAllTimeNotes(fetchAllNotes());
         triggerUpdate();
+        
+        // Reset textarea height
+        if (e.target instanceof HTMLTextAreaElement) {
+            e.target.style.height = 'auto';
+        }
       }
     }
   };
@@ -391,21 +422,89 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
     triggerUpdate();
   };
 
-  const handleDeleteNote = (day: number, noteId: string) => {
-    const dayNotes = notes[day] || [];
+  const handleDeleteNote = (date: Date, noteId: string) => {
+    const y = date.getFullYear();
+    const m = date.getMonth();
+    const d = date.getDate();
+    const key = `twentyfourseven-notes-${y}-${m}`;
+
+    let monthNotes: Record<number, NoteItem[]> = {};
+    
+    // If target matches current view, use state. Otherwise load from storage.
+    if (y === year && m === month) {
+         monthNotes = { ...notes };
+    } else {
+         try {
+            const saved = localStorage.getItem(key);
+            monthNotes = saved ? JSON.parse(saved) : {};
+         } catch(e) {
+            monthNotes = {};
+         }
+    }
+
+    const dayNotes = monthNotes[d] || [];
     const updatedDayNotes = dayNotes.filter(n => n.id !== noteId);
     
     const updatedNotes = {
-      ...notes,
-      [day]: updatedDayNotes
+      ...monthNotes,
+      [d]: updatedDayNotes
     };
 
     if (updatedDayNotes.length === 0) {
-      delete updatedNotes[day];
+      delete updatedNotes[d];
     }
 
-    setNotes(updatedNotes);
-    localStorage.setItem(`twentyfourseven-notes-${year}-${month}`, JSON.stringify(updatedNotes));
+    localStorage.setItem(key, JSON.stringify(updatedNotes));
+
+    if (y === year && m === month) {
+      setNotes(updatedNotes);
+    }
+    
+    setAllTimeNotes(fetchAllNotes());
+    triggerUpdate();
+  };
+
+  const handleReorderNotes = (date: Date, fromId: string, toId: string) => {
+    if (fromId === toId) return;
+    
+    const y = date.getFullYear();
+    const m = date.getMonth();
+    const d = date.getDate();
+    const key = `twentyfourseven-notes-${y}-${m}`;
+
+    let monthNotes: Record<number, NoteItem[]> = {};
+    
+    if (y === year && m === month) {
+         monthNotes = { ...notes };
+    } else {
+         try {
+            const saved = localStorage.getItem(key);
+            monthNotes = saved ? JSON.parse(saved) : {};
+         } catch(e) {
+            monthNotes = {};
+         }
+    }
+
+    const dayNotes = [...(monthNotes[d] || [])];
+    const fromIndex = dayNotes.findIndex(n => n.id === fromId);
+    const toIndex = dayNotes.findIndex(n => n.id === toId);
+    
+    if (fromIndex === -1 || toIndex === -1) return;
+    
+    // Remove and reinsert
+    const [movedNote] = dayNotes.splice(fromIndex, 1);
+    dayNotes.splice(toIndex, 0, movedNote);
+    
+    const updatedNotes = {
+      ...monthNotes,
+      [d]: dayNotes
+    };
+
+    localStorage.setItem(key, JSON.stringify(updatedNotes));
+
+    if (y === year && m === month) {
+      setNotes(updatedNotes);
+    }
     
     setAllTimeNotes(fetchAllNotes());
     triggerUpdate();
@@ -593,7 +692,7 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
       </div>
 
       {mainTab === 'statistic' ? (
-        <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
+        <div className="flex flex-col flex-1 overflow-y-auto min-h-0 custom-scrollbar pr-1">
             {/* ... Existing Stats UI ... */}
            <div className="flex gap-1 mb-4">
             <button
@@ -717,7 +816,7 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
           </div>
         </div>
       ) : (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col flex-1 min-h-0">
            {/* Search & See All Header */}
               <div className="flex items-center justify-between mb-6 gap-3">
                 <div className="relative flex-1">
@@ -744,7 +843,7 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
               </div>
 
            {/* Notes List */}
-           <div className="flex flex-col flex-1 overflow-y-auto custom-scrollbar mb-2 pr-3">
+           <div className="flex flex-col flex-1 overflow-y-auto min-h-0 custom-scrollbar mb-2 pr-3">
               {filteredNotes.length === 0 ? (
                 <div className="text-xs text-[#525252] italic text-center mt-10">
                   {searchQuery ? 'No notes found matching your search.' : 'No notes available.'}
@@ -794,19 +893,58 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
                        <ul className={`space-y-${isViewAll ? '0.5' : '2.5'}`}>
                          {(isViewAll ? group.notes.slice(0, 3) : group.notes).map((note) => (
                            <li 
-                             key={note.id} 
-                             onClick={() => {
-                               if (isViewAll) {
-                                  setIsViewAll(false);
-                                  setActiveCell({ 
-                                    year: group.date.getFullYear(), 
-                                    month: group.date.getMonth(), 
-                                    day: group.date.getDate(), 
-                                    hour: 0 
-                                  });
-                               }
+                             key={note.id}
+                              draggable={isTodayActive && !isViewAll && editingId !== note.id ? true : undefined} 
+                              onDragStart={(e) => {
+                                if (!isTodayActive || isViewAll) return;
+                                setDraggedNote({ id: note.id, date: group.date });
+                                e.dataTransfer.effectAllowed = 'move';
+                              }}
+                              onDragEnd={() => {
+                                setDraggedNote(null);
+                                setDragOverNoteId(null);
+                              }}
+                              onDragOver={(e) => {
+                                if (!draggedNote || draggedNote.date.getTime() !== group.date.getTime()) return;
+                                e.preventDefault();
+                                setDragOverNoteId(note.id);
+                              }}
+                              onDragLeave={() => setDragOverNoteId(null)}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                if (draggedNote && draggedNote.date.getTime() === group.date.getTime()) {
+                                  handleReorderNotes(group.date, draggedNote.id, note.id);
+                                }
+                                setDraggedNote(null);
+                                setDragOverNoteId(null);
+                              }}
+                             onMouseDown={(e) => {
+                               lastMouseDownRef.current = { x: e.clientX, y: e.clientY };
                              }}
-                             className={`group flex flex-col relative text-[11px] leading-5 pl-1 transition-colors ${isViewAll ? 'cursor-pointer hover:bg-[#262626]/50 rounded px-1 -ml-1 py-0.5' : ''}`}
+                             onClick={(e) => {
+                                const selection = window.getSelection();
+                                if (selection && selection.toString().length > 0) {
+                                  return;
+                                }
+                                
+                                // Drag detection
+                                if (lastMouseDownRef.current) {
+                                  const dx = Math.abs(e.clientX - lastMouseDownRef.current.x);
+                                  const dy = Math.abs(e.clientY - lastMouseDownRef.current.y);
+                                  if (dx > 10 || dy > 10) return;
+                                }
+
+                                if (isViewAll) {
+                                   setIsViewAll(false);
+                                   setActiveCell({ 
+                                     year: group.date.getFullYear(), 
+                                     month: group.date.getMonth(), 
+                                     day: group.date.getDate(), 
+                                     hour: 0 
+                                   });
+                                }
+                              }}
+                             className={`group flex flex-col relative text-[11px] leading-5 pl-1 transition-all ${isViewAll ? 'cursor-pointer hover:bg-[#262626]/50 rounded px-1 -ml-1 py-0.5' : ''} ${isTodayActive && !isViewAll ? 'cursor-grab active:cursor-grabbing' : ''} ${dragOverNoteId === note.id ? 'border-t border-[#525252]' : ''}`}
                            >
                              <div className="flex items-start gap-2 w-full">
                                <span 
@@ -857,7 +995,7 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
                                   />
                                ) : (
                                    <span 
-                                     className={`flex-1 break-words whitespace-pre-wrap min-w-0 font-light select-text ${isViewAll ? 'cursor-pointer' : 'cursor-text'} ${note.isDone ? 'line-through opacity-50' : ''}`}
+                                     className={`flex-1 break-words whitespace-pre-wrap min-w-0 font-light select-text cursor-text ${note.isDone ? 'line-through opacity-50' : ''}`}
                                      style={{ color: note.type ? NOTE_TYPES[note.type].color : NOTE_TYPES.text.color }}
                                      onDoubleClick={() => isTodayActive && handleStartEdit(note)}
                                    >
@@ -914,7 +1052,7 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
                                      )}
                                    </div>
                                    <button 
-                                     onClick={() => handleDeleteNote(group.date.getDate(), note.id)}
+                                     onClick={() => handleDeleteNote(group.date, note.id)}
                                      className="text-[#525252] hover:text-[#ef4444] px-1 flex items-center justify-center h-full"
                                      title="Delete note"
                                    >
@@ -952,15 +1090,20 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
            
            {/* Add Note Input - Only visible if specific day is selected and we are not in 'view all' mode (or we force focus on active cell) */}
            {activeCell && !isViewAll && (
-              <div className="relative mt-auto pt-4 border-t border-[#262626]">
-                <span className="absolute left-0 top-1/2 -translate-y-[calc(50%-8px)] ml-1 w-1 h-1 rounded-full bg-[#404040]" />
-                <input
-                  type="text"
+              <div className="relative flex-shrink-0 pt-4 border-t border-[#262626]">
+                <span className="absolute left-0 top-[33px] ml-1 w-1 h-1 rounded-full bg-[#404040]" />
+                <textarea
                   value={newNote}
-                  onChange={(e) => setNewNote(e.target.value)}
+                  rows={1}
+                  onChange={(e) => {
+                    setNewNote(e.target.value);
+                    e.target.style.height = 'auto';
+                    e.target.style.height = e.target.scrollHeight + 'px';
+                  }}
                   onKeyDown={handleAddNote}
                   placeholder="Add a new note..."
-                  className="w-full bg-transparent border-none outline-none text-[13px] text-[#e5e5e5] placeholder-[#525252] pl-5 py-2"
+                  className="w-full bg-transparent border-none outline-none text-[13px] text-[#e5e5e5] placeholder-[#525252] pl-5 py-2 resize-none overflow-y-auto custom-scrollbar block"
+                  style={{ minHeight: '36px', maxHeight: '120px' }}
                 />
               </div>
            )}
