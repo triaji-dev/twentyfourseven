@@ -47,6 +47,90 @@ export const Header: React.FC<HeaderProps> = ({ currentDate, onPrevMonth, onNext
     return () => clearInterval(interval);
   }, []);
 
+  const SUBTITLES = [
+  'Accept The Quest',
+  'Roll For Initiative',
+  'Slay The Dragon',
+  'Update The Codex',
+  'Gather Experience',
+  'Chart The Map',
+  'Loot The Treasure',
+  'Rest At Bonfire',
+  'Equip New Skills',
+  'Defend The Realm',
+  'Cast The Spell',
+  'Explore The Wilds',
+  'Craft Your Legend',
+  'Unlock Achievement',
+  'Face The Boss',
+  'Level Up Now', 
+  'Acquire Target',
+  'Execute Contract',
+  'Stay In Shadows',
+  'Secure The Asset',
+  'Gather Intelligence',
+  'Plan The Heist',
+  'Clean The Scene',
+  'Collect The Bounty',
+  'Maintain Stealth',
+  'Reload Weapon',
+  'Neutralize Threat',
+  'Confirm The Kill',
+  'Extract Safely',
+  'Leave No Trace',
+  'Complete Mission',
+  'Get The Gold',
+  'Walk The Path',
+  'Sharpen The Blade',
+  'Master The Craft',
+  'Serve No Master',
+  'Honor The Code',
+  'Strike With Precision',
+  'Mind Like Water',
+  'Protect The Temple',
+  'Endure The Storm',
+  'Seek Perfection',
+  'Conquer The Self',
+  'Silence The Mind',
+  'Forge Your Fate',
+  'Stand Unshaken',
+  'Face The Dawn',
+  'Leave A Legacy'
+];
+  const [displayText, setDisplayText] = useState('');
+  const [subtitleIndex, setSubtitleIndex] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    const currentText = SUBTITLES[subtitleIndex % SUBTITLES.length];
+    
+    let tickTime = 100;
+    if (isDeleting) tickTime = 50;
+
+    if (!isDeleting && displayText === currentText) {
+      tickTime = 1000;
+    } else if (isDeleting && displayText === '') {
+      tickTime = 200;
+    }
+
+    const timer = setTimeout(() => {
+      if (!isDeleting && displayText === currentText) {
+        setIsDeleting(true);
+      } else if (isDeleting && displayText === '') {
+        setIsDeleting(false);
+        setSubtitleIndex((prev) => prev + 1);
+      } else {
+        setDisplayText(prev => 
+          isDeleting 
+            ? prev.slice(0, -1) 
+            : currentText.slice(0, prev.length + 1)
+        );
+      }
+    }, tickTime);
+
+    return () => clearTimeout(timer);
+  }, [displayText, isDeleting, subtitleIndex]);
+
   const handleDownload = () => {
     exportAllData();
   };
@@ -104,11 +188,12 @@ export const Header: React.FC<HeaderProps> = ({ currentDate, onPrevMonth, onNext
           />
         </div>
         <div className="flex flex-col">
-          <span className="text-base font-medium tracking-tight" style={{ color: '#f5f5f5' }}>
+          <span className="text-xl font-metamorphous tracking-wider" style={{ color: '#f5f5f5' }}>
             TwentyFourSeven
           </span>
-          <span className="text-[10px] font-normal tracking-wider uppercase" style={{ color: '#525252' }}>
-            SelfTracker
+          <span className="text-[10px] font-normal tracking-wider uppercase min-w-[120px]" style={{ color: '#525252' }}>
+            {displayText}
+            <span className="animate-pulse ml-0.5 font-bold">|</span>
           </span>
         </div>
       </div>
@@ -277,7 +362,7 @@ export const Header: React.FC<HeaderProps> = ({ currentDate, onPrevMonth, onNext
             <div className="relative" ref={monthPickerRef}>
               <button 
                 onClick={() => setIsMonthPickerOpen(!isMonthPickerOpen)}
-                className="text-sm font-medium text-center hover:text-[#a3a3a3] transition-colors min-w-[90px] px-2"
+                className="text-base font-metamorphous tracking-wide hover:text-[#a3a3a3] transition-colors"
               >
                 {MONTH_NAMES[month]}
               </button>
@@ -315,7 +400,7 @@ export const Header: React.FC<HeaderProps> = ({ currentDate, onPrevMonth, onNext
                 onClick={() => {
                   setIsYearPickerOpen(!isYearPickerOpen);
                 }}
-                className="text-sm font-medium hover:text-[#a3a3a3] transition-colors px-2 min-w-[60px]"
+                className="text-base font-metamorphous tracking-wide hover:text-[#a3a3a3] transition-colors px-2 min-w-[60px]"
               >
                 {year}
               </button>

@@ -96,7 +96,7 @@ const handlePaste = (e: React.ClipboardEvent) => {
 
   return (
     <section className="table-section p-4 lg:col-span-3 p-2 rounded-xl" style={{ background: '#171717', border: '1px solid #262626' }}>
-      <h2 className="text-sm font-normal mb-2" style={{ color: '#a3a3a3' }}>Activity Tracker</h2>
+      <h2 className="text-md font-metamorphous tracking-wider mb-2" style={{ color: '#a3a3a3' }}>Activity Tracker</h2>
       <div className="table-wrapper">
         <div className="table-container">
           <table className="min-w-full text-center" onPaste={handlePaste}>

@@ -96,9 +96,29 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<'top' | 'bottom'>('bottom');
   const [isViewAll, setIsViewAll] = useState(true);
   const [draggedNote, setDraggedNote] = useState<{ id: string; date: Date } | null>(null);
   const [dragOverNoteId, setDragOverNoteId] = useState<string | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [completedFilter, setCompletedFilter] = useState<'all' | 'completed' | 'notCompleted'>('all');
+
+  // Helper to extract hashtags from text
+  const extractTags = (text: string): string[] => {
+    const matches = text.match(/#[\w\u0600-\u06FF]+/g);
+    return matches ? [...new Set(matches.map(t => t.toLowerCase()))] : [];
+  };
+
+  // Get all unique tags from all notes
+  const allTags = useMemo(() => {
+    const tags = new Set<string>();
+    allTimeNotes.forEach(group => {
+      group.notes.forEach(note => {
+        extractTags(note.content).forEach(tag => tags.add(tag));
+      });
+    });
+    return Array.from(tags).sort();
+  }, [allTimeNotes]);
   
   // Actions
   const setActiveCell = useStore((state) => state.setActiveCell);
@@ -230,6 +250,27 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
       result = result.map(item => ({
         ...item,
         notes: item.notes.filter(n => n.content.toLowerCase().includes(q))
+      })).filter(item => item.notes.length > 0);
+    }
+
+    // Filter by selected tag
+    if (selectedTag) {
+      result = result.map(item => ({
+        ...item,
+        notes: item.notes.filter(n => extractTags(n.content).includes(selectedTag))
+      })).filter(item => item.notes.length > 0);
+    }
+
+    // Filter by completed status
+    if (completedFilter === 'completed') {
+      result = result.map(item => ({
+        ...item,
+        notes: item.notes.filter(n => n.isDone)
+      })).filter(item => item.notes.length > 0);
+    } else if (completedFilter === 'notCompleted') {
+      result = result.map(item => ({
+        ...item,
+        notes: item.notes.filter(n => !n.isDone)
       })).filter(item => item.notes.length > 0);
     }
 
@@ -511,6 +552,47 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
   };
 
 
+  // Helper to render note content with tags and links
+  const renderNoteContent = (content: string) => {
+    // Split by URLs and hashtags
+    const parts = content.split(/((?:https?:\/\/|www\.)[^\s]+|#[\w\u0600-\u06FF]+)/g);
+    return parts.map((part, i) => {
+      // URL
+      if (part.match(/^(https?:\/\/|www\.)/)) {
+        return (
+          <a 
+            key={i} 
+            href={part.startsWith('www.') ? `http://${part}` : part} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="hover:underline"
+            style={{ color: 'inherit' }} 
+            onClick={(e) => e.stopPropagation()}
+          >
+            {part}
+          </a>
+        );
+      }
+      // Hashtag
+      if (part.match(/^#[\w\u0600-\u06FF]+$/)) {
+        return (
+          <span 
+            key={i}
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedTag(part.toLowerCase());
+            }}
+            className="inline-flex items-center px-1.5 py-0 mx-0.5 text-[9px] font-medium rounded bg-[#262626] text-[#a0c4ff] hover:bg-[#3b82f6] hover:text-white cursor-pointer transition-colors"
+          >
+            {part}
+          </span>
+        );
+      }
+      // Plain text
+      return part;
+    });
+  };
+
 
   // ... (stats logic) ...
   const displayStats = useMemo(() => {
@@ -669,7 +751,7 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
       <div className="flex gap-4 mb-6 flex-shrink-0">
         <button
           onClick={() => setMainTab('statistic')}
-          className={`text-sm font-medium transition-colors ${mainTab === 'statistic' ? 'text-white' : 'text-[#737373] hover:text-[#a3a3a3]'}`}
+          className={`text-md font-metamorphous tracking-wide transition-colors ${mainTab === 'statistic' ? 'text-white' : 'text-[#737373] hover:text-[#a3a3a3]'}`}
            style={{
             background: mainTab === 'statistic' ? '#262626' : 'transparent',
             padding: '4px 12px',
@@ -680,7 +762,7 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
         </button>
         <button
           onClick={() => setMainTab('notes')}
-          className={`text-sm font-medium transition-colors ${mainTab === 'notes' ? 'text-white' : 'text-[#737373] hover:text-[#a3a3a3]'}`}
+          className={`text-md font-metamorphous tracking-wide transition-colors ${mainTab === 'notes' ? 'text-white' : 'text-[#737373] hover:text-[#a3a3a3]'}`}
            style={{
             background: mainTab === 'notes' ? '#262626' : 'transparent',
             padding: '4px 12px',
@@ -697,40 +779,40 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
            <div className="flex gap-1 mb-4">
             <button
               onClick={() => setActiveTab('daily')}
-              className="flex-1 px-2 py-1.5 text-[10px] uppercase tracking-wider font-medium rounded-md transition-all"
+              className="flex-1 px-2 py-1.5 text-sm tracking-wider font-medium rounded-md transition-all font-metamorphous"
               style={{
                 background: activeTab === 'daily' ? '#262626' : 'transparent',
                 color: activeTab === 'daily' ? '#e5e5e5' : '#737373',
                 border: activeTab === 'daily' ? '1px solid #404040' : '1px solid transparent',
               }}
             >
-              Daily Statistic
+              Daily
             </button>
             <button
               onClick={() => setActiveTab('monthly')}
-              className="flex-1 px-2 py-1.5 text-[10px] uppercase tracking-wider font-medium rounded-md transition-all"
+              className="flex-1 px-2 py-1.5 text-sm tracking-wider font-medium rounded-md transition-all font-metamorphous"
               style={{
                 background: activeTab === 'monthly' ? '#262626' : 'transparent',
                 color: activeTab === 'monthly' ? '#e5e5e5' : '#737373',
                 border: activeTab === 'monthly' ? '1px solid #404040' : '1px solid transparent',
               }}
             >
-              Monthly Statistic
+              Monthly
             </button>
             <button
               onClick={() => setActiveTab('alltime')}
-              className="flex-1 px-2 py-1.5 text-[10px] uppercase tracking-wider font-medium rounded-md transition-all"
+              className="flex-1 px-2 py-1.5 text-sm tracking-wider font-medium rounded-md transition-all font-metamorphous"
               style={{
                 background: activeTab === 'alltime' ? '#262626' : 'transparent',
                 color: activeTab === 'alltime' ? '#e5e5e5' : '#737373',
                 border: activeTab === 'alltime' ? '1px solid #404040' : '1px solid transparent',
               }}
             >
-              All Time Statistic
+              All Time
             </button>
           </div>
 
-          <h2 className="text-sm font-normal mb-3 text-center" style={{ color: '#a3a3a3' }}>
+          <h2 className="text-xl font-metamorphous tracking-wide mb-3 text-center" style={{ color: '#a3a3a3' }}>
             {getTabTitle()}
           </h2>
 
@@ -766,7 +848,7 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
           )}
 
           <div className="space-y-3 text-xs flex-1">
-            <h3 className="font-normal pb-2 mb-3" style={{ color: '#737373', borderBottom: '1px solid #262626' }}>
+            <h3 className="text-lg font-metamorphous tracking-wide pb-2 mb-3" style={{ color: '#737373', borderBottom: '1px solid #262626' }}>
               Categories
             </h3>
 
@@ -822,11 +904,19 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
                 <div className="relative flex-1">
                   <input 
                     type="text" 
-                    placeholder="Filter notes..." 
+                    placeholder="Search notes..." 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-[#0a0a0a] border border-[#262626] focus:border-[#404040] outline-none text-xs text-[#e5e5e5] placeholder-[#525252] pl-3 h-8 rounded-lg transition-colors"
+                    className="w-full bg-[#0a0a0a] border border-[#262626] focus:border-[#404040] outline-none text-xs text-[#e5e5e5] placeholder-[#525252] pl-3 pr-8 h-8 rounded-lg transition-colors"
                   />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-[#525252] hover:text-[#e5e5e5] transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
                 </div>
                 {activeCell && (
                   <button
@@ -838,6 +928,52 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
                     }`}
                   >
                     {isViewAll ? 'View Day' : 'View All'}
+                  </button>
+                )}
+              </div>
+
+              {/* Filter Row */}
+              <div className="flex flex-wrap gap-1.5 mb-4">
+                {/* Show Completed Toggle - always first */}
+                <button
+                  onClick={() => {
+                    const next = 
+                      completedFilter === 'all' ? 'notCompleted' :
+                      completedFilter === 'notCompleted' ? 'completed' : 'all';
+                    setCompletedFilter(next);
+                  }}
+                  className={`px-2 py-0.5 text-[10px] rounded-full transition-colors ${
+                    completedFilter === 'all'
+                      ? 'bg-[#262626] text-[#737373] hover:text-[#e5e5e5] hover:bg-[#404040]'
+                      : completedFilter === 'notCompleted'
+                        ? 'bg-[#3b82f6] text-white'
+                        : 'bg-[#10b981] text-white'
+                  }`}
+                >
+                  {completedFilter === 'all' ? 'Show: All' : 
+                   completedFilter === 'notCompleted' ? 'Show: Active' : 'Show: Completed'}
+                </button>
+
+                {/* Tag Filters */}
+                {allTags.map(tag => (
+                  <button
+                    key={tag}
+                    onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
+                    className={`px-2 py-0.5 text-[10px] rounded-full transition-colors ${
+                      selectedTag === tag
+                        ? 'bg-[#3b82f6] text-white'
+                        : 'bg-[#262626] text-[#737373] hover:text-[#e5e5e5] hover:bg-[#404040]'
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+                {selectedTag && (
+                  <button
+                    onClick={() => setSelectedTag(null)}
+                    className="px-2 py-0.5 text-[10px] rounded-full bg-[#404040] text-[#e5e5e5] hover:bg-[#525252] transition-colors"
+                  >
+                    Clear ×
                   </button>
                 )}
               </div>
@@ -891,19 +1027,9 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
                           )}
                        </div>
                        <ul className={`space-y-${isViewAll ? '0.5' : '2.5'}`}>
-                         {(isViewAll ? group.notes.slice(0, 3) : group.notes).map((note) => (
+                         {(isViewAll ? group.notes.slice(0, 3) : [...group.notes].sort((a, b) => (a.isDone ? 1 : 0) - (b.isDone ? 1 : 0))).map((note) => (
                            <li 
                              key={note.id}
-                              draggable={isTodayActive && !isViewAll && editingId !== note.id ? true : undefined} 
-                              onDragStart={(e) => {
-                                if (!isTodayActive || isViewAll) return;
-                                setDraggedNote({ id: note.id, date: group.date });
-                                e.dataTransfer.effectAllowed = 'move';
-                              }}
-                              onDragEnd={() => {
-                                setDraggedNote(null);
-                                setDragOverNoteId(null);
-                              }}
                               onDragOver={(e) => {
                                 if (!draggedNote || draggedNote.date.getTime() !== group.date.getTime()) return;
                                 e.preventDefault();
@@ -944,7 +1070,7 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
                                    });
                                 }
                               }}
-                             className={`group flex flex-col relative text-[11px] leading-5 pl-1 transition-all ${isViewAll ? 'cursor-pointer hover:bg-[#262626]/50 rounded px-1 -ml-1 py-0.5' : ''} ${isTodayActive && !isViewAll ? 'cursor-grab active:cursor-grabbing' : ''} ${dragOverNoteId === note.id ? 'border-t border-[#525252]' : ''}`}
+                             className={`group flex flex-col relative text-[11px] leading-5 pl-1 transition-all ${isViewAll ? 'cursor-pointer hover:bg-[#262626]/50 rounded px-1 -ml-1 py-0.5' : ''}  ${dragOverNoteId === note.id ? 'border-t border-[#525252]' : ''}`}
                            >
                              <div className="flex items-start gap-2 w-full">
                                <span 
@@ -999,29 +1125,42 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
                                      style={{ color: note.type ? NOTE_TYPES[note.type].color : NOTE_TYPES.text.color }}
                                      onDoubleClick={() => isTodayActive && handleStartEdit(note)}
                                    >
-                                     {note.content.split(/((?:https?:\/\/|www\.)[^\s]+)/g).map((part, i) => 
-                                       part.match(/((?:https?:\/\/|www\.)[^\s]+)/g) ? (
-                                         <a 
-                                           key={i} 
-                                           href={part.startsWith('www.') ? `http://${part}` : part} 
-                                           target="_blank" 
-                                           rel="noopener noreferrer" 
-                                           className="hover:underline" // Removed explicit color to inherit parent color
-                                           style={{ color: 'inherit' }} 
-                                           onClick={(e) => e.stopPropagation()}
-                                         >
-                                           {part}
-                                         </a>
-                                       ) : part
-                                     )}
+                                     {renderNoteContent(note.content)}
                                    </span>
                                )}
 
                                {isTodayActive && editingId !== note.id && (
-                                   <div className={`flex items-center gap-1 h-5 transition-opacity ${menuOpenId === note.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                                   <div className={`flex items-center gap-0.5 h-5 transition-opacity ${menuOpenId === note.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                                     {/* Drag Handle */}
+                                     <div
+                                       draggable={!isViewAll}
+                                       onDragStart={(e) => {
+                                         if (isViewAll) return;
+                                         setDraggedNote({ id: note.id, date: group.date });
+                                         e.dataTransfer.effectAllowed = 'move';
+                                       }}
+                                       className="text-[#404040] hover:text-[#737373] cursor-grab active:cursor-grabbing px-0.5 flex items-center justify-center h-full"
+                                       title="Drag to reorder"
+                                     >
+                                       <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                         <circle cx="9" cy="5" r="2"/><circle cx="15" cy="5" r="2"/>
+                                         <circle cx="9" cy="12" r="2"/><circle cx="15" cy="12" r="2"/>
+                                         <circle cx="9" cy="19" r="2"/><circle cx="15" cy="19" r="2"/>
+                                       </svg>
+                                     </div>
                                     <div className="relative flex items-center" data-picker-id={note.id}>
                                      <button 
-                                       onClick={() => setMenuOpenId(menuOpenId === note.id ? null : note.id)}
+                                       onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (menuOpenId === note.id) {
+                                            setMenuOpenId(null);
+                                          } else {
+                                            const rect = e.currentTarget.getBoundingClientRect();
+                                            const spaceBelow = window.innerHeight - rect.bottom;
+                                            setMenuPosition(spaceBelow < 200 ? 'top' : 'bottom');
+                                            setMenuOpenId(note.id);
+                                          }
+                                       }}
                                        className="text-[#525252] hover:text-[#e5e5e5] px-1 flex items-center justify-center h-full"
                                        title="Change type"
                                      >
@@ -1030,7 +1169,9 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
                                      
                                      {/* Dropdown Type Picker */}
                                      {menuOpenId === note.id && (
-                                       <div className="absolute right-0 top-6 w-[140px] bg-[#171717] border border-[#262626] rounded-xl p-2 shadow-xl z-50 flex flex-col gap-1">
+                                       <div className={`absolute right-0 w-[140px] bg-[#171717] border border-[#262626] rounded-xl p-2 shadow-xl z-50 flex flex-col gap-1 ${
+                                          menuPosition === 'top' ? 'bottom-full mb-1' : 'top-6'
+                                       }`}>
                                           {(Object.keys(NOTE_TYPES) as NoteType[])
                                             .filter(t => t !== 'link')
                                             .map((type) => {
