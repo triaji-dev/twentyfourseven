@@ -751,7 +751,7 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
       <div className="flex gap-4 mb-6 flex-shrink-0">
         <button
           onClick={() => setMainTab('statistic')}
-          className={`text-md font-metamorphous tracking-wide transition-colors ${mainTab === 'statistic' ? 'text-white' : 'text-[#737373] hover:text-[#a3a3a3]'}`}
+          className={`text-md font-playfair tracking-wide transition-colors ${mainTab === 'statistic' ? 'text-white' : 'text-[#737373] hover:text-[#a3a3a3]'}`}
            style={{
             background: mainTab === 'statistic' ? '#262626' : 'transparent',
             padding: '4px 12px',
@@ -762,7 +762,7 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
         </button>
         <button
           onClick={() => setMainTab('notes')}
-          className={`text-md font-metamorphous tracking-wide transition-colors ${mainTab === 'notes' ? 'text-white' : 'text-[#737373] hover:text-[#a3a3a3]'}`}
+          className={`text-md font-playfair tracking-wide transition-colors ${mainTab === 'notes' ? 'text-white' : 'text-[#737373] hover:text-[#a3a3a3]'}`}
            style={{
             background: mainTab === 'notes' ? '#262626' : 'transparent',
             padding: '4px 12px',
@@ -779,7 +779,7 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
            <div className="flex gap-1 mb-4">
             <button
               onClick={() => setActiveTab('daily')}
-              className="flex-1 px-2 py-1.5 text-sm tracking-wider font-medium rounded-md transition-all font-metamorphous"
+              className="flex-1 px-2 py-1.5 text-sm tracking-wider font-medium rounded-md transition-all font-playfair"
               style={{
                 background: activeTab === 'daily' ? '#262626' : 'transparent',
                 color: activeTab === 'daily' ? '#e5e5e5' : '#737373',
@@ -790,7 +790,7 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
             </button>
             <button
               onClick={() => setActiveTab('monthly')}
-              className="flex-1 px-2 py-1.5 text-sm tracking-wider font-medium rounded-md transition-all font-metamorphous"
+              className="flex-1 px-2 py-1.5 text-sm tracking-wider font-medium rounded-md transition-all font-playfair"
               style={{
                 background: activeTab === 'monthly' ? '#262626' : 'transparent',
                 color: activeTab === 'monthly' ? '#e5e5e5' : '#737373',
@@ -801,7 +801,7 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
             </button>
             <button
               onClick={() => setActiveTab('alltime')}
-              className="flex-1 px-2 py-1.5 text-sm tracking-wider font-medium rounded-md transition-all font-metamorphous"
+              className="flex-1 px-2 py-1.5 text-sm tracking-wider font-medium rounded-md transition-all font-playfair"
               style={{
                 background: activeTab === 'alltime' ? '#262626' : 'transparent',
                 color: activeTab === 'alltime' ? '#e5e5e5' : '#737373',
@@ -812,7 +812,7 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
             </button>
           </div>
 
-          <h2 className="text-xl font-metamorphous tracking-wide mb-3 text-center" style={{ color: '#a3a3a3' }}>
+          <h2 className="text-xl font-playfair tracking-wide mb-3 text-center" style={{ color: '#a3a3a3' }}>
             {getTabTitle()}
           </h2>
 
@@ -848,7 +848,7 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
           )}
 
           <div className="space-y-3 text-xs flex-1">
-            <h3 className="text-lg font-metamorphous tracking-wide pb-2 mb-3" style={{ color: '#737373', borderBottom: '1px solid #262626' }}>
+            <h3 className="text-lg font-playfair tracking-wide pb-2 mb-3" style={{ color: '#737373', borderBottom: '1px solid #262626' }}>
               Categories
             </h3>
 

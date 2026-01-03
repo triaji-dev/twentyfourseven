@@ -6,7 +6,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
-        metamorphous: ['"Metamorphous"', 'cursive'],
+        playfair: ['"Playfair Display"', 'serif'],
       },
     },
   },

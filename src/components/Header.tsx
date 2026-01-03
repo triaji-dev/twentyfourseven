@@ -188,7 +188,7 @@ export const Header: React.FC<HeaderProps> = ({ currentDate, onPrevMonth, onNext
           />
         </div>
         <div className="flex flex-col">
-          <span className="text-xl font-metamorphous tracking-wider" style={{ color: '#f5f5f5' }}>
+          <span className="text-xl font-playfair tracking-wider" style={{ color: '#f5f5f5' }}>
             TwentyFourSeven
           </span>
           <span className="text-[10px] font-normal tracking-wider uppercase min-w-[120px]" style={{ color: '#525252' }}>
@@ -362,7 +362,7 @@ export const Header: React.FC<HeaderProps> = ({ currentDate, onPrevMonth, onNext
             <div className="relative" ref={monthPickerRef}>
               <button 
                 onClick={() => setIsMonthPickerOpen(!isMonthPickerOpen)}
-                className="text-base font-metamorphous tracking-wide hover:text-[#a3a3a3] transition-colors"
+                className="text-base font-playfair tracking-wide hover:text-[#a3a3a3] transition-colors"
               >
                 {MONTH_NAMES[month]}
               </button>
@@ -400,7 +400,7 @@ export const Header: React.FC<HeaderProps> = ({ currentDate, onPrevMonth, onNext
                 onClick={() => {
                   setIsYearPickerOpen(!isYearPickerOpen);
                 }}
-                className="text-base font-metamorphous tracking-wide hover:text-[#a3a3a3] transition-colors px-2 min-w-[60px]"
+                className="text-base font-playfair tracking-wide hover:text-[#a3a3a3] transition-colors px-2 min-w-[60px]"
               >
                 {year}
               </button>
