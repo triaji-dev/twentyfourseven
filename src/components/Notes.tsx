@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { NoteItem, NoteType } from '../types';
 import { processNoteContent, extractTags } from '../utils/notes';
-import { X, MoreHorizontal, Search, Type, CheckSquare, AlertCircle, Link as LinkIcon, GripVertical, Pencil, ListFilter, TextAlignJustify, Square, CopyPlus, CopyMinus, StickyNote, Maximize2, Minimize2 } from 'lucide-react';
+import { DateNavigator } from './DateNavigator';
+import { X, MoreHorizontal, Search, Type, CheckSquare, AlertCircle, Link as LinkIcon, GripVertical, Pencil, ListFilter, TextAlignJustify, Square, CopyPlus, CopyMinus, StickyNote, Maximize2, Minimize2, CalendarArrowDown } from 'lucide-react';
 
 const NOTE_TYPES: Record<NoteType, { color: string; label: string; icon: any }> = {
   text: { color: '#a3a3a3', label: 'Text', icon: Type },
@@ -140,6 +141,17 @@ export const Notes: React.FC<NotesProps> = ({ year, month }) => {
     }
   }, [activeCell]);
 
+  const handleDateChange = (date: Date) => {
+    if (activeCell) {
+      setActiveCell({ 
+        year: date.getFullYear(), 
+        month: date.getMonth(), 
+        day: date.getDate(), 
+        hour: activeCell.hour 
+      });
+    }
+  };
+
   const allTags = useMemo(() => {
     const counts = new Map<string, number>();
     allTimeNotes.forEach(group => {
@@ -150,6 +162,16 @@ export const Notes: React.FC<NotesProps> = ({ year, month }) => {
       });
     });
     return Array.from(counts.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [allTimeNotes]);
+
+  const datesWithNotes = useMemo(() => {
+    const dates = new Set<string>();
+    allTimeNotes.forEach(item => {
+        if (item.notes.length > 0) {
+            dates.add(`${item.date.getFullYear()}-${item.date.getMonth()}-${item.date.getDate()}`);
+        }
+    });
+    return dates;
   }, [allTimeNotes]);
 
   useEffect(() => {
@@ -674,25 +696,42 @@ export const Notes: React.FC<NotesProps> = ({ year, month }) => {
                    <div>
                      {!isViewAll && activeCell && (
                        <div className="sticky top-0 z-10 bg-[#252525] py-2 mb-2 border-b border-[#262626] flex items-center justify-between group/header transition-all rounded-lg px-2">
-                         <div className="flex items-center gap-2">
-                           <span className="text-sm font-playfair font-medium text-[#d4d4d4] pl-1">
-                             {new Date(activeCell.year, activeCell.month, activeCell.day).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                           </span>
-                         </div>
-                         <div className="flex items-center gap-1 pr-2">
-                           <button 
-                             onClick={() => setIsCompact(!isCompact)}
-                             className="text-[#737373] hover:text-[#e5e5e5] transition-colors p-1"
-                           >
-                             {isCompact ? <Maximize2 size={14} /> : <Minimize2 size={14} />}
-                           </button>
-                           <button 
-                             onClick={() => setIsViewAll(true)}
-                             className="text-[#737373] hover:text-[#e5e5e5] transition-colors p-1"
-                           >
-                             <TextAlignJustify size={14} />
-                           </button>
-                         </div>
+                         <DateNavigator 
+                           date={new Date(activeCell.year, activeCell.month, activeCell.day)}
+                           onDateChange={handleDateChange}
+                           datesWithNotes={datesWithNotes}
+                           className="border-none p-0 bg-transparent hover:border-transparent flex-1" 
+                         />
+                          <div className="flex items-center gap-1 pr-2">
+                            {(() => {
+                              const today = new Date();
+                              const isToday = activeCell.year === today.getFullYear() && activeCell.month === today.getMonth() && activeCell.day === today.getDate();
+                              return !isToday && (
+                                <button 
+                                  onClick={() => {
+                                    const now = new Date();
+                                    setActiveCell({ year: now.getFullYear(), month: now.getMonth(), day: now.getDate(), hour: 0 });
+                                  }}
+                                  className="text-[#525252] hover:text-[#e5e5e5] transition-colors p-1"
+                                  title="Go to Today"
+                                >
+                                  <CalendarArrowDown size={14} />
+                                </button>
+                              );
+                            })()}
+                            <button 
+                              onClick={() => setIsCompact(!isCompact)}
+                              className="text-[#737373] hover:text-[#e5e5e5] transition-colors p-1"
+                            >
+                              {isCompact ? <Maximize2 size={14} /> : <Minimize2 size={14} />}
+                            </button>
+                            <button 
+                              onClick={() => setIsViewAll(true)}
+                              className="text-[#737373] hover:text-[#e5e5e5] transition-colors p-1"
+                            >
+                              <TextAlignJustify size={14} />
+                            </button>
+                          </div>
                        </div>
                      )}
                      <div className="flex flex-col items-center justify-center py-8 text-[#525252]">
@@ -722,16 +761,42 @@ export const Notes: React.FC<NotesProps> = ({ year, month }) => {
                            }}
                            className={`${isViewAll ? '' : 'sticky top-0 z-10'} ${isViewAll ? 'bg-[#212121]' : 'bg-[#252525]'} py-2 mb-2 border-b border-[#262626] flex items-center justify-between group/header transition-all hover:bg-[#262626] rounded-lg px-2 ${isViewAll ? 'cursor-pointer' : ''}`}
                          >
-                           <div className="flex items-center gap-2">
-                             <span className="text-sm font-playfair font-medium text-[#d4d4d4] group-hover/header:text-white pl-1 transition-colors">
-                               {group.date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                             </span>
-                             {isViewAll && !isExpanded && (
-                               <span className="text-xs text-[#737373]">({group.notes.length})</span>
-                             )}
-                           </div>
+                           {!isViewAll && activeCell ? (
+                               <DateNavigator 
+                                 date={group.date}
+                                 onDateChange={handleDateChange}
+                                 datesWithNotes={datesWithNotes}
+                                 className="border-none p-0 bg-transparent hover:border-transparent flex-1"
+                               />
+                           ) : (
+                               <div className="flex items-center gap-2">
+                                 <span className="text-sm font-playfair font-medium text-[#d4d4d4] group-hover/header:text-white pl-1 transition-colors">
+                                   {group.date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                                 </span>
+                                 {isViewAll && !isExpanded && (
+                                   <span className="text-xs text-[#737373]">({group.notes.length})</span>
+                                 )}
+                               </div>
+                           )}
                            {!isViewAll && activeCell && group.date.getDate() === activeCell.day && group.date.getMonth() === activeCell.month && (
                                <div className="flex items-center gap-1 pr-2">
+                                 {(() => {
+                                   const today = new Date();
+                                   const isToday = group.date.getFullYear() === today.getFullYear() && group.date.getMonth() === today.getMonth() && group.date.getDate() === today.getDate();
+                                   return !isToday && (
+                                     <button 
+                                       onClick={(e) => {
+                                         e.stopPropagation();
+                                         const now = new Date();
+                                         setActiveCell({ year: now.getFullYear(), month: now.getMonth(), day: now.getDate(), hour: 0 });
+                                       }}
+                                       className="text-[#525252] hover:text-[#e5e5e5] transition-colors p-1"
+                                       title="Go to Today"
+                                     >
+                                       <CalendarArrowDown size={14} />
+                                     </button>
+                                   );
+                                 })()}
                                  <button 
                                    onClick={(e) => {
                                      e.stopPropagation();
