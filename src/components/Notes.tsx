@@ -12,6 +12,28 @@ const NOTE_TYPES: Record<NoteType, { color: string; label: string; icon: any }> 
   important: { color: '#f87171', label: 'Important', icon: AlertCircle }
 };
 
+// Priority for sorting: lower number = higher priority
+const TYPE_PRIORITY: Record<NoteType, number> = {
+  important: 0,
+  todo: 1,
+  link: 2,
+  text: 3
+};
+
+// Sort notes: Active first (by type priority), then Completed (by type priority)
+const sortNotesByGroupAndType = (notes: NoteItem[]): NoteItem[] => {
+  return [...notes].sort((a, b) => {
+    // First, sort by completion status (active first)
+    if (a.isDone !== b.isDone) {
+      return a.isDone ? 1 : -1;
+    }
+    // Then, sort by type priority
+    const priorityA = TYPE_PRIORITY[a.type || 'text'];
+    const priorityB = TYPE_PRIORITY[b.type || 'text'];
+    return priorityA - priorityB;
+  });
+};
+
 interface NotesProps {
     year: number;
     month: number;
@@ -551,6 +573,14 @@ export const Notes: React.FC<NotesProps> = ({ year, month }) => {
         ...item,
         notes: item.notes.filter(n => !n.isDone)
       })).filter(item => item.notes.length > 0);
+    }
+
+    // In View Day mode, sort notes by group (Active first) and type priority
+    if (!isViewAll) {
+      result = result.map(item => ({
+        ...item,
+        notes: sortNotesByGroupAndType(item.notes)
+      }));
     }
 
     return result;
