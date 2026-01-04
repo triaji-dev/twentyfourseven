@@ -38,5 +38,8 @@ export interface NoteItem {
   createdAt: string; // ISO string
   type?: NoteType;
   isDone?: boolean;
+  isPinned?: boolean; 
+  completedAt?: string; // ISO string
+  deletedAt?: string; // ISO string for recycle bin
   color?: string; // Legacy
 }
