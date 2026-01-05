@@ -1,271 +1,185 @@
-# TwentyFourSeven - Documentation
+# TwentyFourSeven UI/UX Documentation
+*Version 1.0.0 | System Date: Jan 2026*
 
-## 📋 Table of Contents
+## 1. Overview
+### 1.1 Brief Purpose
+TwentyFourSeven is a high-performance, modular time-tracking and note-taking dashboard designed for power users. It combines a 24-hour activity grid with an advanced contextual note-taking system to provide a comprehensive record of daily output and thought processes.
 
-1. [Overview](#overview)
-2. [Tech Stack](#tech-stack)
-3. [Features](#features)
-4. [Keyboard Shortcuts](#keyboard-shortcuts)
-5. [State Management](#state-management)
-6. [Data Storage](#data-storage)
-7. [Development Guide](#development-guide)
+### 1.2 Primary User Groups
+*   **Knowledge Workers:** Users needing to track billable or focused hours across various projects/categories.
+*   **Journalers/Planners:** Individuals using the system for daily reflection and "todo" management.
+*   **Power Users:** Users who prefer keyboard-heavy workflows, fast entry, and data portability.
 
----
-
-## 🎯 Overview
-
-**TwentyFourSeven** - Aplikasi tracking aktivitas harian dengan grid 24 jam × hari dalam bulan.
-
-### Key Features
-
-- ✅ Grid 24 jam × jumlah hari dalam bulan
-- ✅ 6 kategori aktivitas (S, F, A, P, C, E)
-- ✅ Copy/Paste multiple cells (termasuk dari Google Sheets/Excel)
-- ✅ Undo/Redo (Ctrl+Z / Ctrl+Shift+Z)
-- ✅ Rectangle selection (Shift+Arrow / Shift+Click)
-- ✅ Keyboard navigation (Enter, Arrow keys)
-- ✅ Statistik bulanan dengan pie chart
-- ✅ LocalStorage persistence
-- ✅ Auto-replace input saat cell di-klik
+### 1.3 Supported Platforms
+*   **Desktop (Primary):** Optimized for mouse and keyboard interaction. Supports complex selection and keyboard navigation.
+*   **Responsive:** Grid layout adapts to screen size, though advanced selection features may be limited on touch devices.
 
 ---
 
-## 🛠 Tech Stack
+## 2. Information Architecture
+### 2.1 Navigation Model
+*   **Global Navigation:** Header-based navigation for time (Month/Year) and system settings (Import/Export/Categories).
+*   **Local Navigation (Contextual):** Tab-based switching in the sidebar between Statistics and Notes.
+*   **Temporal Navigation:** Ability to jump between days by clicking columns in the Activity Table or using the Date Navigator in the Notes panel.
 
-- **React** 18.3.1 + **TypeScript** 5.5.3 + **Vite** 5.3.1
-- **Zustand** 4.5.2 - State Management
-- **Tailwind CSS** 3.4.1 - Styling
-
----
-
-## ✨ Features
-
-### 1. Activity Tracking
-
-- Grid 24 jam (rows) × N hari (columns)
-- Input validation: S, F, A, P, C, E atau empty
-- Auto uppercase & real-time save ke LocalStorage
-- Auto-replace: Klik cell → ketik langsung menimpa nilai lama
-
-### 2. Cell Selection
-
-- **Single**: Click cell
-- **Multiple**: Ctrl+Click toggle
-- **Rectangle**: Shift+Click atau Shift+Arrow
-- **Drag**: Mouse drag untuk select area
-
-### 3. Copy/Paste
-
-- **Internal**: Ctrl+C/V antar cell
-- **External**: Paste dari Google Sheets/Excel (TSV format)
-- **Pattern Paste**: Paste dengan posisi relatif
-- Visual feedback: border hijau untuk copied cells
-
-### 4. Undo/Redo
-
-- **Ctrl+Z**: Undo perubahan
-- **Ctrl+Shift+Z**: Redo perubahan
-- Global scope: Berfungsi bahkan saat input fokus
-- History tracking untuk semua cell changes
-
-### 5. Keyboard Navigation
-
-- **Enter / Arrow Down**: Pindah ke jam berikutnya
-- **Arrow Up/Down/Left/Right**: Navigate antar cell
-- **Shift+Arrow**: Expand rectangle selection
-- Auto wrap: Navigasi otomatis ke hari/jam berikutnya
-
-### 6. Statistics
-
-- Monthly stats per kategori
-- Pie chart visualisasi (Canvas API)
-- Auto update saat data berubah
+### 2.2 Sitemap (Markdown Outline)
+- **Main View**
+  - **Header**
+    - Logo & Dynamic Subtitle
+    - Settings Button (Modal Trigger)
+    - Data Export (JSON Download)
+    - Data Import (JSON Upload)
+    - Month/Year Picker
+  - **Main Dashboard**
+    - **Activity Table (Activity Tracker)**
+      - 24-hour Row Header (00-23)
+      - Date/Day Column Headers
+      - Interactive Activity Cells (Grid)
+    - **Sidebar (Utility Panel)**
+      - **Statistic Tab**
+        - Category Distribution Pie Chart
+        - Legend with Hours & Percentages
+      - **Notes Tab**
+        - Global Notes Search/Filter Bar
+        - Tag Suggestion List
+        - Date Navigator (Calendar Strip)
+        - Note Type Toggles (Important, Todo, Link, Text)
+        - Active Note Stream
+        - Recycle Bin (Soft-deleted notes)
+- **Settings Modal**
+  - Category Management (Key, Name, Color)
+  - Color Picker Tool
 
 ---
 
-## 🏗 Architecture
+## 3. UI Elements Inventory
+### 3.1 Layout & Containers
+| Element | Purpose | Default State | Microinteractions |
+| :--- | :--- | :--- | :--- |
+| **Main Container** | Root layout | Fullscreen grid | 2-column on desktop, stack on mobile. |
+| **Sidebar** | Houses Stats/Notes | Visible (Right) | Glassmorphism effect (80% opacity, backdrop blur). |
+| **Activity Grid** | Time entry area | Scrollable (Horizontal) | Sticky headers for hours and dates. |
 
-### Component Hierarchy
+### 3.2 Navigation & Buttons
+*   **Primary Action Buttons (Header):**
+    *   **Appearance:** Icon-only with subtle background (`#262626`).
+    *   **States:** Hover adds `scale-105` and background shift to `#404040`.
+    *   **Special Behavior:** Settings icon rotates 45° on hover. Download/Upload icons shift vertically.
+*   **Month/Year Picker:**
+    *   **Trigger:** Click on Month or Year text.
+    *   **Dropdown:** Emerges below trigger. Year picker supports mouse wheel scrolling for rapid increment/decrement.
+*   **Sidebar Tabs:**
+    *   **Interaction:** Click to switch visibility of `Statistic` and `Notes` components.
+    *   **Active State:** High-contrast text with background fill.
 
-```
-App
-├── Header (Month navigation)
-├── ActivityTable (Grid + Selection)
-│   └── ActivityCell[] (24 × daysInMonth)
-└── Stats (Monthly stats + Pie chart)
-```
+### 3.3 Activity Cells (Interactive Inputs)
+*   **Type:** Single-character text input (`maxLength: 1`).
+*   **Behavior:** 
+    *   Accepts specific category keys (e.g., 'W' for Work, 'E' for Exercise).
+    *   Auto-converts input to uppercase.
+    *   Auto-selects content on focus for quick replacement.
+*   **States:**
+    *   **Default:** Gray background or category-specific color.
+    *   **Focused:** Border glow, text selected.
+    *   **Selected (Multi-select):** Outlined with colored overlay.
+    *   **Copied:** Dashed border animation.
 
-### State Flow
-
-```
-User Input → ActivityCell → saveActivity → LocalStorage
-                ↓
-          pushHistory (undo/redo)
-                ↓
-          Store.refreshStats → Stats Component
-```
-
----
-
-## ⌨️ Keyboard Shortcuts
-
-| Shortcut             | Action                     | Notes                                 |
-| -------------------- | -------------------------- | ------------------------------------- |
-| **Ctrl+C**           | Copy selected cells        | Works with multiple selection         |
-| **Ctrl+V**           | Paste cells                | Internal + External (TSV dari Sheets) |
-| **Ctrl+Z**           | Undo                       | Global (works even in input)          |
-| **Ctrl+Shift+Z**     | Redo                       | Global                                |
-| **Delete/Backspace** | Delete selected cells      | Multiple selection support            |
-| **Enter**            | Navigate down (next hour)  | Auto wrap to next day                 |
-| **Arrow Up/Down**    | Navigate vertically        | Hour navigation                       |
-| **Arrow Left/Right** | Navigate horizontally      | Day navigation                        |
-| **Shift+Arrow**      | Expand rectangle selection | Excel-like selection                  |
-| **Shift+Click**      | Rectangle select to cell   | From selectionStart                   |
-| **Ctrl+Click**       | Toggle cell selection      | Multiple selection                    |
-
----
-
-## 🗄 State Management
-
-### Zustand Store
-
-**Key States**:
-
-```typescript
-{
-  currentDate: Date,
-  selectedCells: Set<string>,
-  selectionStart: { year, month, day, hour } | null,
-  selectionEnd: { year, month, day, hour } | null,
-  copiedCells: CopiedCell[],
-  history: Array<{[cellId]: ActivityKey}>,
-  future: Array<{[cellId]: ActivityKey}>,
-  dataVersion: number,
-  statsCache: MonthStats | null
-}
-```
-
-**Key Actions**:
-
-- `expandSelection(direction)`: Shift+Arrow rectangle expansion
-- `selectRectangle(start, end)`: Select all cells in rectangle
-- `copySelection()`: Copy selected cells to clipboard
-- `pasteToSelection(clipboardText?)`: Paste internal/external data (TSV support)
-- `pushHistory()`: Save current state for undo
-- `undo()`: Restore previous state
-- `redo()`: Restore next state
-- `refreshStats()`: Recalculate monthly statistics
+### 3.4 Notes Elements
+*   **Note Card:**
+    *   **Macro:** Displays type icon, content, timestamp, and actions.
+    *   **Micro:** Hover reveals floating action menu (Edit, Copy, Delete, Pin).
+*   **Rich Input:**
+    *   **Behavior:** Auto-expanding textarea for notes.
+    *   **Validation:** Required content for saving.
+*   **Tag Badge:**
+    *   **Appearance:** Small capsule with `#` prefix. Clickable for filtering.
 
 ---
 
-## 💾 Data Storage
+## 4. Features List
+### 4.1 Activity Tracking (Macro)
+*   **Purpose:** Log time expenditures in 1-hour increments.
+*   **Step-by-Step:**
+    1.  Locate Day (Column) and Hour (Row).
+    2.  Click cell to focus.
+    3.  Type category key (mapped via Settings).
+    4.  The system saves automatically and moves focus to the next hour (optional shortcut).
+*   **Microinteractions:**
+    *   **Key press:** Instant color change based on category map.
+    *   **Keyboard Nav:** Arrow keys move focus between cells.
+    *   **Selection Rectangle:** Click-and-drag to select multiple cells for batch pasting.
 
-### LocalStorage Schema
+### 4.2 Modular Note System (Macro)
+*   **Note Types & Detection:**
+    *   **Important:** Start note with `!`. UI adds red accent and alert icon.
+    *   **Todo:** Start note with `todo `. UI adds checkbox; toggling checkbox updates text persistence.
+    *   **Link:** Paste URL. System detects protocol and fetches title metadata (if available).
+*   **Microinteractions:**
+    *   **Escape Key:** During editing, cancels changes and reverts to previous state.
+    *   **Outside Click:** Saves current edit and exits edit mode.
+    *   **Tag Suggestion:** Typing `#` opens a dropdown of previously used tags. Tab or Enter to select.
 
-**Key Format**: `twentyfourseven-{YEAR}-{MONTH}-{DAY}-{HOUR}`
-
-**Example**:
-
-```
-twentyfourseven-2025-11-1-8  → "S"
-twentyfourseven-2025-11-15-14 → "F"
-```
-
-### Functions (`utils/storage.ts`)
-
-```typescript
-loadActivity(year, month, day, hour): ActivityKey
-saveActivity(year, month, day, hour, value): void
-getCellClass(value): string  // Map to CSS class
-getDaysInMonth(year, month): number
-```
-
----
-
-## 🎨 Styling
-
-### Activity Colors
-
-| Code | Category | Color                          |
-| ---- | -------- | ------------------------------ |
-| S    | Sleep    | `bg-green-50 text-green-800`   |
-| F    | Family   | `bg-amber-50 text-orange-600`  |
-| A    | Activity | `bg-blue-50 text-blue-700`     |
-| P    | Personal | `bg-pink-50 text-pink-700`     |
-| C    | Career   | `bg-purple-50 text-purple-700` |
-| E    | Exercise | `bg-orange-50 text-orange-600` |
-
-### Selection Styles
-
-```css
-.cell-selected {
-  box-shadow: inset 0 0 0 2px #3b82f6; /* Blue border */
-}
-
-.cell-copied {
-  box-shadow: inset 0 0 0 2px #10b981; /* Green border */
-  animation: copiedPulse 0.5s;
-}
-```
-
-### Input UX
-
-```css
-input {
-  caret-color: transparent; /* No blinking cursor */
-  cursor: pointer;
-  user-select: none;
-}
-```
+### 4.3 Data Portability (Backup)
+*   **Export:** Generates a `twentyfourseven_backup_[timestamp].json` file.
+*   **Import:** Overwrites entire local database with JSON content. Requires confirming page reload.
 
 ---
 
-## 👨‍💻 Development Guide
+## 5. User Flows
+### 5.1 Onboarding & Setup
+1.  **User opens app.** Default categories are loaded.
+2.  **User clicks Settings (Cog).** Refines category keys (e.g., 'D' for Deep Work, 'M' for Meetings).
+3.  **User closes Modal.** App re-renders with new colors immediately.
 
-### Setup
+### 5.2 Daily Logging Path
+1.  **Goal:** Record 8 hours of work.
+2.  **Start:** Select first hour of work day in the grid.
+3.  **Path:** Type 'W', press Down Arrow, type 'W', etc.
+4.  **Verification:** Check **Statistic Tab** to see "Work" category at 8 hours (33%).
 
-```bash
-npm install
-npm run dev       # http://localhost:5173
-npm run build     # Production build
-```
-
-### Adding New Activity Type
-
-1. Update `VALID_VALUES` in `src/constants/index.ts`
-2. Update `ActivityKey` type in `src/types/index.ts`
-3. Add CSS class in `src/index.css`
-4. Update `getCellClass()` in `src/utils/storage.ts`
-
-### Debugging
-
-**Check LocalStorage**:
-
-```javascript
-Object.keys(localStorage)
-  .filter(k => k.startsWith('twentyfourseven'))
-  .forEach(k => console.log(k, localStorage.getItem(k)));
-```
-
-**Clear Data**:
-
-```javascript
-Object.keys(localStorage)
-  .filter(k => k.startsWith('twentyfourseven'))
-  .forEach(k => localStorage.removeItem(k));
-```
+### 5.3 Task Management inside Notes
+1.  **Select Date:** User clicks date column or uses Note Navigator.
+2.  **Add Todo:** Type `todo Buy groceries` in the note input.
+3.  **Interaction:** Press Enter to save.
+4.  **Completion:** Check the box inside the note card. Card dims or moves to "Completed" logic.
 
 ---
 
-## 🚀 Future Enhancements
+## 6. States & Contextual Behavior
+### 6.1 System States
+*   **Empty States:** 
+    *   **Stats:** Shows "No activity logged" message or zeroed charts.
+    *   **Notes:** Shows "No notes for this date" with an invitation to create one.
+*   **Loading State:** Subtle opacity pulse on components while fetching from localStorage.
 
-- [ ] Export/Import to CSV/JSON
-- [ ] Dark mode
-- [ ] Custom categories
-- [ ] Week/Year view
-- [ ] Cloud sync
-- [ ] Activity templates
+### 6.2 Role-Based Visibility
+*   *Note: This is a client-side application; all features are visible to the local user.*
+*   **Contextual Buttons:** Delete button only visible on note hover; Restore button only visible in Recycle Bin.
+
+### 6.3 Responsive Breakpoints
+*   **Mobile (< 768px):** Sidebar moves below the grid. Table becomes horizontally scrollable with touch-momentum.
 
 ---
 
-**Last Updated**: November 1, 2025 | **Version**: 1.0.0
+## 7. Accessibility & Usability Notes
+*   **Keyboard Focus:** Managed strictly using `tabindex`. Focused elements have a high-contrast ring (`2px solid #525252`).
+*   **ARIA Labels:** All icon buttons in the Header and Note cards include `aria-label` for screen readers.
+*   **Contrast:** Minimum contrast ratio of 4.5:1 for all primary text against the dark `#0a0a0a` background.
+*   **Confirmation Dialogs:** Destructive actions (Permanent Delete, Restore) require explicit confirmation to prevent data loss.
+
+---
+
+## 8. Glossary
+*   **Activity Key:** A single character (A-Z) used to trigger a category assignment.
+*   **Bin/Recycle:** A temporary storage for deleted notes before permanent erasure.
+*   **Category:** A grouping for time tracking (e.g., "Work", "Sleep").
+*   **Glassmorphism:** A design style characterized by background blur and semi-transparent layers.
+*   **Note Stream:** The chronological list of notes displayed in the Sidebar.
+*   **Pinning:** Fixing a note to the top of the stream regardless of its chronological order.
+
+---
+
+## Appendix: Open Assumptions
+*   *Assumption 1:* Browser supports `localStorage` with at least 5MB of space.
+*   *Assumption 2:* URL parsing for "Link" notes relies on standard URL regex patterns.
+*   *Assumption 3:* Exported JSON files are intended to be held privately by the user (no server storage).
