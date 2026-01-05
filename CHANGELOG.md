@@ -12,6 +12,30 @@ This product follows **Semantic Versioning (SemVer)**:
 
 ---
 
+## [1.1.1] - 2026-01-06
+### Status: Stable
+**Main Focus:** UI Refinement, Filter Bar Redesign, and Enhanced Recycle Bin.
+
+### Added
+- **Recycle Bin Batch Actions:** Added "Restore All" and "Delete All" buttons for bulk management of deleted notes.
+- **Recycle Bin Header:** Added a new header indicating item count in Bin mode.
+
+### Changed
+- **Notes View Toggle:** Consolidated Full, Compact, and Micro view toggles into a single 3-state button with updated `Rows` icons.
+- **Filter Bar Layout:** Completely redesigned the secondary filter row into a structured Grid layout.
+    - **Alignment:** The "Note Types" group now occupies exactly 50% width to match the Search Bar.
+    - **Grouping:** Buttons are grouped into "Attached" segments (Type, View, Status).
+    - **Expansion:** View and Status groups now auto-expand to fill remaining space with consistent spacing.
+- **Iconography Updates:**
+    - Grouped by Type: `ArrowDownUp` -> `List`.
+    - Show Completed: `CheckCircle2` -> `CheckCheck`.
+    - View All Mode: `TextAlignJustify` -> `Grid`.
+    - Create New Note: `StickyNote` -> `Square`.
+- **Interaction Logic:** 
+    - "Pinned" and "Recycle Bin" modes are now mutually exclusive.
+    - Hover states for filter buttons are now significantly darker (`bg-black` or darker tint) for improved contrast against active states.
+- **Micro View:** Optimized spacing and line-height for maximum density in Super Micro View.
+
 ## [1.1.0] - 2026-01-05
 ### Status: Stable
 **Main Focus:** Modernized Aesthetics, Dynamic Customization, and Smarter Note Management.
