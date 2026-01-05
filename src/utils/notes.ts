@@ -14,18 +14,18 @@ export const processNoteContent = (content: string, currentType?: NoteType): { t
   } else if (/^!\s?/.test(content)) {
     newType = 'important';
     cleanContent = content.replace(/^!\s?/, '');
-  } else if (/^[-•]\s?/.test(content)) {
-    cleanContent = content.replace(/^[-•]\s?/, '');
   } else {
-    // No explicit prefix found.
+    // No explicit prefix found or it's just a bullet/dash (which we keep for the list support)
     // Preservative logic: If current type is todo/important, keep it.
-    // Only auto-switch between text/link if current is text/link/undefined.
     if (!newType || newType === 'text' || newType === 'link') {
       const hasLink = /((?:https?:\/\/|www\.)[^\s]+)/.test(content);
       newType = hasLink ? 'link' : 'text';
     }
   }
   
+  // Final fallback to ensure type is never undefined
+  if (!newType) newType = 'text';
+
   // 2. Auto-capitalize tags
   cleanContent = cleanContent.replace(/#[\w\u0600-\u06FF]+/g, match => match.toUpperCase());
 

@@ -26,6 +26,9 @@ This product follows **Semantic Versioning (SemVer)**:
 - **Recycle Bin:** Deleted notes are now moved to a temporary "Bin" and can be restored or permanently purged.
 - **Pinning System:** High-priority notes can now be "Pinned" to remain at the top of the feed.
 - **Auto-Formatting Tags:** Tags are now auto-capitalized and suggested via a dropdown while typing `#`.
+- **Rich Text Support:** Notes now support bullet lists, numbered lists using `1.` prefix, and interactive checkboxes using `[ ]` syntax.
+- **Super Micro View:** Added a new ultra-compact view mode that collapses all notes into single-line truncated rows with minimal font size for maximum density.
+- **Compact View Truncation:** Notes in compact mode are now limited to 3 rows with automatic truncation to keep the feed organized.
 
 ### Changed
 - **Unified Notes View:** Removed the monthly fragmentation of notes; all notes are now accessible through a unified, searchable stream.
@@ -37,6 +40,9 @@ This product follows **Semantic Versioning (SemVer)**:
 - **Tag Visibility:** Fixed an issue where tag suggestions were cut off at the bottom of the viewport.
 - **Keyboard Navigation:** Ensured `Delete` and `Backspace` keys correctly interface with the multi-cell selection in the Activity Table.
 - **Auto-Scroll:** New notes now automatically scroll into view upon creation.
+- **Search Highlighting:** Search terms are now visually highlighted within note content, links, and tags.
+- **Text Selection:** Fixed `Shift+Arrow` selection in note editors (previously conflicted with table navigation).
+- **Note Input:** Disabled automatic splitting of notes starting with `-` to allow multi-line lists in a single note.
 
 ### Improved UX/UI
 - **Microinteractions:** Added a subtle pulsing "dot" indicator on the date header if a note exists for that day.
