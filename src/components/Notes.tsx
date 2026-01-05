@@ -3,7 +3,7 @@ import { useStore } from '../store/useStore';
 import { NoteItem, NoteType } from '../types';
 import { processNoteContent, extractTags } from '../utils/notes';
 import { DateNavigator } from './DateNavigator';
-import { X, Search, Type, CheckSquare, AlertCircle, Link as LinkIcon, GripVertical, TextAlignJustify, Square, CopyPlus, CopyMinus, StickyNote, Maximize2, Minimize2, CalendarArrowDown, Copy, ArrowLeft, Check, Trash, ArrowDownUp, Pencil, Loader2, Pin, PinOff, Trash2, RefreshCcw, ChevronDown, CheckCircle2, Circle } from 'lucide-react';
+import { X, Search, Type, CheckSquare, AlertCircle, Link as LinkIcon, GripVertical, TextAlignJustify, Square, CopyPlus, CopyMinus, StickyNote, Maximize2, Minimize2, CalendarArrowDown, Copy, ArrowLeft, Check, Trash, ArrowDownUp, Pencil, Loader2, Pin, PinOff, Trash2, RefreshCcw, ChevronDown, CheckCircle2 } from 'lucide-react';
 
 const NOTE_TYPES: Record<NoteType, { color: string; label: string; icon: any }> = {
   text: { color: '#a3a3a3', label: 'Text', icon: Type },
@@ -135,7 +135,7 @@ export const Notes: React.FC<NotesProps> = ({ year, month }) => {
   const [transitioningIds, setTransitioningIds] = useState<Set<string>>(new Set());
   const [copyingIds, setCopyingIds] = useState<Set<string>>(new Set());
   const [newlyAddedIds, setNewlyAddedIds] = useState<Set<string>>(new Set());
-  const [isSortedByType, setIsSortedByType] = useState(false);
+  const [isSortedByType, setIsSortedByType] = useState(true);
   const [showPinnedOnly, setShowPinnedOnly] = useState(false);
   const [showRecycleBin, setShowRecycleBin] = useState(false); // Recycle Bin State
   const [selectedTypes, setSelectedTypes] = useState<NoteType[]>([]); // New state for type filtering
@@ -409,10 +409,6 @@ export const Notes: React.FC<NotesProps> = ({ year, month }) => {
         const newItems: NoteItem[] = entries.map(entryContent => {
           let { type, content } = processNoteContent(entryContent);
 
-          // Auto-add #YOUTUBE tag on creation
-          if (/(youtube|youtu\.be)/i.test(content) && !/#YOUTUBE/i.test(content)) {
-              content = content.trimEnd() + ' #YOUTUBE';
-          }
 
           // Auto-add active filter tag
           if (selectedTag && !content.toUpperCase().includes(selectedTag.toUpperCase())) {
@@ -754,10 +750,6 @@ export const Notes: React.FC<NotesProps> = ({ year, month }) => {
     
     newContent = newContent.replace(oldText, newLinkText);
 
-    // Auto add #YOUTUBE tag
-    if (/(youtube|youtu\.be)/i.test(newUrl) && !/#YOUTUBE/i.test(newContent)) {
-        newContent = newContent.trimEnd() + ' #YOUTUBE';
-    }
 
     // Save to LocalStorage
     const y = date.getFullYear();
@@ -879,6 +871,147 @@ export const Notes: React.FC<NotesProps> = ({ year, month }) => {
     });
   };
 
+   const renderNoteItem = (note: NoteItem, date: Date) => {
+    const isNoteDone = note.isDone && !transitioningIds.has(note.id);
+    return (
+      <div 
+        key={note.id} 
+        id={`note-${note.id}`} 
+        className={`group relative flex transition-all duration-500 ease-out ${newlyAddedIds.has(note.id) ? 'animate-[fadeIn_0.5s_ease-out] bg-gray-500/10' : ''} ${isCompact ? "items-start gap-1.5 py-0.5 px-1 border-transparent rounded" : "items-start gap-2 p-2 rounded-lg border"} ${
+          copyingIds.has(note.id) ? '!bg-[#404040] !duration-100' : (dragOverNoteId === note.id ? 'border-t-2 border-t-[#3b82f6]' : (note.isPinned ? 'border-[#404040] bg-[#1a1a1a]' : 'border-transparent hover:border-[#262626] hover:bg-[#1a1a1a]'))
+        } ${isNoteDone ? 'opacity-50' : 'opacity-100'}`}
+        draggable={isViewAll && !searchQuery && !selectedTag}
+        onDragStart={(e) => {
+          setDraggedNote({ id: note.id, date: date });
+          e.dataTransfer.effectAllowed = 'move';
+          const img = new Image();
+          img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+          e.dataTransfer.setDragImage(img, 0, 0);
+        }}
+        onDragOver={(e) => { e.preventDefault(); if (draggedNote && draggedNote.id !== note.id) setDragOverNoteId(note.id); }}
+        onDragLeave={() => setDragOverNoteId(null)}
+        onDrop={(e) => { e.preventDefault(); if (draggedNote) { handleReorderNotes(date, draggedNote.id, note.id); setDraggedNote(null); setDragOverNoteId(null); } }}
+        onDragEnd={() => { setDraggedNote(null); setDragOverNoteId(null); }}
+      >
+        {/* Drag Handle */}
+        {(isViewAll && !searchQuery && !selectedTag) && (
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing p-1 text-[#525252] hover:text-[#a3a3a3]">
+            <GripVertical size={12} />
+          </div>
+        )}
+
+        <div className="h-4 flex items-center relative" data-picker-id={note.id}>
+           {isCompact ? (
+             <button onClick={(e) => { e.stopPropagation(); handleToggleTodo(date, note.id); }} className="w-3 h-3 flex items-center justify-center hover:scale-125 transition-transform cursor-pointer">
+               <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: isNoteDone ? '#737373' : (note.type === 'todo' ? '#facc15' : NOTE_TYPES[note.type || 'text'].color) }} />
+             </button>
+           ) : note.type === 'todo' ? (
+             <button onClick={() => handleToggleTodo(date, note.id)} className={`transition-colors group flex items-center justify-center ${isNoteDone ? 'text-[#737373]' : 'text-[#facc15]'} hover:!text-[#737373]`}>
+               {isNoteDone ? <CheckSquare size={14} /> : ( <> <Square size={14} className="group-hover:hidden" /> <CheckSquare size={14} className="hidden group-hover:block" /> </> )}
+             </button>
+           ) : (
+             <button onClick={() => handleToggleTodo(date, note.id)} className="transition-colors hover:!text-[#737373]" style={{ color: isNoteDone ? '#737373' : NOTE_TYPES[note.type || 'text'].color }}>
+               {React.createElement(NOTE_TYPES[note.type || 'text'].icon, { size: 14 })}
+             </button>
+           )}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          {editingId === note.id ? (
+             <div className="flex flex-col gap-2 relative">
+               <textarea
+                 value={editContent}
+                 onChange={(e) => {
+                    setEditContent(e.target.value);
+                    e.target.style.height = 'auto';
+                    e.target.style.height = e.target.scrollHeight + 'px';
+                    checkTagSuggestions(e.target.value, e.target.selectionStart, 'edit');
+                 }}
+                 onBlur={() => setTimeout(() => { handleSaveEdit(date, note.id); setSuggestionSource(null); }, 200)}
+                 className={isCompact ? "w-full bg-[#262626] text-[#e5e5e5] text-xs p-1 rounded border-0 outline-none resize-none overflow-hidden" : "w-full bg-transparent text-[#e5e5e5] text-xs p-0 border-0 outline-none resize-none overflow-hidden"}
+                 onFocus={(e) => { e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; e.target.selectionStart = e.target.selectionEnd = e.target.value.length; }}
+                 autoFocus
+                 onKeyDown={(e) => {
+                   if (suggestionSource === 'edit') {
+                     if (e.key === 'ArrowDown') { e.preventDefault(); setSuggestionActiveIndex(i => (i + 1) % tagSuggestions.length); return; }
+                     if (e.key === 'ArrowUp') { e.preventDefault(); setSuggestionActiveIndex(i => (i - 1 + tagSuggestions.length) % tagSuggestions.length); return; }
+                     if (e.key === 'Enter') { e.preventDefault(); insertTag(tagSuggestions[suggestionActiveIndex]); return; }
+                     if (e.key === 'Escape') { setSuggestionSource(null); return; }
+                   }
+                   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSaveEdit(date, note.id); } 
+                   else if (e.key === 'Escape') { setEditingId(null); }
+                 }}
+               />
+               {suggestionSource === 'edit' && tagSuggestions.length > 0 && (
+                  <div className="absolute top-full left-0 mt-1 w-full bg-[#171717] border border-[#262626] rounded-lg shadow-xl overflow-hidden max-h-[150px] overflow-y-auto z-50" onMouseDown={(e) => e.preventDefault()}>
+                     {tagSuggestions.map((tag, idx) => (
+                       <div key={tag} className={`px-3 py-1.5 text-xs cursor-pointer ${idx === suggestionActiveIndex ? 'bg-[#262626] text-white' : 'text-[#a3a3a3] hover:bg-[#202020]'}`} onClick={() => insertTag(tag)}>#{tag}</div>
+                     ))}
+                  </div>
+               )}
+             </div>
+          ) : (
+             <span className={`${isCompact ? 'text-[11px]' : 'text-xs'} block break-words whitespace-pre-wrap leading-relaxed ${isNoteDone ? 'text-[#a3a3a3]' : (note.type === 'link' ? 'text-[#a0c4ff]' : (note.type === 'important' ? 'text-[#f87171]' : 'text-[#d4d4d4]'))}`} onDoubleClick={() => handleStartEdit(note)}>
+               {renderNoteContent(note, date)}
+             </span>
+          )}
+          
+          <div className={`flex items-center justify-between mt-4 ${isCompact ? "hidden" : ""}`}>
+             <span className="text-[11px] text-[#525252]">
+               {new Date(note.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+               {isNoteDone && note.completedAt && ( <span className="text-[#525252] opacity-75"> • {new Date(note.completedAt).toLocaleDateString([], { day: 'numeric', month: 'numeric' })}</span> )}
+             </span>
+             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+               {editingId === note.id ? (
+                 <>
+                   <button onClick={() => setEditingId(null)} className="text-[#737373] hover:text-[#e5e5e5] px-1" title="Cancel"><ArrowLeft size={14} /></button>
+                   <button onClick={() => handleSaveEdit(date, note.id)} className="text-[#737373] hover:text-[#60a5fa] px-1" title="Save"><Check size={14} /></button>
+                 </>
+               ) : !showRecycleBin ? (
+                 <>
+                   <button onClick={() => { navigator.clipboard.writeText(note.content); setCopyingIds(prev => new Set(prev).add(note.id)); setTimeout(() => setCopyingIds(prev => { const n = new Set(prev); n.delete(note.id); return n; }), 200); }} className="text-[#525252] hover:text-[#e5e5e5] px-1" title="Copy"><Copy size={14} /></button>
+                   <button onClick={(e) => { e.stopPropagation(); handleTogglePin(date, note.id); }} className={`text-[#525252] hover:text-[#e5e5e5] px-1 ${note.isPinned ? '!text-[#e5e5e5]' : ''}`} title={note.isPinned ? "Unpin" : "Pin"}>{note.isPinned ? <PinOff size={14} /> : <Pin size={14} />}</button>
+                   <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(note.id); }} className="text-[#525252] hover:text-[#ef4444] px-1 transition-colors" title="Delete" data-delete-trigger={note.id}><Trash size={14} /></button>
+                 </>
+               ) : (
+                 <>
+                   <button onClick={(e) => { e.stopPropagation(); handleRestoreNote(date, note.id); }} className="text-[#525252] hover:text-[#22c55e] px-1 transition-colors" title="Restore"><RefreshCcw size={14} /></button>
+                   <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(note.id); }} className="text-[#525252] hover:text-[#ef4444] px-1 transition-colors" title="Permanently Delete"><Trash size={14} /></button>
+                 </>
+               )}
+             </div>
+          </div>
+        </div>
+
+        {!editingId && isCompact && (
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5">
+             {!showRecycleBin ? (
+               <>
+                 <button onClick={() => { navigator.clipboard.writeText(note.content); setCopyingIds(prev => new Set(prev).add(note.id)); setTimeout(() => setCopyingIds(prev => { const n = new Set(prev); n.delete(note.id); return n; }), 200); }} className="text-[#525252] hover:text-[#e5e5e5] px-1 flex items-center justify-center h-full" title="Copy"><Copy size={14} /></button>
+                 <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(note.id); }} className="text-[#525252] hover:text-[#ef4444] px-1 flex items-center justify-center h-full transition-colors" title="Delete" data-delete-trigger={note.id}><Trash size={14} /></button>
+               </>
+             ) : (
+               <>
+                 <button onClick={(e) => { e.stopPropagation(); handleRestoreNote(date, note.id); }} className="text-[#525252] hover:text-[#22c55e] px-1 flex items-center justify-center h-full transition-colors" title="Restore"><RefreshCcw size={14} /></button>
+                 <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(note.id); }} className="text-[#525252] hover:text-[#ef4444] px-1 flex items-center justify-center h-full transition-colors" title="Permanently Delete"><Trash size={14} /></button>
+               </>
+             )}
+          </div>
+        )}
+
+        {confirmDeleteId === note.id && (
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-2 bg-[#171717] border border-[#262626] rounded-lg pl-3 pr-1 py-1 z-50 shadow-lg" data-delete-confirm={note.id} onClick={(e) => e.stopPropagation()}>
+            <span className="text-[10px] text-[#e5e5e5] whitespace-nowrap font-medium">{showRecycleBin ? "Permanently Delete?" : "Delete Note?"}</span>
+            <div className="flex items-center gap-0.5 border-l border-[#262626] pl-1.5 ml-1">
+              <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }} className="p-1 text-[#737373] hover:text-[#e5e5e5] hover:bg-[#262626] rounded transition-colors"><X size={12} /></button>
+              <button onClick={(e) => { e.stopPropagation(); if (showRecycleBin) handlePermanentDelete(date, note.id); else handleDeleteNote(date, note.id); setConfirmDeleteId(null); }} className="p-1 text-[#ef4444] hover:text-[#dc2626] hover:bg-[#ef4444]/10 rounded transition-colors"><Trash size={12} /></button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const getFilteredNotes = () => {
     let result: Array<{ date: Date; notes: NoteItem[] }> = [];
     const filterBin = (n: NoteItem) => showRecycleBin ? !!n.deletedAt : !n.deletedAt;
@@ -945,30 +1078,34 @@ export const Notes: React.FC<NotesProps> = ({ year, month }) => {
       })).filter(item => item.notes.length > 0);
     }
 
-    // Sort notes by group (Active first), then type priority, then created date
+    // Sort notes: Pinned first, then Active first, then by type priority, then by NEWEST created date
     if (isSortedByType) {
       result = result.map(item => ({
         ...item,
         notes: [...item.notes].sort((a, b) => {
+            // 1. Pinned status (Pinned first)
+            if (!!a.isPinned !== !!b.isPinned) {
+              return a.isPinned ? -1 : 1;
+            }
+
+            // 2. Completion status (Active first)
             const aIsDone = a.isDone && !transitioningIds.has(a.id);
             const bIsDone = b.isDone && !transitioningIds.has(b.id);
-  
-            // First, sort by completion status (active first)
             if (aIsDone !== bIsDone) {
-              return aIsDone ? 1 : -1; // Active (false) comes first (-1)
+              return aIsDone ? 1 : -1;
             }
-            // Then, sort by type priority
+
+            // 3. Type priority
             const priorityA = TYPE_PRIORITY[a.type || 'text'];
             const priorityB = TYPE_PRIORITY[b.type || 'text'];
-            
             if (priorityA !== priorityB) {
-                return priorityA - priorityB;
+              return priorityA - priorityB;
             }
   
-            // Finally, sort by created date (maintain chronological order)
+            // 4. Creation date (Newest first)
             const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
             const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-            return dateA - dateB;
+            return dateB - dateA;
         })
       }));
     }
@@ -985,119 +1122,108 @@ export const Notes: React.FC<NotesProps> = ({ year, month }) => {
                    from { opacity: 0; transform: translateY(10px); }
                    to { opacity: 1; transform: translateY(0); }
                  }
+                 .type-toggle-btn:hover {
+                   color: var(--active-color) !important;
+                   border-color: var(--active-border) !important;
+                   background-color: var(--active-bg) !important;
+                 }
                `}</style>
                 {/* New Refined Search & Filters */}
-                <div className="flex flex-col mb-4 gap-2">
-                  {/* Top Row: Search, Tags, Completed Toggle, Sort Toggle */}
-                  <div className="grid grid-cols-12 gap-2 h-8">
+                <div className="flex flex-col mb-2 gap-2 pr-[10px]">
+                  {/* Row 1: Search & Tags (50/50 Split) */}
+                  <div className="grid grid-cols-12 gap-2 h-9">
                     {/* Searchbar */}
-                    <div className="relative col-span-4">
+                    <div className="relative col-span-6 group">
                       <input 
                         type="text" 
                         placeholder="Search notes..." 
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full h-full bg-[#1a1a1a] border border-[#262626] focus:border-[#404040] outline-none text-xs text-[#e5e5e5] placeholder-[#525252] pl-8 pr-3 rounded-lg transition-all"
+                        className="w-full h-full bg-[#1a1a1a] border border-[#262626] focus:border-[#404040]/60 focus:bg-[#212121] outline-none text-[11px] text-[#e5e5e5] placeholder-[#525252] pl-8 pr-3 rounded-lg transition-all shadow-inner"
                       />
-                      <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#525252]" />
+                      <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#525252] group-focus-within:text-[#a3a3a3] transition-colors" />
                       {searchQuery && (
                         <button 
                           onClick={() => setSearchQuery('')} 
                           className="absolute right-2 top-1/2 -translate-y-1/2 text-[#525252] hover:text-[#e5e5e5]"
                         >
-                          <X size={12} />
+                          <X size={10} />
                         </button>
                       )}
                     </div>
                     
                     {/* Tags Filter Dropdown */}
-                    <div className="relative col-span-4 tag-filter-menu">
-                      <button
-                        onClick={() => setTagMenuOpen(!tagMenuOpen)}
-                        className={`w-full h-full px-3 flex items-center justify-between rounded-lg border transition-all ${
-                          selectedTag ? 'bg-[#262626] border-[#525252] text-[#e5e5e5]' : 'bg-[#1a1a1a] border-[#262626] text-[#737373] hover:border-[#404040]'
-                        }`}
-                      >
-                        <span className="text-[11px] font-medium truncate">
-                          {selectedTag || "Tags Filter"}
-                        </span>
-                        <ChevronDown size={12} className={`${tagMenuOpen ? 'rotate-180' : ''} transition-transform text-[#525252]`} />
-                      </button>
+                    <div className="col-span-6 flex">
+                      <div className="relative flex-1 tag-filter-menu">
+                        <button
+                          onClick={() => setTagMenuOpen(!tagMenuOpen)}
+                          className={`w-full h-full px-3 flex items-center justify-between rounded-l-lg border transition-all ${
+                            selectedTag ? 'bg-[#262626] border-[#525252] text-[#f5f5f5]' : 'bg-[#1a1a1a] border-[#262626] text-[#737373] hover:border-[#404040]'
+                          }`}
+                        >
+                          <span className="text-[10px] font-semibold tracking-tight truncate">
+                            {selectedTag ? selectedTag.replace('#', '') : "TAGS"}
+                          </span>
+                          <ChevronDown size={10} className={`${tagMenuOpen ? 'rotate-180' : ''} transition-transform text-[#525252]`} />
+                        </button>
 
-                      {tagMenuOpen && (
-                        <div className="absolute left-0 top-full mt-1 w-full bg-[#171717] border border-[#262626] rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col">
-                          <div className="p-2 border-b border-[#262626] bg-[#111111]">
-                            <div className="relative">
-                              <input
-                                autoFocus
-                                type="text"
-                                placeholder="Search tags..."
-                                value={tagSearchQuery}
-                                onChange={(e) => setTagSearchQuery(e.target.value)}
-                                className="w-full bg-[#0a0a0a] border border-[#262626] rounded-md px-7 py-1.5 text-xs outline-none focus:border-[#404040]"
-                              />
-                              <Search size={10} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#525252]" />
+                        {tagMenuOpen && (
+                          <div className="absolute left-0 top-full mt-1.5 w-full bg-[#171717] border border-[#262626] rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] z-50 overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
+                            <div className="p-2 border-b border-[#262626] bg-[#111111]/50">
+                              <div className="relative">
+                                <input
+                                  autoFocus
+                                  type="text"
+                                  placeholder="Filter tags..."
+                                  value={tagSearchQuery}
+                                  onChange={(e) => setTagSearchQuery(e.target.value)}
+                                  className="w-full bg-[#0a0a0a] border border-[#262626] rounded-lg px-7 py-1.5 text-xs outline-none focus:border-[#404040]"
+                                />
+                                <Search size={10} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#525252]" />
+                              </div>
+                            </div>
+                            <div className="max-h-48 overflow-y-auto p-1 py-0.5 custom-scrollbar">
+                              <button
+                                onClick={() => { setSelectedTag(null); setTagMenuOpen(false); }}
+                                className={`w-full text-left px-3 py-2 rounded-lg text-[10px] font-medium transition-colors hover:bg-[#262626] ${!selectedTag ? 'text-[#e5e5e5] bg-[#262626]/30' : 'text-[#737373]'}`}
+                              >
+                                All Tags
+                              </button>
+                              {allTags
+                                .filter(([tag]) => tag.toLowerCase().includes(tagSearchQuery.toLowerCase()))
+                                .map(([tag, count]) => (
+                                  <button
+                                    key={tag}
+                                    onClick={() => {
+                                      setSelectedTag(selectedTag === tag ? null : tag);
+                                      setTagMenuOpen(false);
+                                    }}
+                                    className={`w-full text-left px-3 py-2 rounded-lg text-[10px] font-medium transition-colors hover:bg-[#262626] flex items-center justify-between ${
+                                      selectedTag === tag ? 'text-[#e5e5e5] bg-[#262626]' : 'text-[#737373]'
+                                    }`}
+                                  >
+                                    <span>{tag}</span>
+                                    <span className="text-[9px] opacity-40 tabular-nums">{count}</span>
+                                  </button>
+                                ))}
                             </div>
                           </div>
-                          <div className="max-h-48 overflow-y-auto p-1 py-0.5 scrollbar-thin scrollbar-thumb-[#262626]">
-                            <button
-                              onClick={() => { setSelectedTag(null); setTagMenuOpen(false); }}
-                              className={`w-full text-left px-3 py-2 rounded-lg text-[10px] font-medium transition-colors hover:bg-[#262626] ${!selectedTag ? 'text-[#e5e5e5] bg-[#262626]/30' : 'text-[#737373]'}`}
-                            >
-                              All Tags
-                            </button>
-                            {allTags
-                              .filter(([tag]) => tag.toLowerCase().includes(tagSearchQuery.toLowerCase()))
-                              .map(([tag, count]) => (
-                                <button
-                                  key={tag}
-                                  onClick={() => {
-                                    setSelectedTag(selectedTag === tag ? null : tag);
-                                    setTagMenuOpen(false);
-                                  }}
-                                  className={`w-full text-left px-3 py-2 rounded-lg text-[10px] font-medium transition-colors hover:bg-[#262626] flex items-center justify-between ${
-                                    selectedTag === tag ? 'text-[#e5e5e5] bg-[#262626]' : 'text-[#737373]'
-                                  }`}
-                                >
-                                  <span>{tag}</span>
-                                  <span className="text-[9px] opacity-40">{count}</span>
-                                </button>
-                              ))}
-                          </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => setSelectedTag(null)}
+                        title="Show All Tags"
+                        className="w-9 h-full flex items-center justify-center rounded-r-lg border border-[#262626] bg-[#1a1a1a] text-[#525252] hover:border-[#404040] hover:text-[#a3a3a3] transition-all"
+                      >
+                        <RefreshCcw size={12} />
+                      </button>
                     </div>
-
-                    {/* Completed Toggle */}
-                    <button
-                      onClick={() => setCompletedFilter(completedFilter === 'all' ? 'notCompleted' : 'all')}
-                      className={`h-full col-span-2 flex items-center justify-center gap-2 px-3 rounded-lg border transition-all text-[10px] font-medium ${
-                        completedFilter === 'all' 
-                          ? 'bg-[#262626] border-[#525252] text-[#e5e5e5]' 
-                          : 'bg-[#1a1a1a] border-[#262626] text-[#737373] hover:border-[#404040]'
-                      }`}
-                    >
-                      {completedFilter === 'all' ? <CheckCircle2 size={12} /> : <Circle size={12} />}
-                      <span className="whitespace-nowrap">Done</span>
-                    </button>
-
-                    {/* Sort Toggle */}
-                    <button
-                      onClick={() => setIsSortedByType(!isSortedByType)}
-                      className={`h-full col-span-2 flex items-center justify-center gap-2 rounded-lg border transition-all text-[10px] font-medium ${
-                        isSortedByType 
-                          ? 'bg-[#262626] border-[#525252] text-[#e5e5e5]' 
-                          : 'bg-[#1a1a1a] border-[#262626] text-[#737373] hover:border-[#404040]'
-                      }`}
-                      title={isSortedByType ? "Standard Sort" : "Sort by Type"}
-                    >
-                      <ArrowDownUp size={12} />
-                      <span>Sort</span>
-                    </button>
                   </div>
 
-                  {/* Bottom Row: Types, Pinned, Bin */}
-                  <div className="grid grid-cols-6 gap-2">
+                  {/* Row 2: Equal Width Toggles (8 Buttons Total) */}
+                  <div className="grid grid-cols-8 gap-2">
+                    {/* Note Types Group */}
                     {(Object.entries(NOTE_TYPES) as [NoteType, any][]).map(([type, config]) => {
                       const isSelected = selectedTypes.includes(type);
                       return (
@@ -1108,43 +1234,74 @@ export const Notes: React.FC<NotesProps> = ({ year, month }) => {
                               isSelected ? prev.filter(t => t !== type) : [...prev, type]
                             );
                           }}
-                          className={`h-8 flex items-center justify-center gap-2 text-[10px] font-medium rounded-lg border transition-all ${
+                          className={`h-8 flex items-center justify-center rounded-lg border transition-all type-toggle-btn ${
                             isSelected
-                              ? 'bg-[#262626] border-[#525252] text-[#e5e5e5]'
-                              : 'bg-[#1a1a1a] border-[#262626] text-[#737373] hover:border-[#404040] hover:text-[#a3a3a3]'
+                              ? 'bg-[#262626] border-[#525252]'
+                              : 'bg-[#1a1a1a] border-[#262626] text-[#525252]'
                           }`}
-                          style={isSelected ? { borderColor: config.color, color: config.color, backgroundColor: `${config.color}0a` } : {}}
+                          title={config.label}
+                          style={{
+                            '--active-color': config.color,
+                            '--active-border': `${config.color}44`,
+                            '--active-bg': `${config.color}0a`,
+                            ...(isSelected ? { color: config.color, backgroundColor: `${config.color}0a`, borderColor: `${config.color}44` } : {})
+                          } as React.CSSProperties}
                         >
                           <config.icon size={12} />
-                          <span className="hidden sm:inline">{config.label}</span>
                         </button>
                       );
                     })}
-                    
-                    {/* Pinned Filter */}
+
+                    {/* Pinned Toggle */}
                     <button
                       onClick={() => setShowPinnedOnly(!showPinnedOnly)}
-                      className={`h-8 flex items-center justify-center gap-2 text-[10px] font-medium rounded-lg border transition-all ${
+                      title="Pinned Only"
+                      className={`h-8 flex items-center justify-center rounded-lg border transition-all ${
                         showPinnedOnly
-                          ? 'bg-[#e5e5e5]/10 border-[#e5e5e5] text-[#e5e5e5]'
-                          : 'bg-[#1a1a1a] border-[#262626] text-[#737373] hover:border-[#404040] hover:text-[#a3a3a3]'
+                          ? 'bg-[#e5e5e5]/10 border-yellow-500/40 text-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.1)]'
+                          : 'bg-[#1a1a1a] border-[#262626] text-[#525252] hover:border-yellow-500/40 hover:text-yellow-500 hover:bg-[#e5e5e5]/10'
                       }`}
                     >
-                      <Pin size={12} />
-                      <span className="hidden sm:inline">Pinned</span>
+                      <Pin size={12} fill={showPinnedOnly ? 'currentColor' : 'none'} />
                     </button>
                     
-                    {/* Recycle Bin Filter */}
+                    {/* Completed Toggle */}
+                    <button
+                      onClick={() => setCompletedFilter(completedFilter === 'all' ? 'notCompleted' : 'all')}
+                      title="Show Completed"
+                      className={`h-8 flex items-center justify-center rounded-lg border transition-all ${
+                        completedFilter === 'all' 
+                          ? 'bg-[#e5e5e5]/10 border-blue-500/40 text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]' 
+                          : 'bg-[#1a1a1a] border-[#262626] text-[#525252] hover:border-blue-500/40 hover:text-blue-400 hover:bg-[#e5e5e5]/10'
+                      }`}
+                    >
+                      <CheckCircle2 size={12} />
+                    </button>
+
+                    {/* Sort Toggle */}
+                    <button
+                      onClick={() => setIsSortedByType(!isSortedByType)}
+                      title="Grouped by Type"
+                      className={`h-8 flex items-center justify-center rounded-lg border transition-all ${
+                        isSortedByType 
+                          ? 'bg-[#e5e5e5]/10 border-purple-500/40 text-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.1)]' 
+                          : 'bg-[#1a1a1a] border-[#262626] text-[#525252] hover:border-purple-500/40 hover:text-purple-400 hover:bg-[#e5e5e5]/10'
+                      }`}
+                    >
+                      <ArrowDownUp size={12} />
+                    </button>
+
+                    {/* Bin Toggle */}
                     <button
                       onClick={() => setShowRecycleBin(!showRecycleBin)}
-                      className={`h-8 flex items-center justify-center gap-2 text-[10px] font-medium rounded-lg border transition-all ${
+                      title="Recycle Bin"
+                      className={`h-8 flex items-center justify-center rounded-lg border transition-all ${
                         showRecycleBin
-                          ? 'bg-[#ef4444]/10 border-[#ef4444] text-[#ef4444]'
-                          : 'bg-[#1a1a1a] border-[#262626] text-[#737373] hover:border-[#404040] hover:text-[#a3a3a3]'
+                          ? 'bg-red-500/20 border-red-500/40 text-red-400 shadow-[0_0_10px_rgba(239,68,68,0.1)]'
+                          : 'bg-[#1a1a1a] border-[#262626] text-[#525252] hover:border-red-500/40 hover:text-red-400 hover:bg-red-500/20'
                       }`}
                     >
                       <Trash2 size={12} />
-                      <span className="hidden sm:inline">Bin</span>
                     </button>
                   </div>
                 </div>
@@ -1317,356 +1474,69 @@ export const Notes: React.FC<NotesProps> = ({ year, month }) => {
                            )}
                          </div>
                          
-                         <div className={`space-y-2 ${!isViewAll || isExpanded ? '' : 'hidden'}`}>
-                           {displayedNotes.map((note) => (
-                             <div 
-                               key={note.id} 
-                               id={`note-${note.id}`} 
-                                 className={`group relative flex transition-all duration-500 ease-out ${newlyAddedIds.has(note.id) ? 'animate-[fadeIn_0.5s_ease-out] bg-gray-500/10' : ''} ${isCompact ? "items-start gap-1.5 py-0.5 px-1 border-transparent rounded" : "items-start gap-2 p-2 rounded-lg border"} ${
-                                  copyingIds.has(note.id) ? '!bg-[#404040] !duration-100' : (dragOverNoteId === note.id ? 'border-t-2 border-t-[#3b82f6]' : (note.isPinned ? 'border-[#404040] bg-[#1a1a1a]' : 'border-transparent hover:border-[#262626] hover:bg-[#1a1a1a]'))
-                                } ${note.isDone ? 'opacity-50' : 'opacity-100'}`}
-                               draggable={isViewAll && !searchQuery && !selectedTag} // Only allow drag when viewing all and not filtering
-                               onDragStart={(e) => {
-                                 setDraggedNote({ id: note.id, date: group.date });
-                                 e.dataTransfer.effectAllowed = 'move';
-                                 // Create a transparent drag image
-                                 const img = new Image();
-                                 img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-                                 e.dataTransfer.setDragImage(img, 0, 0);
-                               }}
-                               onDragOver={(e) => {
-                                 e.preventDefault();
-                                 if (draggedNote && draggedNote.id !== note.id) {
-                                   setDragOverNoteId(note.id);
-                                 }
-                               }}
-                               onDragLeave={() => setDragOverNoteId(null)}
-                               onDrop={(e) => {
-                                 e.preventDefault();
-                                 if (draggedNote) {
-                                     handleReorderNotes(group.date, draggedNote.id, note.id);
-                                     setDraggedNote(null);
-                                     setDragOverNoteId(null);
-                                 }
-                               }}
-                               onDragEnd={() => {
-                                 setDraggedNote(null);
-                                 setDragOverNoteId(null);
-                               }}
-                             >
-                               {/* Drag Handle */}
-                               {(isViewAll && !searchQuery && !selectedTag) && (
-                                 <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing p-1 text-[#525252] hover:text-[#a3a3a3]">
-                                   <GripVertical size={12} />
-                                 </div>
-                               )}
+                         <div className={`space-y-4 ${!isViewAll || isExpanded ? '' : 'hidden'}`}>
+                           {(() => {
+                              if (!isSortedByType) {
+                                return <div className="space-y-2">{displayedNotes.map(n => renderNoteItem(n, group.date))}</div>;
+                              }
 
-                                <div className="h-4 flex items-center relative" data-picker-id={note.id}>
-                                   {isCompact ? (
-                                     <button 
-                                       onClick={(e) => { e.stopPropagation(); handleToggleTodo(group.date, note.id); }}
-                                       className="w-3 h-3 flex items-center justify-center hover:scale-125 transition-transform cursor-pointer"
-                                     >
-                                       <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: note.isDone ? '#737373' : (note.type === 'todo' ? '#facc15' : NOTE_TYPES[note.type || 'text'].color) }} />
-                                     </button>
-                                   ) : note.type === 'todo' ? (
-                                     <button 
-                                       onClick={() => handleToggleTodo(group.date, note.id)}
-                                       className={`transition-colors group flex items-center justify-center ${note.isDone ? 'text-[#737373]' : 'text-[#facc15]'} hover:!text-[#737373]`}
-                                     >
-                                       {note.isDone ? <CheckSquare size={14} /> : (
-                                           <>
-                                               <Square size={14} className="group-hover:hidden" />
-                                               <CheckSquare size={14} className="hidden group-hover:block" />
-                                           </>
-                                       )}
-                                     </button>
-                                   ) : (
-                                      <button 
-                                        onClick={() => handleToggleTodo(group.date, note.id)}
-                                        className="transition-colors hover:!text-[#737373]"
-                                        style={{ color: note.isDone ? '#737373' : NOTE_TYPES[note.type || 'text'].color }}
-                                      >
-                                        {React.createElement(NOTE_TYPES[note.type || 'text'].icon, { size: 14 })}
-                                      </button>
-                                   )}
-                                </div>
-                               
-                               <div className="flex-1 min-w-0">
-                                 {editingId === note.id ? (
-                                    <div className="flex flex-col gap-2 relative">
-                                      <textarea
-                                        value={editContent}
-                                        onChange={(e) => {
-                                           setEditContent(e.target.value);
-                                           e.target.style.height = 'auto';
-                                           e.target.style.height = e.target.scrollHeight + 'px';
-                                           checkTagSuggestions(e.target.value, e.target.selectionStart, 'edit');
-                                        }}
-                                        onBlur={() => setTimeout(() => { handleSaveEdit(group.date, note.id); setSuggestionSource(null); }, 200)}
-                                        className={isCompact 
-                                           ? "w-full bg-[#262626] text-[#e5e5e5] text-xs p-1 rounded border-0 outline-none resize-none overflow-hidden"
-                                           : "w-full bg-transparent text-[#e5e5e5] text-xs p-0 border-0 outline-none resize-none overflow-hidden"
-                                        }
-                                        onFocus={(e) => { e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; e.target.selectionStart = e.target.selectionEnd = e.target.value.length; }}
-                                        autoFocus
-                                        rows={Math.max(1, editContent.split('\n').length)}
-                                        onKeyDown={(e) => {
-                                           if (suggestionSource === 'edit') {
-                                                if (e.key === 'ArrowDown') {
-                                                    e.preventDefault();
-                                                    setSuggestionActiveIndex(i => (i + 1) % tagSuggestions.length);
-                                                    return;
-                                                }
-                                                if (e.key === 'ArrowUp') {
-                                                    e.preventDefault();
-                                                    setSuggestionActiveIndex(i => (i - 1 + tagSuggestions.length) % tagSuggestions.length);
-                                                    return;
-                                                }
-                                                if (e.key === 'Enter') {
-                                                    e.preventDefault();
-                                                    insertTag(tagSuggestions[suggestionActiveIndex]);
-                                                    return;
-                                                }
-                                                if (e.key === 'Escape') {
-                                                    setSuggestionSource(null);
-                                                    return;
-                                                }
-                                           }
-                                           if(e.key === 'Enter' && !e.shiftKey) {
-                                               e.preventDefault();
-                                               handleSaveEdit(group.date, note.id);
-                                           } else if (e.key === 'Escape') {
-                                               setEditingId(null);
-                                           }
-                                        }}
-                                      />
-                                      {suggestionSource === 'edit' && tagSuggestions.length > 0 && (
-                                         <div 
-                                           className="absolute top-full left-0 mt-1 w-full bg-[#171717] border border-[#262626] rounded-lg shadow-xl overflow-hidden max-h-[150px] overflow-y-auto z-50"
-                                           onMouseDown={(e) => e.preventDefault()}
-                                         >
-                                            {tagSuggestions.map((tag, i) => (
-                                              <div 
-                                                key={tag}
-                                                className={`px-3 py-1.5 text-xs cursor-pointer ${i === suggestionActiveIndex ? 'bg-[#262626] text-white' : 'text-[#a3a3a3] hover:bg-[#202020]'}`}
-                                                onClick={() => insertTag(tag)}
-                                              >
-                                                #{tag}
-                                              </div>
-                                            ))}
-                                         </div>
-                                      )}
-                                     <div className="flex justify-end gap-2 hidden">
-                                       <button 
-                                         onClick={() => setEditingId(null)}
-                                         className="text-[10px] text-[#737373] hover:text-[#e5e5e5]"
-                                       >
-                                         Cancel
-                                       </button>
-                                       <button 
-                                         onClick={() => handleSaveEdit(group.date, note.id)}
-                                         className="text-[10px] bg-[#3b82f6] text-white px-2 py-0.5 rounded hover:bg-[#2563eb]"
-                                       >
-                                         Save
-                                       </button>
-                                     </div>
-                                   </div>
-                                 ) : (
-                                    <span
-                                     className={`${isCompact ? 'text-[11px]' : 'text-xs'} block break-words whitespace-pre-wrap leading-relaxed ${
-                                       note.isDone 
-                                         ? 'text-[#a3a3a3]' 
-                                         : note.type === 'link' ? 'text-[#a0c4ff]' 
-                                         : note.type === 'important' ? 'text-[#f87171]' 
-                                         : 'text-[#d4d4d4]'
-                                     }`}
-                                     onDoubleClick={() => handleStartEdit(note)}
-                                   >
-                                     {renderNoteContent(note, group.date)}
-                                   </span>
-                                 )}
-                                 
-                                 <div className={`flex items-center justify-between mt-4 ${isCompact ? "hidden" : ""}`}>
-                                    <span className="text-[11px] text-[#525252]">
-                                      {new Date(note.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                      {note.isDone && note.completedAt && (
-                                          <span className="text-[#525252] opacity-75"> • {new Date(note.completedAt).toLocaleDateString([], { day: 'numeric', month: 'numeric' })}</span>
-                                      )}
-                                    </span>
-                                     {editingId === note.id ? (
-                                       <div className="flex items-center gap-1">
-                                         <button onClick={() => setEditingId(null)} className="text-[#737373] hover:text-[#e5e5e5] px-1" title="Cancel">
-                                           <ArrowLeft size={14} />
-                                         </button>
-                                         <button onClick={() => handleSaveEdit(group.date, note.id)} className="text-[#737373] hover:text-[#60a5fa] px-1" title="Save">
-                                            <Check size={14} />
-                                         </button>
-                                       </div>
-                                     ) : (
-                                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        {!showRecycleBin && (
-                                          <>
-                                            <button 
-                                              onClick={() => {
-                                                  navigator.clipboard.writeText(note.content);
-                                                  setCopyingIds(prev => new Set(prev).add(note.id));
-                                                  setTimeout(() => setCopyingIds(prev => {
-                                                      const next = new Set(prev);
-                                                      next.delete(note.id);
-                                                      return next;
-                                                  }), 200);
-                                              }}
-                                              className="text-[#525252] hover:text-[#e5e5e5] px-1"
-                                              title="Copy"
-                                            >
-                                              <Copy size={14} />
-                                            </button>
-                                            <button 
-                                              onClick={(e) => { e.stopPropagation(); handleTogglePin(group.date, note.id); }}
-                                              className={`text-[#525252] hover:text-[#e5e5e5] px-1 ${note.isPinned ? '!text-[#e5e5e5]' : ''}`}
-                                              title={note.isPinned ? "Unpin" : "Pin"}
-                                            >
-                                              {note.isPinned ? <PinOff size={14} /> : <Pin size={14} />}
-                                            </button>
-                                          </>
-                                        )}
-                                        <div className="relative">
-                                          {confirmDeleteId === note.id ? (
-                                            <div 
-                                              className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-2 bg-[#171717] border border-[#262626] rounded-lg pl-3 pr-1 py-1 z-50 shadow-lg" 
-                                              data-delete-confirm={note.id}
-                                              onClick={(e) => e.stopPropagation()}
-                                            >
-                                              <span className="text-[10px] text-[#e5e5e5] whitespace-nowrap font-medium">{showRecycleBin ? "Permanently Delete?" : "Delete Note?"}</span>
-                                              <div className="flex items-center gap-0.5 border-l border-[#262626] pl-1.5 ml-1">
-                                                <button 
-                                                    onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
-                                                    className="p-1 text-[#737373] hover:text-[#e5e5e5] hover:bg-[#262626] rounded transition-colors"
-                                                >
-                                                    <X size={12} />
-                                                </button>
-                                          <button 
-                                            onClick={(e) => { e.stopPropagation(); 
-                                                if (showRecycleBin) {
-                                                    handlePermanentDelete(group.date, note.id);
-                                                } else {
-                                                    handleDeleteNote(group.date, note.id);
-                                                }
-                                                setConfirmDeleteId(null); 
-                                            }}
-                                            className="p-1 text-[#ef4444] hover:text-[#dc2626] hover:bg-[#ef4444]/10 rounded transition-colors"
-                                          >
-                                                    <Trash size={12} />
-                                                </button>
-                                              </div>
-                                            </div>
-                                          ) : (
-                                            showRecycleBin ? (
-                                                <div className="flex items-center gap-1">
-                                                    <button 
-                                                        onClick={(e) => { e.stopPropagation(); handleRestoreNote(group.date, note.id); }}
-                                                        className="text-[#525252] hover:text-[#22c55e] px-1 transition-colors"
-                                                        title="Restore"
-                                                    >
-                                                        <RefreshCcw size={14} />
-                                                    </button>
-                                                    <button 
-                                                        onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(note.id); }}
-                                                        className="text-[#525252] hover:text-[#ef4444] px-1 transition-colors"
-                                                        title="Permanently Delete"
-                                                    >
-                                                        <Trash size={14} />
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <button 
-                                                  onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(note.id); }}
-                                                  className="text-[#525252] hover:text-[#ef4444] px-1 transition-colors"
-                                                  title={showRecycleBin ? "Permanently Delete" : "Delete"}
-                                                  data-delete-trigger={note.id}
-                                                >
-                                                  <Trash size={14} />
-                                                </button>
-                                            )
-                                          )}
-                                        </div>
+                              const pinned = displayedNotes.filter(n => n.isPinned);
+                              const unpinned = displayedNotes.filter(n => !n.isPinned);
+                              const active = unpinned.filter(n => !n.isDone);
+                              const completed = unpinned.filter(n => n.isDone);
+
+                              const typeGroups: Record<NoteType, NoteItem[]> = {
+                                important: active.filter(n => n.type === 'important'),
+                                todo: active.filter(n => n.type === 'todo'),
+                                link: active.filter(n => n.type === 'link'),
+                                text: active.filter(n => n.type === 'text' || !n.type)
+                              };
+
+                              return (
+                                <div className="space-y-6">
+                                  {pinned.length > 0 && (
+                                    <div className="space-y-2">
+                                      <div className="flex items-center gap-2 px-1 mb-1">
+                                        <Pin size={10} className="text-yellow-500/60" />
+                                        <span className="text-[9px] font-bold tracking-widest text-yellow-500/50 uppercase">Pinned</span>
                                       </div>
-                                     )}
-                                 </div>
-                               </div>
+                                      {pinned.map(n => renderNoteItem(n, group.date))}
+                                    </div>
+                                  )}
 
-                               {/* Actions */}
-                               {!editingId && isCompact && (
-                                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5">
-                                    {showRecycleBin ? (
-                                      <button 
-                                        onClick={(e) => { e.stopPropagation(); handleRestoreNote(group.date, note.id); }}
-                                        className="text-[#525252] hover:text-[#22c55e] px-1 flex items-center justify-center h-full transition-colors"
-                                        title="Restore"
-                                      >
-                                        <RefreshCcw size={14} />
-                                      </button>
-                                    ) : (
-                                      <button 
-                                        onClick={() => {
-                                            navigator.clipboard.writeText(note.content);
-                                            setCopyingIds(prev => new Set(prev).add(note.id));
-                                                setTimeout(() => setCopyingIds(prev => {
-                                                    const next = new Set(prev);
-                                                    next.delete(note.id);
-                                                    return next;
-                                                }), 200);
-                                        }}
-                                        className="text-[#525252] hover:text-[#e5e5e5] px-1 flex items-center justify-center h-full"
-                                        title="Copy"
-                                      >
-                                        <Copy size={14} />
-                                      </button>
-                                    )}
-                                   <div className="relative h-full flex items-center">
-                                     {confirmDeleteId === note.id ? (
-                                        <div 
-                                          className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-2 bg-[#171717] border border-[#262626] rounded-lg pl-3 pr-1 py-1 z-50 shadow-lg" 
-                                          data-delete-confirm={note.id}
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          <span className="text-[10px] text-[#e5e5e5] whitespace-nowrap font-medium">{showRecycleBin ? "Permanently Delete?" : "Delete Note?"}</span>
-                                          <div className="flex items-center gap-0.5 border-l border-[#262626] pl-1.5 ml-1">
-                                            <button 
-                                                onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
-                                                className="p-1 text-[#737373] hover:text-[#e5e5e5] hover:bg-[#262626] rounded transition-colors"
-                                            >
-                                                <X size={12} />
-                                            </button>
-                                            <button 
-                                                onClick={(e) => { 
-                                                    e.stopPropagation(); 
-                                                    if (showRecycleBin) handlePermanentDelete(group.date, note.id);
-                                                    else handleDeleteNote(group.date, note.id); 
-                                                    setConfirmDeleteId(null); 
-                                                }}
-                                                className="p-1 text-[#ef4444] hover:text-[#dc2626] hover:bg-[#ef4444]/10 rounded transition-colors"
-                                            >
-                                                <Trash size={12} />
-                                            </button>
-                                          </div>
-                                        </div>
-                                     ) : (
-                                       <button 
-                                         onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(note.id); }}
-                                         className="text-[#525252] hover:text-[#ef4444] px-1 flex items-center justify-center h-full transition-colors"
-                                         title={showRecycleBin ? "Permanently Delete" : "Delete"}
-                                         data-delete-trigger={note.id}
-                                       >
-                                         <Trash size={14} />
-                                       </button>
-                                     )}
-                                   </div>
-                                 </div>
-                               )}
-                             </div>
-                           ))}
+                                  {(Object.entries(NOTE_TYPES) as [NoteType, any][])
+                                    .sort(([typeA], [typeB]) => TYPE_PRIORITY[typeA] - TYPE_PRIORITY[typeB])
+                                    .map(([type, config]) => {
+                                       const notesInType = typeGroups[type];
+                                       if (notesInType.length === 0) return null;
+                                       return (
+                                         <div key={type} className="space-y-2">
+                                           <div className="flex items-center gap-2 px-1 mb-1">
+                                             <config.icon size={10} style={{ color: `${config.color}99` }} />
+                                             <span className="text-[9px] font-bold tracking-widest uppercase" style={{ color: `${config.color}88` }}>{config.label}s</span>
+                                           </div>
+                                           {notesInType.map(n => renderNoteItem(n, group.date))}
+                                         </div>
+                                       );
+                                    })}
+
+                                  {completed.length > 0 && (active.length > 0 || pinned.length > 0) && (
+                                    <div className="space-y-2 opacity-60">
+                                      <div className="flex items-center gap-2 px-1 mb-1">
+                                        <CheckCircle2 size={10} className="text-[#525252]" />
+                                        <span className="text-[9px] font-bold tracking-widest text-[#525252] uppercase">Completed Tasks</span>
+                                      </div>
+                                      {completed.map(n => renderNoteItem(n, group.date))}
+                                    </div>
+                                  )}
+                                  {completed.length > 0 && active.length === 0 && pinned.length === 0 && (
+                                    <div className="space-y-2">
+                                      {completed.map(n => renderNoteItem(n, group.date))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
                            {showTruncated && (
                              <button 
                                onClick={() => {
@@ -1741,16 +1611,37 @@ export const Notes: React.FC<NotesProps> = ({ year, month }) => {
                                     return;
                                 }
                             }
-                            handleAddNote(e);
-                         }}
+                             if (e.key === 'Escape') {
+                                 setNewNote('');
+                                 if (e.target instanceof HTMLTextAreaElement) {
+                                     e.target.style.height = 'auto';
+                                 }
+                                 return;
+                             }
+                             handleAddNote(e);
+                          }}
                         placeholder="Add a note... (Press Enter, use 'todo', '!', or paste links)"
-                        className="w-full bg-[#171717] text-[#e5e5e5] placeholder-[#525252] text-xs p-3 pr-10 rounded-xl border border-[#262626] focus:border-[#525252] focus:bg-[#202020] outline-none resize-none overflow-hidden transition-all shadow-sm"
+                        className="w-full bg-[#171717] text-[#e5e5e5] placeholder-[#525252] text-xs p-3 pr-16 rounded-xl border border-[#262626] focus:border-[#525252] focus:bg-[#202020] outline-none resize-none overflow-hidden transition-all shadow-sm"
                         rows={1}
                         style={{ minHeight: '42px' }}
                       />
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#525252]">
-                        <span className="text-[10px] opacity-50">↵</span>
-                      </div>
+                       <div className="absolute right-3 top-[21px] -translate-y-1/2 flex items-center gap-2">
+                         {newNote && (
+                           <button 
+                             onClick={() => {
+                               setNewNote('');
+                               if (addNoteInputRef.current) {
+                                 addNoteInputRef.current.style.height = '42px';
+                               }
+                             }}
+                             className="text-[#525252] hover:text-[#e5e5e5] transition-colors p-1"
+                             title="Clear input"
+                           >
+                             <X size={14} />
+                           </button>
+                         )}
+                         <span className="text-[10px] opacity-50 text-[#525252] pointer-events-none">↵</span>
+                       </div>
                     </div>
                   </div>
              </div>
