@@ -971,7 +971,7 @@ export const Notes: React.FC<NotesProps> = ({ year, month }) => {
                  <>
                    <button onClick={() => { navigator.clipboard.writeText(note.content); setCopyingIds(prev => new Set(prev).add(note.id)); setTimeout(() => setCopyingIds(prev => { const n = new Set(prev); n.delete(note.id); return n; }), 200); }} className="text-[#525252] hover:text-[#e5e5e5] px-1" title="Copy"><Copy size={14} /></button>
                    <button onClick={(e) => { e.stopPropagation(); handleTogglePin(date, note.id); }} className={`text-[#525252] hover:text-[#e5e5e5] px-1 ${note.isPinned ? '!text-[#e5e5e5]' : ''}`} title={note.isPinned ? "Unpin" : "Pin"}>{note.isPinned ? <PinOff size={14} /> : <Pin size={14} />}</button>
-                   <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(note.id); }} className="text-[#525252] hover:text-[#ef4444] px-1 transition-colors" title="Delete" data-delete-trigger={note.id}><Trash size={14} /></button>
+                    <button onClick={(e) => { e.stopPropagation(); handleDeleteNote(date, note.id); }} className="text-[#525252] hover:text-[#ef4444] px-1 transition-colors" title="Delete" data-delete-trigger={note.id}><Trash size={14} /></button>
                  </>
                ) : (
                  <>
@@ -988,7 +988,7 @@ export const Notes: React.FC<NotesProps> = ({ year, month }) => {
              {!showRecycleBin ? (
                <>
                  <button onClick={() => { navigator.clipboard.writeText(note.content); setCopyingIds(prev => new Set(prev).add(note.id)); setTimeout(() => setCopyingIds(prev => { const n = new Set(prev); n.delete(note.id); return n; }), 200); }} className="text-[#525252] hover:text-[#e5e5e5] px-1 flex items-center justify-center h-full" title="Copy"><Copy size={14} /></button>
-                 <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(note.id); }} className="text-[#525252] hover:text-[#ef4444] px-1 flex items-center justify-center h-full transition-colors" title="Delete" data-delete-trigger={note.id}><Trash size={14} /></button>
+                  <button onClick={(e) => { e.stopPropagation(); handleDeleteNote(date, note.id); }} className="text-[#525252] hover:text-[#ef4444] px-1 flex items-center justify-center h-full transition-colors" title="Delete" data-delete-trigger={note.id}><Trash size={14} /></button>
                </>
              ) : (
                <>
@@ -999,12 +999,12 @@ export const Notes: React.FC<NotesProps> = ({ year, month }) => {
           </div>
         )}
 
-        {confirmDeleteId === note.id && (
+        {showRecycleBin && confirmDeleteId === note.id && (
           <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-2 bg-[#171717] border border-[#262626] rounded-lg pl-3 pr-1 py-1 z-50 shadow-lg" data-delete-confirm={note.id} onClick={(e) => e.stopPropagation()}>
-            <span className="text-[10px] text-[#e5e5e5] whitespace-nowrap font-medium">{showRecycleBin ? "Permanently Delete?" : "Delete Note?"}</span>
+            <span className="text-[10px] text-[#e5e5e5] whitespace-nowrap font-medium">Permanently Delete?</span>
             <div className="flex items-center gap-0.5 border-l border-[#262626] pl-1.5 ml-1">
               <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }} className="p-1 text-[#737373] hover:text-[#e5e5e5] hover:bg-[#262626] rounded transition-colors"><X size={12} /></button>
-              <button onClick={(e) => { e.stopPropagation(); if (showRecycleBin) handlePermanentDelete(date, note.id); else handleDeleteNote(date, note.id); setConfirmDeleteId(null); }} className="p-1 text-[#ef4444] hover:text-[#dc2626] hover:bg-[#ef4444]/10 rounded transition-colors"><Trash size={12} /></button>
+              <button onClick={(e) => { e.stopPropagation(); handlePermanentDelete(date, note.id); setConfirmDeleteId(null); }} className="p-1 text-[#ef4444] hover:text-[#dc2626] hover:bg-[#ef4444]/10 rounded transition-colors"><Trash size={12} /></button>
             </div>
           </div>
         )}
