@@ -3,7 +3,7 @@ import { useStore } from '../store/useStore';
 import { NoteItem, NoteType } from '../types';
 import { processNoteContent, extractTags } from '../utils/notes';
 import { DateNavigator } from './DateNavigator';
-import { X, Search, Type, CheckSquare, AlertCircle, Link as LinkIcon, TextAlignJustify, Square, CopyPlus, CopyMinus, StickyNote, Maximize2, Minimize2, CalendarArrowDown, Copy, Check, Trash, ArrowDownUp, Pencil, Loader2, Pin, PinOff, Trash2, RefreshCcw, ChevronDown, CheckCircle2, MoreVertical, Calendar, Hash, Layers, ListChecks, LayoutList, Group, Rows4, Rows3, Rows2, Grid, List, CheckCheck } from 'lucide-react';
+import { X, Search, Type, CheckSquare, AlertCircle, Link as LinkIcon, Square, CalendarArrowDown, Copy, Check, Trash, Pencil, Loader2, Pin, PinOff, Trash2, RefreshCcw, ChevronDown, CheckCircle2, MoreVertical, Calendar, Hash, Layers, ListChecks, Rows4, Rows3, Rows2, Grid, List, CheckCheck } from 'lucide-react';
 
 const NOTE_TYPES: Record<NoteType, { color: string; label: string; icon: any }> = {
   text: { color: '#a3a3a3', label: 'Text', icon: Type },
@@ -126,7 +126,6 @@ export const Notes: React.FC<NotesProps> = ({ year, month }) => {
   const [tagSearchQuery, setTagSearchQuery] = useState('');
   const [tagMenuOpen, setTagMenuOpen] = useState(false);
   const [isViewAll, setIsViewAll] = useState(true);
-  const [isExpanded, setIsExpanded] = useState(true);
   const [tagSuggestions, setTagSuggestions] = useState<string[]>([]);
   const [suggestionActiveIndex, setSuggestionActiveIndex] = useState(0);
   const [suggestionSource, setSuggestionSource] = useState<'add' | 'edit' | null>(null);
@@ -1982,9 +1981,7 @@ export const Notes: React.FC<NotesProps> = ({ year, month }) => {
                         <span className="text-sm font-playfair font-medium text-[#d4d4d4] group-hover/header:text-white pl-1 transition-colors">
                           {group.date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                         </span>
-                        {isViewAll && !isExpanded && (
-                          <span className="text-xs text-[#737373]">({group.notes.length})</span>
-                        )}
+
                       </div>
                     )}
                     {!isViewAll && activeCell && group.date.getDate() === activeCell.day && group.date.getMonth() === activeCell.month && (
@@ -2042,7 +2039,7 @@ export const Notes: React.FC<NotesProps> = ({ year, month }) => {
                     )}
                   </div>
 
-                  <div className={`space-y-4 ${!isViewAll || isExpanded ? '' : 'hidden'}`}>
+                  <div className="space-y-4">
                     {(() => {
                       if (!isSortedByType) {
                         return <div className="space-y-2">{displayedNotes.map(n => renderNoteItem(n, group.date))}</div>;
