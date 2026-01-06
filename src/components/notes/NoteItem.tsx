@@ -1,0 +1,364 @@
+import React from 'react';
+import { NoteItem, NoteType } from '../../types';
+import { NOTE_TYPES } from './types';
+import { NoteContent } from './NoteContent';
+import {
+  X, Check, Copy, Pin, PinOff, Layers, Trash,
+  Square, CheckSquare, ListChecks, MoreVertical, RefreshCcw
+} from 'lucide-react';
+
+interface NoteItemProps {
+  note: NoteItem;
+  date: Date;
+
+  // Display modes
+  isCompact: boolean;
+  isMicro: boolean;
+  isViewAll: boolean;
+
+  // Selection
+  isSelectMode: boolean;
+  isSelected: boolean;
+  onToggleSelect: (noteId: string) => void;
+
+  // Edit state
+  editingId: string | null;
+  editContent: string;
+  onEditContentChange: (content: string) => void;
+  onStartEdit: (note: NoteItem) => void;
+  onSaveEdit: (date: Date, noteId: string) => void;
+  onCancelEdit: () => void;
+
+  // Tag suggestions
+  tagSuggestions: string[];
+  suggestionActiveIndex: number;
+  suggestionSource: 'add' | 'edit' | null;
+  onTagSuggestionSelect: (tag: string) => void;
+  onSuggestionIndexChange: (index: number) => void;
+  onCheckTagSuggestions: (text: string, cursor: number, source: 'add' | 'edit') => void;
+  onSuggestionSourceChange: (source: 'add' | 'edit' | null) => void;
+
+  // Note actions
+  onToggleTodo: (date: Date, noteId: string) => void;
+  onTogglePin: (date: Date, noteId: string) => void;
+  onSetType: (date: Date, noteId: string, type: NoteType) => void;
+  onDeleteNote: (date: Date, noteId: string) => void;
+  onRestoreNote: (date: Date, noteId: string) => void;
+  onPermanentDelete: (date: Date, noteId: string) => void;
+
+  // Copy
+  onCopy: (noteId: string, content: string) => void;
+  isCopying: boolean;
+
+  // Context menu
+  activeContextMenu: string | null;
+  onContextMenuToggle: (noteId: string | null) => void;
+  activeTypeMenu: string | null;
+  onTypeMenuToggle: (noteId: string | null) => void;
+
+  // Confirm delete
+  confirmDeleteId: string | null;
+  onConfirmDeleteChange: (noteId: string | null) => void;
+
+  // Visual state
+  isTransitioning: boolean;
+  isNewlyAdded: boolean;
+
+  // Recycle bin
+  showRecycleBin: boolean;
+
+  // Content rendering
+  editingLink: { noteId: string; subId: string | number; oldText: string; url: string; title: string } | null;
+  onEditLink: (data: { noteId: string; subId: string | number; oldText: string; url: string; title: string }) => void;
+  onCancelEditLink: () => void;
+  onSaveLink: (note: NoteItem, date: Date, title: string, url: string) => void;
+  onTagClick: (tag: string) => void;
+  onToggleInlineCheckbox: (note: NoteItem, date: Date, lineIndex: number) => void;
+  highlightSearchText: (text: string) => React.ReactNode;
+}
+
+export const NoteItemComponent: React.FC<NoteItemProps> = ({
+  note,
+  date,
+  isCompact,
+  isMicro,
+  isViewAll,
+  isSelectMode,
+  isSelected,
+  onToggleSelect,
+  editingId,
+  editContent,
+  onEditContentChange,
+  onStartEdit,
+  onSaveEdit,
+  onCancelEdit,
+  tagSuggestions,
+  suggestionActiveIndex,
+  suggestionSource,
+  onTagSuggestionSelect,
+  onSuggestionIndexChange,
+  onCheckTagSuggestions,
+  onSuggestionSourceChange,
+  onToggleTodo,
+  onTogglePin,
+  onSetType,
+  onDeleteNote,
+  onRestoreNote,
+  onPermanentDelete,
+  onCopy,
+  isCopying,
+  activeContextMenu,
+  onContextMenuToggle,
+  activeTypeMenu,
+  onTypeMenuToggle,
+  confirmDeleteId,
+  onConfirmDeleteChange,
+  isTransitioning,
+  isNewlyAdded,
+  showRecycleBin,
+  editingLink,
+  onEditLink,
+  onCancelEditLink,
+  onSaveLink,
+  onTagClick,
+  onToggleInlineCheckbox,
+  highlightSearchText
+}) => {
+  const isNoteDone = note.isDone && !isTransitioning;
+
+  return (
+    <div
+      key={note.id}
+      id={`note-${note.id}`}
+      onClick={() => isSelectMode && onToggleSelect(note.id)}
+      className={`group relative flex transition-all duration-300 ease-out animate-[fadeIn_0.3s_ease-out] ${isNewlyAdded ? 'bg-gray-500/10' : ''} ${isMicro ? "items-center gap-1 py-0 px-0.5 border-transparent rounded hover:bg-[#1a1a1a]" :
+        isCompact ? "items-start gap-1 py-0 px-1 border-transparent rounded" : "items-start gap-2 p-2 rounded-lg border"
+        } ${isCopying ? '!bg-[#404040] !duration-100' : ((note.isPinned ? 'border-[#404040] bg-[#1a1a1a]' : 'border-[#222] hover:border-[#333] hover:bg-[#1a1a1a]'))
+        } ${isNoteDone ? 'opacity-50' : 'opacity-100'} ${isSelectMode ? 'cursor-pointer' : ''} ${isSelected ? '!bg-green-500/10 !border-green-500/30 shadow-[0_0_15px_rgba(34,197,94,0.05)]' : ''}`}
+    >
+      {/* Selection Checkbox */}
+      {isSelectMode && (
+        <div className="h-4 flex items-center pr-1 scale-90">
+          <div className={`w-3.5 h-3.5 rounded-md border flex items-center justify-center transition-all ${isSelected ? 'bg-green-500 border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.3)]' : 'border-[#404040] bg-[#1a1a1a]'}`}>
+            {isSelected && <Check size={10} className="text-white" strokeWidth={4} />}
+          </div>
+        </div>
+      )}
+
+      {/* Type Indicator */}
+      <div className={`flex items-center relative ${isMicro ? 'h-3' : 'h-4'}`} data-picker-id={note.id}>
+        {isSelectMode ? null : isMicro ? (
+          <div className="w-1 h-1 rounded-full opacity-40 flex-shrink-0" style={{ backgroundColor: isNoteDone ? '#737373' : (note.type === 'todo' ? '#facc15' : NOTE_TYPES[note.type || 'text'].color) }} />
+        ) : isCompact ? (
+          <button onClick={(e) => { e.stopPropagation(); onToggleTodo(date, note.id); }} className="w-3 h-3 flex items-center justify-center hover:scale-125 transition-transform cursor-pointer">
+            <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: isNoteDone ? '#737373' : (note.type === 'todo' ? '#facc15' : NOTE_TYPES[note.type || 'text'].color) }} />
+          </button>
+        ) : note.type === 'todo' ? (
+          <button onClick={() => onToggleTodo(date, note.id)} className={`transition-colors group flex items-center justify-center ${isNoteDone ? 'text-[#737373]' : 'text-[#facc15]'} hover:!text-[#737373]`}>
+            {isNoteDone ? <CheckSquare size={14} /> : (<> <Square size={14} className="group-hover:hidden" /> <CheckSquare size={14} className="hidden group-hover:block" /> </>)}
+          </button>
+        ) : (
+          <button onClick={() => onToggleTodo(date, note.id)} className="transition-colors hover:!text-[#737373]" style={{ color: isNoteDone ? '#737373' : NOTE_TYPES[note.type || 'text'].color }}>
+            {React.createElement(NOTE_TYPES[note.type || 'text'].icon, { size: 14 })}
+          </button>
+        )}
+      </div>
+
+      {/* Content Area */}
+      <div className="flex-1 min-w-0" onClick={(e) => isSelectMode && e.stopPropagation()}>
+        {editingId === note.id ? (
+          <div className="flex flex-col gap-2 relative">
+            <textarea
+              value={editContent}
+              onChange={(e) => {
+                onEditContentChange(e.target.value);
+                e.target.style.height = 'auto';
+                e.target.style.height = e.target.scrollHeight + 'px';
+                onCheckTagSuggestions(e.target.value, e.target.selectionStart, 'edit');
+              }}
+              onBlur={() => setTimeout(() => { onSaveEdit(date, note.id); onSuggestionSourceChange(null); }, 200)}
+              className={isCompact ? "w-full bg-[#262626] text-[#e5e5e5] text-xs p-1 rounded border-0 outline-none resize-none overflow-hidden" : "w-full bg-transparent text-[#e5e5e5] text-xs p-0 border-0 outline-none resize-none overflow-hidden"}
+              onFocus={(e) => { e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; e.target.selectionStart = e.target.selectionEnd = e.target.value.length; }}
+              autoFocus
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                if (suggestionSource === 'edit') {
+                  if (e.key === 'ArrowDown') { e.preventDefault(); onSuggestionIndexChange((suggestionActiveIndex + 1) % tagSuggestions.length); return; }
+                  if (e.key === 'ArrowUp') { e.preventDefault(); onSuggestionIndexChange((suggestionActiveIndex - 1 + tagSuggestions.length) % tagSuggestions.length); return; }
+                  if (e.key === 'Enter') { e.preventDefault(); onTagSuggestionSelect(tagSuggestions[suggestionActiveIndex]); return; }
+                  if (e.key === 'Escape') { onSuggestionSourceChange(null); return; }
+                }
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSaveEdit(date, note.id); }
+                else if (e.key === 'Escape') { onCancelEdit(); }
+              }}
+            />
+            {suggestionSource === 'edit' && tagSuggestions.length > 0 && (
+              <div className="absolute top-full left-0 mt-1 w-full bg-[#171717] border border-[#262626] rounded-lg shadow-xl overflow-hidden max-h-[150px] overflow-y-auto z-50" onMouseDown={(e) => e.preventDefault()}>
+                {tagSuggestions.map((tag, idx) => (
+                  <div key={tag} className={`px-3 py-1.5 text-xs cursor-pointer ${idx === suggestionActiveIndex ? 'bg-[#262626] text-white' : 'text-[#a3a3a3] hover:bg-[#202020]'}`} onClick={() => onTagSuggestionSelect(tag)}>#{tag}</div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div
+            className={`${isMicro ? 'text-[9px] truncate leading-none py-0.5' : isCompact ? 'text-[11px] line-clamp-3' : 'text-xs'} block break-words ${isMicro ? 'leading-none' : 'leading-relaxed'} ${isNoteDone ? 'text-[#a3a3a3]' : (note.type === 'link' ? 'text-[#a0c4ff]' : (note.type === 'important' ? 'text-[#f87171]' : 'text-[#d4d4d4]'))}`}
+            onDoubleClick={() => !isSelectMode && onStartEdit(note)}
+          >
+            <NoteContent
+              note={note}
+              date={date}
+              isMicro={isMicro}
+              isCompact={isCompact}
+              isSelectMode={isSelectMode}
+              editingLink={editingLink}
+              onEditLink={onEditLink}
+              onCancelEditLink={onCancelEditLink}
+              onSaveLink={onSaveLink}
+              onTagClick={onTagClick}
+              onToggleInlineCheckbox={onToggleInlineCheckbox}
+              highlightSearchText={highlightSearchText}
+            />
+          </div>
+        )}
+
+        {/* Full mode action bar */}
+        <div className={`flex items-center justify-between mt-4 ${isCompact ? "hidden" : ""}`}>
+          <span className="text-[11px] text-[#525252]">
+            {new Date(note.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {isNoteDone && note.completedAt && (<span className="text-[#525252] opacity-75"> • {new Date(note.completedAt).toLocaleDateString([], { day: 'numeric', month: 'numeric' })}</span>)}
+          </span>
+          <div className={`flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ${(isSelectMode || isViewAll) ? 'hidden' : ''}`}>
+            {editingId === note.id ? (
+              <>
+                <button onClick={() => onCancelEdit()} className="text-[#737373] hover:text-[#e5e5e5] px-1" title="Cancel"><X size={14} /></button>
+                <button onClick={() => onSaveEdit(date, note.id)} className="text-[#737373] hover:text-[#60a5fa] px-1" title="Save"><Check size={14} /></button>
+              </>
+            ) : !showRecycleBin ? (
+              <>
+                <button onClick={() => onCopy(note.id, note.content)} className="text-[#525252] hover:text-[#e5e5e5] px-1" title="Copy"><Copy size={14} /></button>
+                <button onClick={(e) => { e.stopPropagation(); onToggleSelect(note.id); }} className="text-[#525252] hover:text-[#22c55e] px-1" title="Select"><ListChecks size={14} /></button>
+                <button onClick={(e) => { e.stopPropagation(); onTogglePin(date, note.id); }} className={`text-[#525252] hover:text-[#e5e5e5] px-1 ${note.isPinned ? '!text-[#e5e5e5]' : ''}`} title={note.isPinned ? "Unpin" : "Pin"}>{note.isPinned ? <PinOff size={14} /> : <Pin size={14} />}</button>
+                <div className="relative">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onTypeMenuToggle(activeTypeMenu === note.id ? null : note.id); }}
+                    className={`text-[#525252] hover:text-[#e5e5e5] px-1 transition-colors ${activeTypeMenu === note.id ? 'text-[#e5e5e5]' : ''}`}
+                    title="Type"
+                  >
+                    <Layers size={14} />
+                  </button>
+                  {activeTypeMenu === note.id && (
+                    <div className="absolute right-0 bottom-full mb-2 bg-[#171717] border border-[#262626] rounded-lg shadow-xl z-50 py-1 min-w-[100px] animate-in fade-in slide-in-from-bottom-1 duration-200" onClick={e => e.stopPropagation()}>
+                      {(['text', 'todo', 'important'] as NoteType[]).map(type => (
+                        <button
+                          key={type}
+                          onClick={() => onSetType(date, note.id, type)}
+                          className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[#d4d4d4] hover:bg-[#262626] hover:text-white transition-colors"
+                        >
+                          {React.createElement(NOTE_TYPES[type].icon, { size: 12, style: { color: NOTE_TYPES[type].color } })}
+                          {NOTE_TYPES[type].label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <button onClick={(e) => { e.stopPropagation(); onDeleteNote(date, note.id); }} className="text-[#525252] hover:text-[#ef4444] px-1 transition-colors" title="Delete" data-delete-trigger={note.id}><Trash size={14} /></button>
+              </>
+            ) : (
+              <>
+                <button onClick={(e) => { e.stopPropagation(); onRestoreNote(date, note.id); }} className="text-[#525252] hover:text-[#22c55e] px-1 transition-colors" title="Restore"><RefreshCcw size={14} /></button>
+                <button onClick={(e) => { e.stopPropagation(); onConfirmDeleteChange(note.id); }} className="text-[#525252] hover:text-[#ef4444] px-1 transition-colors" title="Permanently Delete"><Trash size={14} /></button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Compact mode context menu */}
+      {!editingId && isCompact && !isSelectMode && !isViewAll && (
+        <div className={`flex items-center gap-0 transition-opacity mt-0.5 relative ${isSelectMode ? 'hidden' : ''} ${activeContextMenu === note.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+          {!showRecycleBin ? (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); onContextMenuToggle(activeContextMenu === note.id ? null : note.id); }}
+                className={`p-1 transition-colors rounded hover:bg-[#262626] ${activeContextMenu === note.id ? 'text-[#e5e5e5] bg-[#262626]' : 'text-[#737373] hover:text-[#e5e5e5]'}`}
+                title="More actions"
+              >
+                <MoreVertical size={14} />
+              </button>
+
+              {activeContextMenu === note.id && (
+                <div className="absolute right-0 top-full mt-1 bg-[#171717] border border-[#262626] rounded-lg shadow-xl z-[60] py-1 min-w-[100px] note-context-menu" onClick={e => e.stopPropagation()}>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onToggleSelect(note.id); onContextMenuToggle(null); }}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[#22c55e] hover:bg-[#22c55e]/10 hover:text-green-400 transition-colors"
+                  >
+                    <ListChecks size={12} /> Select
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onTogglePin(date, note.id); onContextMenuToggle(null); }}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[#d4d4d4] hover:bg-[#262626] hover:text-white transition-colors"
+                  >
+                    {note.isPinned ? <PinOff size={12} /> : <Pin size={12} />}
+                    {note.isPinned ? 'Unpin' : 'Pin'}
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onCopy(note.id, note.content); onContextMenuToggle(null); }}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[#d4d4d4] hover:bg-[#262626] hover:text-white transition-colors"
+                  >
+                    <Copy size={12} /> Copy
+                  </button>
+                  <div className="relative">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onTypeMenuToggle(activeTypeMenu === note.id ? null : note.id); }}
+                      className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[#d4d4d4] hover:bg-[#262626] hover:text-white transition-colors"
+                    >
+                      <Layers size={12} /> Type
+                    </button>
+                    {activeTypeMenu === note.id && (
+                      <div className="absolute right-full top-0 mr-1 bg-[#171717] border border-[#262626] rounded-lg shadow-xl z-[70] py-1 min-w-[100px] animate-in fade-in slide-in-from-right-1 duration-200" onClick={e => e.stopPropagation()}>
+                        {(['text', 'todo', 'important'] as NoteType[]).map(type => (
+                          <button
+                            key={type}
+                            onClick={() => { onSetType(date, note.id, type); onContextMenuToggle(null); }}
+                            className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[#d4d4d4] hover:bg-[#262626] hover:text-white transition-colors"
+                          >
+                            {React.createElement(NOTE_TYPES[type].icon, { size: 12, style: { color: NOTE_TYPES[type].color } })}
+                            {NOTE_TYPES[type].label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="h-px bg-[#262626] my-1" />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onDeleteNote(date, note.id); onContextMenuToggle(null); }}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[#ef4444] hover:bg-[#ef4444]/10 transition-colors"
+                  >
+                    <Trash size={12} /> Delete
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <button onClick={(e) => { e.stopPropagation(); onRestoreNote(date, note.id); }} className="text-[#525252] hover:text-[#22c55e] px-1 flex items-center justify-center h-full transition-colors" title="Restore"><RefreshCcw size={14} /></button>
+              <button onClick={(e) => { e.stopPropagation(); onConfirmDeleteChange(note.id); }} className="text-[#525252] hover:text-[#ef4444] px-1 flex items-center justify-center h-full transition-colors" title="Permanently Delete"><Trash size={14} /></button>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Permanent delete confirmation */}
+      {showRecycleBin && confirmDeleteId === note.id && (
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-2 bg-[#171717] border border-[#262626] rounded-lg pl-3 pr-1 py-1 z-50 shadow-lg" data-delete-confirm={note.id} onClick={(e) => e.stopPropagation()}>
+          <span className="text-[10px] text-[#e5e5e5] whitespace-nowrap font-medium">Permanently Delete?</span>
+          <div className="flex items-center gap-0.5 border-l border-[#262626] pl-1.5 ml-1">
+            <button onClick={(e) => { e.stopPropagation(); onConfirmDeleteChange(null); }} className="p-1 text-[#737373] hover:text-[#e5e5e5] hover:bg-[#262626] rounded transition-colors"><X size={12} /></button>
+            <button onClick={(e) => { e.stopPropagation(); onPermanentDelete(date, note.id); onConfirmDeleteChange(null); }} className="p-1 text-[#ef4444] hover:text-[#dc2626] hover:bg-[#ef4444]/10 rounded transition-colors"><Trash size={12} /></button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
