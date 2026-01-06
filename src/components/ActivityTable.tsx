@@ -139,7 +139,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
     <section className="table-section p-2 lg:col-span-3 rounded-xl bg-[#171717] border border-[#262626]">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <h2 className="text-md font-playfair tracking-wider pl-2 tracking-wide text-[#a3a3a3]">Activity</h2>
+          <h2 className="text-md font-playfair tracking-wider pl-2 text-[#a3a3a3]">Activity</h2>
           <div className="relative" ref={categoryDropdownRef}>
             <button
               onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
