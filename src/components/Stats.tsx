@@ -22,25 +22,15 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
       <div className="flex gap-4 mb-6 flex-shrink-0">
         <button
           onClick={() => setMainTab('statistic')}
-          className={`text-md font-playfair tracking-wide transition-colors ${mainTab === 'statistic' ? 'text-white' : 'text-[#737373] hover:text-[#a3a3a3]'}`}
-          style={{
-            background: mainTab === 'statistic' ? '#262626' : 'transparent',
-            padding: '4px 12px',
-            borderRadius: '6px',
-          }}
+          className={`text-md font-playfair tracking-wide transition-colors px-3 py-1 rounded-md ${mainTab === 'statistic' ? 'text-white bg-[#262626]' : 'text-[#737373] hover:text-[#a3a3a3] bg-transparent'}`}
         >
           Statistic
         </button>
         <div
           onClick={() => setMainTab('notes')}
-          className={`flex items-center gap-2 cursor-pointer transition-colors ${mainTab === 'notes' ? 'text-white' : 'text-[#737373] hover:text-[#a3a3a3]'}`}
-          style={{
-            background: mainTab === 'notes' ? '#262626' : 'transparent',
-            padding: '4px 12px',
-            borderRadius: '6px',
-          }}
+          className={`flex items-center gap-2 cursor-pointer transition-colors px-3 py-1 rounded-md ${mainTab === 'notes' ? 'text-white bg-[#262626]' : 'text-[#737373] hover:text-[#a3a3a3] bg-transparent'}`}
         >
-          <span className="text-md font-playfair tracking-wide">Notes</span>
+          <span className="text-md font-playfair tracking-wide">Note</span>
           {mainTab === 'notes' && (
             <button
               onClick={(e) => {
