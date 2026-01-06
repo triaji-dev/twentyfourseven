@@ -42,6 +42,29 @@ export const saveActivity = (
   }
 };
 
+// Migrate all activity entries from old key to new key when category is renamed
+export const migrateActivityKey = (oldKey: string, newKey: string): void => {
+  if (oldKey === newKey) return;
+  
+  const keysToUpdate: string[] = [];
+  
+  // Find all activity entries with the old key
+  for (let i = 0; i < localStorage.length; i++) {
+    const storageKey = localStorage.key(i);
+    if (storageKey && storageKey.startsWith(STORAGE_PREFIX) && !storageKey.includes('-notes-') && !storageKey.includes('-settings')) {
+      const value = localStorage.getItem(storageKey);
+      if (value === oldKey) {
+        keysToUpdate.push(storageKey);
+      }
+    }
+  }
+  
+  // Update all found entries to the new key
+  keysToUpdate.forEach(storageKey => {
+    localStorage.setItem(storageKey, newKey);
+  });
+};
+
 export const getCellClass = (value: ActivityKey): string => {
   // Return value as class if it's a single uppercase letter, else empty
   if (value && /^[A-Z]$/.test(value)) {
@@ -95,16 +118,32 @@ export const importAllData = (
       let importedCount = 0;
 
       for (const [key, value] of Object.entries(data)) {
-        // Validate key format (twentyfourseven-YYYY-M-D-H) and value (single letter or empty)
-        const isValidKey = key.startsWith(STORAGE_PREFIX) && key !== STORAGE_PREFIX + '-settings';
+        // Check if it's our prefix
+        if (!key.startsWith(STORAGE_PREFIX)) continue;
+        
+        const isSettings = key === STORAGE_PREFIX + '-settings';
+        const isNote = key.includes('-notes-');
         
         // Validation:
-        // 1. Notes: accept any string (it's stringified JSON)
-        // 2. Activity: accept single uppercase letter or empty string
-        const isNote = key.includes('-notes-');
-        const isValidValue = isNote || (value === '' || /^[A-Z]$/.test(value));
+        // 1. Settings: accept JSON object with categories
+        // 2. Notes: accept any string (it's stringified JSON)
+        // 3. Activity: accept single uppercase letter or empty string
+        let isValidValue = false;
+        if (isSettings) {
+          // Settings should be valid JSON with categories array
+          try {
+            const parsed = JSON.parse(value);
+            isValidValue = parsed.categories && Array.isArray(parsed.categories);
+          } catch {
+            isValidValue = false;
+          }
+        } else if (isNote) {
+          isValidValue = true;
+        } else {
+          isValidValue = value === '' || /^[A-Z]$/.test(value);
+        }
         
-        if (isValidKey && isValidValue) {
+        if (isValidValue) {
           if (value === '') {
             localStorage.removeItem(key);
           } else {

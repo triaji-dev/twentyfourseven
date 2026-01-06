@@ -2,7 +2,8 @@ import { forwardRef, useImperativeHandle } from 'react';
 import { DateNavigator } from './DateNavigator';
 import { extractTags } from '../utils/notes';
 import {
-  X, Grid2x2, Square, Rows4, Rows3, Rows2, Ellipsis, GripHorizontal, Grip
+  X, Grid2x2, Square, Rows4, Rows3, Rows2, FoldVertical, UnfoldVertical,
+  Calendar, Tag, Type, CheckCircle, AlertCircle, Link as LinkIcon
 } from 'lucide-react';
 import { NoteType } from '../types';
 
@@ -88,6 +89,7 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
     copyingIds,
     setCopyingIds,
     newlyAddedIds,
+    isAddInputFocused,
     setIsAddInputFocused,
     datesWithNotes,
     addNoteInputRef,
@@ -108,6 +110,7 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
     handlePermanentDelete,
     handleEmptyBin,
     handleRestoreAll,
+    handleUnpinAll,
     handleToggleSelect,
     handleToggleInlineCheckbox,
     handleSaveLink,
@@ -155,7 +158,7 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
     let result: Array<{ date: Date; notes: typeof allTimeNotes[0]['notes'] }> = [];
     const filterBin = (n: typeof allTimeNotes[0]['notes'][0]) => showRecycleBin ? !!n.deletedAt : !n.deletedAt;
 
-    if (activeCell && !isViewAll) {
+    if (activeCell && !isViewAll && !showRecycleBin && !showPinnedOnly) {
       if (activeCell.year === year && activeCell.month === month) {
         const dayNotes = notes[activeCell.day];
         if (dayNotes) {
@@ -279,7 +282,7 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
     if (dateKeys.length === 0) return;
 
     const firstState = dateViewStates[dateKeys[0]] || 'collapsed';
-    const nextState = firstState === 'collapsed' ? 'semi' : firstState === 'semi' ? 'full' : 'collapsed';
+    const nextState = firstState === 'collapsed' ? 'full' : 'collapsed';
 
     setDateViewStates(prev => {
       const next = { ...prev };
@@ -290,11 +293,9 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
 
   const getGlobalToggleIcon = () => {
     const dateKeys = filteredNotes.map(g => g.date.toDateString());
-    if (dateKeys.length === 0) return Ellipsis;
+    if (dateKeys.length === 0) return UnfoldVertical;
     const state = dateViewStates[dateKeys[0]] || 'collapsed';
-    if (state === 'collapsed') return Ellipsis;
-    if (state === 'semi') return GripHorizontal;
-    return Grip;
+    return state === 'collapsed' ? UnfoldVertical : FoldVertical;
   };
 
   const GlobalIcon = getGlobalToggleIcon();
@@ -359,6 +360,7 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
       {showPinnedOnly && (
         <PinnedNotesHeader
           itemCount={filteredNotes.reduce((acc, curr) => acc + curr.notes.length, 0)}
+          onUnpinAll={handleUnpinAll}
         />
       )}
 
@@ -373,19 +375,20 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
 
       {/* Notes List */}
       <div className="flex-1 flex flex-col min-h-0">
-        {/* Fixed Header */}
-        <div className={`mb-3 shrink-0 ${isSelectMode ? 'opacity-50 pointer-events-none' : ''}`}>
+        <div className="mb-3 shrink-0">
+          {/* Fixed Header */}
+
           <DateNavigator
             date={activeCell ? new Date(activeCell.year, activeCell.month, activeCell.day) : new Date()}
             onDateChange={handleDateChange}
             datesWithNotes={datesWithNotes}
-            isViewAll={isViewAll}
+            isViewAll={isViewAll || showRecycleBin || showPinnedOnly}
+            disabled={isSelectMode}
           >
             {isViewAll && (
               <button
                 onClick={handleGlobalToggle}
-                disabled={isSelectMode}
-                className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all ${isSelectMode ? 'opacity-50 cursor-not-allowed' : ''} backdrop-blur-sm border-[#262626] text-[#535353] hover:text-[#737373] hover:bg-[#202020]`}
+                className="w-8 h-8 flex items-center justify-center rounded-lg border transition-all backdrop-blur-sm border-[#262626] text-[#535353] hover:text-[#737373] hover:bg-[#202020]"
                 title="Toggle View Mode"
               >
                 <GlobalIcon size={14} />
@@ -417,23 +420,25 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
             >
               {!isCompact && !isMicro ? <Rows2 size={14} /> : isCompact && !isMicro ? <Rows3 size={14} /> : <Rows4 size={14} />}
             </button>
-            <button
-              onClick={() => {
-                if (isViewAll) {
-                  // Switching to View Day mode - focus the input and go to today
-                  handleDateChange(new Date());
-                  setTimeout(() => {
-                    addNoteInputRef.current?.focus();
-                  }, 50);
-                }
-                setIsViewAll(!isViewAll);
-              }}
-              disabled={isSelectMode}
-              className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all ${isSelectMode ? 'opacity-50 cursor-not-allowed' : ''} backdrop-blur-sm border-[#262626] text-[#535353] hover:text-[#737373] hover:bg-[#202020]`}
-              title={isViewAll ? 'Add note' : 'View all'}
-            >
-              {isViewAll ? <Square size={14} /> : <Grid2x2 size={14} />}
-            </button>
+            {!showRecycleBin && !showPinnedOnly && (
+              <button
+                onClick={() => {
+                  if (isViewAll) {
+                    // Switching to View Day mode - focus the input and go to today
+                    handleDateChange(new Date());
+                    setTimeout(() => {
+                      addNoteInputRef.current?.focus();
+                    }, 50);
+                  }
+                  setIsViewAll(!isViewAll);
+                }}
+                disabled={isSelectMode}
+                className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all ${isSelectMode ? 'opacity-50 cursor-not-allowed' : ''} backdrop-blur-sm border-[#262626] text-[#535353] hover:text-[#737373] hover:bg-[#202020]`}
+                title={isViewAll ? 'Add note' : 'View all'}
+              >
+                {isViewAll ? <Square size={14} /> : <Grid2x2 size={14} />}
+              </button>
+            )}
           </DateNavigator>
         </div>
 
@@ -452,32 +457,26 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
               {filteredNotes.map(({ date, notes: dayNotes }) => {
                 const dateKey = date.toDateString();
                 const viewState = dateViewStates[dateKey] || 'collapsed';
-                const isSmallGroup = dayNotes.length <= 3;
-                const displayNotes = isSmallGroup || viewState === 'full'
-                  ? dayNotes
-                  : viewState === 'semi'
-                    ? dayNotes.slice(0, Math.min(5, dayNotes.length))
-                    : dayNotes.slice(0, 3);
+                const count = dayNotes.length;
 
-                const getViewIcon = () => {
-                  if (isSmallGroup) return viewState === 'collapsed' ? Ellipsis : Grip;
-                  if (viewState === 'collapsed') return Ellipsis;
-                  if (viewState === 'semi') return GripHorizontal;
-                  return Grip;
-                };
-                const ViewIcon = getViewIcon();
+                // Display Logic
+                let displayNotes = dayNotes;
+                if (isViewAll && viewState === 'collapsed') {
+                  displayNotes = dayNotes.slice(0, 3);
+                }
 
+                // Toggle Logic
                 const handleDateToggle = () => {
-                  if (isSmallGroup) {
-                    setDateViewStates(prev => ({
-                      ...prev,
-                      [dateKey]: viewState === 'collapsed' ? 'full' : 'collapsed'
-                    }));
-                  } else {
-                    const nextState = viewState === 'collapsed' ? 'semi' : viewState === 'semi' ? 'full' : 'collapsed';
-                    setDateViewStates(prev => ({ ...prev, [dateKey]: nextState }));
-                  }
+                  if (count <= 3) return;
+
+                  setDateViewStates(prev => ({
+                    ...prev,
+                    [dateKey]: viewState === 'collapsed' ? 'full' : 'collapsed'
+                  }));
                 };
+
+                // Icon Logic
+                const ViewIcon = (count <= 3 || viewState === 'collapsed') ? UnfoldVertical : FoldVertical;
 
                 return (
                   <div key={dateKey} className="mb-4">
@@ -505,7 +504,11 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
                               e.stopPropagation();
                               handleDateToggle();
                             }}
-                            className="w-6 h-6 flex items-center justify-center rounded text-[#525252] hover:text-[#e5e5e5] hover:bg-[#262626] transition-all"
+                            disabled={count < 3}
+                            className={`w-6 h-6 flex items-center justify-center rounded transition-all ${count < 3
+                              ? 'text-[#3a3a3a] cursor-not-allowed'
+                              : 'text-[#525252] hover:text-[#e5e5e5] hover:bg-[#262626]'
+                              }`}
                           >
                             <ViewIcon size={14} />
                           </button>
@@ -573,6 +576,10 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
                           }}
                           onToggleInlineCheckbox={handleToggleInlineCheckbox}
                           highlightSearchText={highlightSearchText}
+                          onNoteClick={(clickedDate) => {
+                            setIsViewAll(false);
+                            handleDateChange(clickedDate);
+                          }}
                         />
                       ))}
                     </div>
@@ -595,15 +602,70 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
       </div>
 
       {/* Add Note Input */}
-      <div className="mt-3 pr-[10px]">
+      <div className={`mt-3 pr-[10px] ${isViewAll || showPinnedOnly || showRecycleBin ? 'hidden' : ''}`}>
+        {/* Metadata Preview */}
+        {isAddInputFocused && (
+          <div className="flex items-center gap-3 px-1 mb-2 animate-in fade-in slide-in-from-bottom-1 duration-200">
+            {/* Target Date */}
+            <div className="flex items-center gap-1.5 text-[10px] text-[#525252] bg-[#1a1a1a] px-2 py-1 rounded border border-[#262626]">
+              <Calendar size={10} />
+              <span className="font-medium">
+                {(activeCell ? new Date(activeCell.year, activeCell.month, activeCell.day) : new Date())
+                  .toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+              </span>
+            </div>
+
+            {/* Detected Type */}
+            <div className={`flex items-center gap-1.5 text-[10px] px-2 py-1 rounded border transition-colors ${newNote.startsWith('! ') || newNote.startsWith('!') ? 'text-red-400 bg-red-400/10 border-red-400/20' :
+              newNote.startsWith('* ') || newNote.startsWith('todo ') ? 'text-orange-400 bg-orange-400/10 border-orange-400/20' :
+                newNote.includes('http') ? 'text-blue-400 bg-blue-400/10 border-blue-400/20' :
+                  'text-[#525252] bg-[#1a1a1a] border-[#262626]'
+              }`}>
+              {(() => {
+                const content = newNote.toLowerCase();
+                if (content.startsWith('! ') || content.startsWith('!')) return <AlertCircle size={10} />;
+                if (content.startsWith('* ') || content.startsWith('todo ')) return <CheckCircle size={10} />;
+                if (content.includes('http')) return <LinkIcon size={10} />;
+                return <Type size={10} />;
+              })()}
+              <span className="font-medium capitalize">
+                {(() => {
+                  const content = newNote.toLowerCase();
+                  if (content.startsWith('! ') || content.startsWith('!')) return 'Important';
+                  if (content.startsWith('* ') || content.startsWith('todo ')) return 'Todo';
+                  if (content.includes('http')) return 'Link';
+                  return 'Text';
+                })()}
+              </span>
+            </div>
+
+            {/* Active Tags */}
+            {(selectedTag || extractTags(newNote).length > 0) && (
+              <div className="flex items-center gap-1.5 text-[10px] text-[#525252] bg-[#1a1a1a] px-2 py-1 rounded border border-[#262626]">
+                <Tag size={10} />
+                <div className="flex gap-1">
+                  {selectedTag && (
+                    <span className="text-[#c0c0c0] font-medium">#{selectedTag.replace(/^#/, '')}</span>
+                  )}
+                  {extractTags(newNote)
+                    .filter(t => t !== selectedTag)
+                    .map(t => (
+                      <span key={t} className="text-[#737373]">#{t.replace(/^#/, '')}</span>
+                    ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="relative">
           {/* Tag suggestions dropdown */}
           {suggestionSource === 'add' && tagSuggestions.length > 0 && (
-            <div className="absolute bottom-full left-0 w-full mb-1 bg-[#171717] border border-[#262626] rounded-lg shadow-xl overflow-hidden max-h-[150px] overflow-y-auto z-50">
+            <div className="absolute bottom-full left-0 w-full mb-1 bg-[#171717] border border-[#262626] rounded-lg shadow-xl overflow-hidden max-h-[110px] overflow-y-auto z-50 custom-scrollbar">
               {tagSuggestions.map((tag, idx) => (
                 <div
                   key={tag}
-                  className={`px-3 py-1.5 text-xs cursor-pointer ${idx === suggestionActiveIndex ? 'bg-[#262626] text-white' : 'text-[#a3a3a3] hover:bg-[#202020]'}`}
+                  className={`px-3 py-1.5 text-[10px] cursor-pointer ${idx === suggestionActiveIndex ? 'bg-[#262626] text-white' : 'text-[#a3a3a3] hover:bg-[#202020]'}`}
                   onClick={() => insertTag(tag)}
                 >
                   #{tag}
@@ -681,6 +743,6 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 });

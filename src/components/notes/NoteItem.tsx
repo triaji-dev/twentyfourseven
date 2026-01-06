@@ -3,7 +3,7 @@ import { NoteItem, NoteType } from '../../types';
 import { NOTE_TYPES } from './types';
 import { NoteContent } from './NoteContent';
 import {
-  X, Check, Copy, Pin, PinOff, Layers, Trash,
+  X, Check, Copy, Pin, PinOff, Layers, Trash, Tag,
   Square, CheckSquare, ListChecks, MoreVertical, RefreshCcw
 } from 'lucide-react';
 
@@ -75,6 +75,7 @@ interface NoteItemProps {
   onTagClick: (tag: string) => void;
   onToggleInlineCheckbox: (note: NoteItem, date: Date, lineIndex: number) => void;
   highlightSearchText: (text: string) => React.ReactNode;
+  onNoteClick?: (date: Date) => void;
 }
 
 export const NoteItemComponent: React.FC<NoteItemProps> = ({
@@ -122,24 +123,43 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
   onSaveLink,
   onTagClick,
   onToggleInlineCheckbox,
-  highlightSearchText
+  highlightSearchText,
+  onNoteClick
 }) => {
   const isNoteDone = note.isDone && !isTransitioning;
+  const contextMenuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (activeContextMenu !== note.id) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(event.target as Node)) {
+        onContextMenuToggle(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [activeContextMenu, note.id, onContextMenuToggle]);
 
   return (
     <div
       key={note.id}
       id={`note-${note.id}`}
-      onClick={() => isSelectMode && onToggleSelect(note.id)}
-      className={`group relative flex transition-all duration-300 ease-out animate-[fadeIn_0.3s_ease-out] ${isNewlyAdded ? 'bg-gray-500/10' : ''} ${isMicro ? "items-center gap-1 py-0 px-0.5 border-transparent rounded hover:bg-[#1a1a1a]" :
+      onClick={() => {
+        if (isSelectMode) {
+          onToggleSelect(note.id);
+        } else if (isViewAll && onNoteClick) {
+          onNoteClick(date);
+        }
+      }}
+      className={`group relative flex transition-all duration-300 ease-out animate-[fadeIn_0.3s_ease-out] ${isNewlyAdded ? 'bg-gray-500/10' : ''} ${isMicro ? "h-[18px] items-center gap-1 py-0 px-0.5 border-transparent rounded hover:bg-[#1a1a1a]" :
         isCompact ? "items-start gap-1 py-0 px-1 border-transparent rounded" : "items-start gap-2 p-2 rounded-lg border"
         } ${isCopying ? '!bg-[#404040] !duration-100' : ((note.isPinned ? 'border-[#404040] bg-[#1a1a1a]' : 'border-[#222] hover:border-[#333] hover:bg-[#1a1a1a]'))
-        } ${isNoteDone ? 'opacity-50' : 'opacity-100'} ${isSelectMode ? 'cursor-pointer' : ''} ${isSelected ? '!bg-green-500/10 !border-green-500/30 shadow-[0_0_15px_rgba(34,197,94,0.05)]' : ''}`}
+        } ${isNoteDone ? 'opacity-50' : 'opacity-100'} ${isSelectMode || isViewAll ? 'cursor-pointer' : ''} ${isSelected ? '!bg-green-500/10 !border-green-500/30 shadow-[0_0_15px_rgba(34,197,94,0.05)]' : ''}`}
     >
       {/* Selection Checkbox */}
       {isSelectMode && (
         <div className="h-4 flex items-center pr-1 scale-90">
-          <div className={`w-3.5 h-3.5 rounded-md border flex items-center justify-center transition-all ${isSelected ? 'bg-green-500 border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.3)]' : 'border-[#404040] bg-[#1a1a1a]'}`}>
+          <div className={`w-3.5 h-3.5 rounded-md border flex items-center justify-center transition-all ${isSelected ? 'bg-gray-500 border-gray-500 shadow-[0_0_10px_rgba(34,197,94,0.3)]' : 'border-[#404040] bg-[#1a1a1a]'}`}>
             {isSelected && <Check size={10} className="text-white" strokeWidth={4} />}
           </div>
         </div>
@@ -165,7 +185,7 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 min-w-0" onClick={(e) => isSelectMode && e.stopPropagation()}>
+      <div className="flex-1 min-w-0">
         {editingId === note.id ? (
           <div className="flex flex-col gap-2 relative">
             <textarea
@@ -193,17 +213,17 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
               }}
             />
             {suggestionSource === 'edit' && tagSuggestions.length > 0 && (
-              <div className="absolute top-full left-0 mt-1 w-full bg-[#171717] border border-[#262626] rounded-lg shadow-xl overflow-hidden max-h-[150px] overflow-y-auto z-50" onMouseDown={(e) => e.preventDefault()}>
+              <div className="absolute top-full left-0 mt-1 w-full bg-[#171717] border border-[#262626] rounded-lg shadow-xl overflow-hidden max-h-[110px] overflow-y-auto z-50 custom-scrollbar" onMouseDown={(e) => e.preventDefault()}>
                 {tagSuggestions.map((tag, idx) => (
-                  <div key={tag} className={`px-3 py-1.5 text-xs cursor-pointer ${idx === suggestionActiveIndex ? 'bg-[#262626] text-white' : 'text-[#a3a3a3] hover:bg-[#202020]'}`} onClick={() => onTagSuggestionSelect(tag)}>#{tag}</div>
+                  <div key={tag} className={`px-3 py-1.5 text-[10px] cursor-pointer ${idx === suggestionActiveIndex ? 'bg-[#262626] text-white' : 'text-[#a3a3a3] hover:bg-[#202020]'}`} onClick={() => onTagSuggestionSelect(tag)}>#{tag}</div>
                 ))}
               </div>
             )}
           </div>
         ) : (
           <div
-            className={`${isMicro ? 'text-[9px] truncate leading-none py-0.5' : isCompact ? 'text-[11px] line-clamp-3' : 'text-xs'} block break-words ${isMicro ? 'leading-none' : 'leading-relaxed'} ${isNoteDone ? 'text-[#a3a3a3]' : (note.type === 'link' ? 'text-[#a0c4ff]' : (note.type === 'important' ? 'text-[#f87171]' : 'text-[#d4d4d4]'))}`}
-            onDoubleClick={() => !isSelectMode && onStartEdit(note)}
+            className={`${isMicro ? 'text-[9px] truncate leading-none py-0' : isCompact ? 'text-[11px] line-clamp-3' : 'text-xs'} block break-words ${isMicro ? 'leading-none' : 'leading-relaxed'} ${isNoteDone ? 'text-[#a3a3a3]' : (note.type === 'link' ? 'text-[#a0c4ff]' : (note.type === 'important' ? 'text-[#f87171]' : 'text-[#d4d4d4]'))}`}
+            onDoubleClick={() => !isSelectMode && !isViewAll && onStartEdit(note)}
           >
             <NoteContent
               note={note}
@@ -237,8 +257,21 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
             ) : !showRecycleBin ? (
               <>
                 <button onClick={() => onCopy(note.id, note.content)} className="text-[#525252] hover:text-[#e5e5e5] px-1" title="Copy"><Copy size={14} /></button>
-                <button onClick={(e) => { e.stopPropagation(); onToggleSelect(note.id); }} className="text-[#525252] hover:text-[#22c55e] px-1" title="Select"><ListChecks size={14} /></button>
+                <button onClick={(e) => { e.stopPropagation(); onToggleSelect(note.id); }} className="text-[#525252] hover:text-[#cecece] px-1" title="Select"><ListChecks size={14} /></button>
                 <button onClick={(e) => { e.stopPropagation(); onTogglePin(date, note.id); }} className={`text-[#525252] hover:text-[#e5e5e5] px-1 ${note.isPinned ? '!text-[#e5e5e5]' : ''}`} title={note.isPinned ? "Unpin" : "Pin"}>{note.isPinned ? <PinOff size={14} /> : <Pin size={14} />}</button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const newContent = note.content + (note.content.endsWith(' ') ? '#' : ' #');
+                    onStartEdit(note);
+                    onEditContentChange(newContent);
+                    onCheckTagSuggestions(newContent, newContent.length, 'edit');
+                  }}
+                  className="text-[#525252] hover:text-[#e5e5e5] px-1"
+                  title="Add Tag"
+                >
+                  <Tag size={14} />
+                </button>
                 <div className="relative">
                   <button
                     onClick={(e) => { e.stopPropagation(); onTypeMenuToggle(activeTypeMenu === note.id ? null : note.id); }}
@@ -288,10 +321,10 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
               </button>
 
               {activeContextMenu === note.id && (
-                <div className="absolute right-0 top-full mt-1 bg-[#171717] border border-[#262626] rounded-lg shadow-xl z-[60] py-1 min-w-[100px] note-context-menu" onClick={e => e.stopPropagation()}>
+                <div ref={contextMenuRef} className="absolute right-0 top-full mt-1 bg-[#171717] border border-[#262626] rounded-lg shadow-xl z-[60] py-1 min-w-[100px] note-context-menu" onClick={e => e.stopPropagation()}>
                   <button
                     onClick={(e) => { e.stopPropagation(); onToggleSelect(note.id); onContextMenuToggle(null); }}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[#22c55e] hover:bg-[#22c55e]/10 hover:text-green-400 transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[#c0c0c0] hover:bg-[#262626] hover:text-[#c0c0c0] transition-colors"
                   >
                     <ListChecks size={12} /> Select
                   </button>
@@ -307,6 +340,19 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
                     className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[#d4d4d4] hover:bg-[#262626] hover:text-white transition-colors"
                   >
                     <Copy size={12} /> Copy
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onContextMenuToggle(null);
+                      const newContent = note.content + (note.content.endsWith(' ') ? '#' : ' #');
+                      onStartEdit(note);
+                      onEditContentChange(newContent);
+                      onCheckTagSuggestions(newContent, newContent.length, 'edit');
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[#d4d4d4] hover:bg-[#262626] hover:text-white transition-colors"
+                  >
+                    <Tag size={12} /> Add Tag
                   </button>
                   <div className="relative">
                     <button

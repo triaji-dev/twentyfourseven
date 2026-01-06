@@ -1,17 +1,42 @@
-import { useCallback, useMemo, useEffect } from 'react';
+import { useCallback, useMemo, useEffect, useState, useRef } from 'react';
+import { PaintBucket, Pencil, Check, Trash2, Plus } from 'lucide-react';
 import { ActivityCell } from './ActivityCell';
-import { getDaysInMonth, loadActivity, getNotes } from '../utils/storage';
-import { DAY_ABBREVIATIONS } from '../constants';
+import { getDaysInMonth, loadActivity, getNotes, migrateActivityKey } from '../utils/storage';
+import { DAY_ABBREVIATIONS, MONTH_NAMES } from '../constants';
 import { useStore } from '../store/useStore';
 import { useSettings } from '../store/useSettings';
 interface ActivityTableProps {
   year: number;
   month: number;
   onUpdate: () => void;
+  onPrevMonth: () => void;
+  onNextMonth: () => void;
+  onMonthSelect: (monthIndex: number) => void;
+  onYearSelect: (year: number) => void;
 }
 
-export const ActivityTable: React.FC<ActivityTableProps> = ({ year, month, onUpdate }) => {
+export const ActivityTable: React.FC<ActivityTableProps> = ({
+  year,
+  month,
+  onUpdate,
+  onPrevMonth,
+  onNextMonth,
+  onMonthSelect,
+  onYearSelect
+}) => {
+  const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
+  const monthPickerRef = useRef<HTMLDivElement>(null);
+  const [isYearPickerOpen, setIsYearPickerOpen] = useState(false);
+  const yearPickerRef = useRef<HTMLDivElement>(null);
+
   const selectedCells = useStore((state) => state.selectedCells);
+  const categories = useSettings((state) => state.categories);
+  const setCategories = useSettings((state) => state.setCategories);
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
+  const [editingCategoryKey, setEditingCategoryKey] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
+  const [deletingCategoryKey, setDeletingCategoryKey] = useState<string | null>(null);
   const copiedCellIds = useStore((state) => state.copiedCellIds);
   const dataVersion = useStore((state) => state.dataVersion);
   const isSelecting = useStore((state) => state.isSelecting);
@@ -23,8 +48,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({ year, month, onUpd
   const selectRectangle = useStore((state) => state.selectRectangle);
   const activeCell = useStore((state) => state.activeCell);
   const setActiveCell = useStore((state) => state.setActiveCell);
-  const categories = useSettings((state) => state.categories);
-  
+
   // Create a map for faster category lookup
   const categoryMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -33,7 +57,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({ year, month, onUpd
     });
     return map;
   }, [categories]);
-  
+
   const daysInMonth = getDaysInMonth(year, month);
 
   useEffect(() => {
@@ -41,8 +65,25 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({ year, month, onUpd
       setIsSelecting(false);
     };
 
+    const handleClickOutside = (event: MouseEvent) => {
+      if (monthPickerRef.current && !monthPickerRef.current.contains(event.target as Node)) {
+        setIsMonthPickerOpen(false);
+      }
+      if (yearPickerRef.current && !yearPickerRef.current.contains(event.target as Node)) {
+        setIsYearPickerOpen(false);
+      }
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target as Node)) {
+        setIsCategoryDropdownOpen(false);
+        setEditingCategoryKey(null);
+      }
+    };
+
     window.addEventListener('mouseup', handleGlobalMouseUp);
-    return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      window.removeEventListener('mouseup', handleGlobalMouseUp);
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
   }, [setIsSelecting]);
 
   const handleCellMouseDown = useCallback(
@@ -88,15 +129,380 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({ year, month, onUpd
 
   // Keyboard handlers would be added at App level for global scope
 
-const handlePaste = (e: React.ClipboardEvent) => {
+  const handlePaste = (e: React.ClipboardEvent) => {
     const text = e.clipboardData.getData('text/plain');
     useStore.getState().pasteToSelection(text);
     e.preventDefault();
   };
 
   return (
-    <section className="table-section p-4 lg:col-span-3 p-2 rounded-xl" style={{ background: '#171717', border: '1px solid #262626' }}>
-      <h2 className="text-md font-playfair tracking-wider mb-2" style={{ color: '#a3a3a3' }}>Activity Tracker</h2>
+    <section className="table-section p-2 lg:col-span-3 rounded-xl" style={{ background: '#171717', border: '1px solid #262626' }}>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <h2 className="text-md font-playfair tracking-wider pl-2" style={{ color: '#a3a3a3' }}>Activity Tracker</h2>
+          <div className="relative" ref={categoryDropdownRef}>
+            <button
+              onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+              className="group flex items-center justify-center w-6 h-6 rounded-md transition-all duration-200 hover:bg-[#262626]"
+              title="Category Colors"
+            >
+              <PaintBucket size={14} className="text-[#525252] group-hover:text-[#a3a3a3] transition-colors" />
+            </button>
+
+            {isCategoryDropdownOpen && (
+              <div
+                className="absolute top-full left-0 mt-2 w-[280px] bg-[#0a0a0a] border border-[#262626] rounded-xl shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-200"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="px-4 py-3 border-b border-[#262626]">
+                  <h3 className="text-[10px] font-semibold text-[#525252] uppercase tracking-[0.15em]">
+                    Category Colors
+                  </h3>
+                </div>
+                <div className="p-3 space-y-1">
+                  {categories.map((category) => (
+                    <div
+                      key={category.key}
+                      className="flex items-center gap-3 py-1.5 px-2 rounded-lg hover:bg-[#171717] group/row"
+                    >
+                      <div className="relative w-4 h-4 shrink-0 rounded-full border border-white/10 cursor-pointer">
+                        <div
+                          className="absolute inset-0 rounded-full"
+                          style={{ backgroundColor: category.color }}
+                        />
+                        <input
+                          type="color"
+                          value={category.color}
+                          onChange={(e) => {
+                            const newCategories = categories.map(cat =>
+                              cat.key === category.key ? { ...cat, color: e.target.value } : cat
+                            );
+                            setCategories(newCategories);
+                          }}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                      </div>
+                      <span className="w-5 h-5 flex items-center justify-center rounded bg-[#171717] border border-[#262626] text-[10px] font-bold text-[#737373]">
+                        {category.name.charAt(0).toUpperCase()}
+                      </span>
+                      {editingCategoryKey === category.key ? (() => {
+                        const newKey = editingName.trim().charAt(0).toUpperCase();
+                        const isDuplicate = !!(editingName.trim() && categories.some(cat =>
+                          cat.key !== category.key && cat.name.charAt(0).toUpperCase() === newKey
+                        ));
+                        return (
+                          <div className="flex-1 flex items-center gap-1 min-w-0">
+                            <input
+                              type="text"
+                              value={editingName}
+                              onChange={(e) => setEditingName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !isDuplicate) {
+                                  const newName = editingName.trim();
+                                  if (newName) {
+                                    const oldKey = category.key;
+                                    migrateActivityKey(oldKey, newKey);
+                                    const newCategories = categories.map(cat =>
+                                      cat.key === category.key ? { ...cat, name: newName, key: newKey } : cat
+                                    );
+                                    setCategories(newCategories);
+                                    onUpdate();
+                                  }
+                                  setEditingCategoryKey(null);
+                                } else if (e.key === 'Escape') {
+                                  setEditingCategoryKey(null);
+                                }
+                              }}
+                              onBlur={() => setEditingCategoryKey(null)}
+                              className={`flex-1 min-w-0 bg-[#0a0a0a] border rounded px-2 py-0.5 text-xs text-[#e5e5e5] outline-none ${isDuplicate ? 'border-red-500/50 text-red-400' : 'border-[#404040] focus:border-[#525252]'}`}
+                              autoFocus
+                            />
+                            {isDuplicate && (
+                              <span className="text-[9px] text-red-400 shrink-0" title="Duplicate initial">!</span>
+                            )}
+                            <button
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                if (isDuplicate) return;
+                                const newName = editingName.trim();
+                                if (newName) {
+                                  const oldKey = category.key;
+                                  migrateActivityKey(oldKey, newKey);
+                                  const newCategories = categories.map(cat =>
+                                    cat.key === category.key ? { ...cat, name: newName, key: newKey } : cat
+                                  );
+                                  setCategories(newCategories);
+                                  onUpdate();
+                                }
+                                setEditingCategoryKey(null);
+                              }}
+                              disabled={isDuplicate}
+                              className={`p-1 shrink-0 transition-colors ${isDuplicate ? 'text-[#404040] cursor-not-allowed' : 'text-[#525252] hover:text-[#22c55e]'}`}
+                            >
+                              <Check size={12} />
+                            </button>
+                          </div>
+                        );
+                      })() : (
+                        <>
+                          <span
+                            className="flex-1 text-xs text-[#a3a3a3] cursor-pointer select-none py-1"
+                            onDoubleClick={() => {
+                              setEditingCategoryKey(category.key);
+                              setEditingName(category.name);
+                            }}
+                            title="Double-click to edit"
+                          >
+                            {category.name}
+                          </span>
+                          <div className="flex items-center gap-0.5 shrink-0">
+                            <button
+                              onClick={() => {
+                                setEditingCategoryKey(category.key);
+                                setEditingName(category.name);
+                              }}
+                              className="p-1 text-[#404040] hover:text-[#a3a3a3] transition-colors opacity-0 group-hover/row:opacity-100"
+                              title="Edit name"
+                            >
+                              <Pencil size={12} />
+                            </button>
+                            {deletingCategoryKey === category.key ? (
+                              <div className="flex items-center gap-1 bg-red-500/10 border border-red-500/20 rounded px-1 py-0.5 animate-in fade-in slide-in-from-right-2 duration-200">
+                                <span className="text-[9px] text-red-400 px-0.5">Delete?</span>
+                                <button
+                                  onClick={() => {
+                                    const newCategories = categories.filter(cat => cat.key !== category.key);
+                                    setCategories(newCategories);
+                                    setDeletingCategoryKey(null);
+                                  }}
+                                  className="text-[9px] px-1.5 py-0.5 bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
+                                >
+                                  Yes
+                                </button>
+                                <button
+                                  onClick={() => setDeletingCategoryKey(null)}
+                                  className="text-[9px] px-1.5 py-0.5 hover:bg-red-500/20 text-red-400 rounded transition-colors"
+                                >
+                                  No
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setDeletingCategoryKey(category.key)}
+                                className="p-1 text-[#404040] hover:text-red-400 transition-colors opacity-0 group-hover/row:opacity-100"
+                                title="Delete category"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {categories.length < 10 ? (
+                  <div className="px-3 pb-3 pt-1">
+                    <button
+                      onClick={() => {
+                        // Find next available letter
+                        const usedKeys = new Set(categories.map(c => c.name.charAt(0).toUpperCase()));
+                        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                        let newName = 'New';
+                        for (const letter of alphabet) {
+                          if (!usedKeys.has(letter)) {
+                            newName = letter + ' Category';
+                            break;
+                          }
+                        }
+                        const newKey = newName.charAt(0).toUpperCase();
+                        const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
+                        const newColor = colors[categories.length % colors.length];
+                        setCategories([...categories, { key: newKey, name: newName, color: newColor }]);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-[10px] font-medium text-[#525252] hover:text-[#a3a3a3] hover:bg-[#171717] border border-dashed border-[#404040] hover:border-[#525252] transition-all"
+                    >
+                      <Plus size={12} />
+                      Add Category
+                    </button>
+                  </div>
+                ) : (
+                  <div className="px-3 pb-3 pt-1">
+                    <p className="text-[9px] text-[#404040] text-center">Maximum 10 categories</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Date Navigation */}
+        <div
+          className="flex items-center gap-1 px-2 py-1 rounded-lg"
+          style={{
+            background: 'rgba(23, 23, 23, 0.6)',
+            border: '1px solid rgba(64, 64, 64, 0.3)'
+          }}
+        >
+          <button
+            onClick={onPrevMonth}
+            className="flex items-center justify-center w-6 h-6 rounded-md transition-all duration-200"
+            style={{ color: '#737373' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(64, 64, 64, 0.5)';
+              e.currentTarget.style.color = '#e5e5e5';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = '#737373';
+            }}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-3.5 w-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+          </button>
+
+          <div className="flex items-center relative">
+            {/* Month Picker wrapper */}
+            <div className="relative" ref={monthPickerRef}>
+              <button
+                onClick={() => setIsMonthPickerOpen(!isMonthPickerOpen)}
+                className="text-sm font-playfair tracking-wide hover:text-[#a3a3a3] transition-colors min-w-[75px] text-center"
+                style={{ color: '#e5e5e5' }}
+              >
+                {MONTH_NAMES[month]}
+              </button>
+
+              {isMonthPickerOpen && (
+                <div
+                  className="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-2 rounded-xl grid grid-cols-3 gap-1 w-[280px] z-50 shadow-xl"
+                  style={{
+                    background: '#171717',
+                    border: '1px solid #262626'
+                  }}
+                >
+                  {MONTH_NAMES.map((m, idx) => (
+                    <button
+                      key={m}
+                      onClick={() => {
+                        onMonthSelect(idx);
+                        setIsMonthPickerOpen(false);
+                      }}
+                      className={`px-3 py-2 text-xs rounded-lg transition-colors ${month === idx
+                        ? 'bg-[#262626] text-white font-medium'
+                        : 'text-[#737373] hover:bg-[#262626] hover:text-[#e5e5e5]'
+                        }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="relative" ref={yearPickerRef}>
+              <button
+                onClick={() => {
+                  setIsYearPickerOpen(!isYearPickerOpen);
+                }}
+                className="text-sm font-playfair tracking-wide hover:text-[#a3a3a3] transition-colors px-2 min-w-[50px]"
+                style={{ color: '#e5e5e5' }}
+              >
+                {year}
+              </button>
+
+              {isYearPickerOpen && (
+                <div
+                  className="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-1 rounded-xl flex flex-col items-center gap-0.5 w-[70px] z-50 shadow-xl"
+                  style={{
+                    background: '#171717',
+                    border: '1px solid #262626'
+                  }}
+                  onWheel={(e) => {
+                    e.preventDefault();
+                    if (e.deltaY < 0) {
+                      onYearSelect(year - 1);
+                    } else {
+                      onYearSelect(year + 1);
+                    }
+                  }}
+                >
+                  {/* Arrow Up */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onYearSelect(year - 1);
+                    }}
+                    className="w-full flex items-center justify-center py-1.5 text-[#525252] hover:text-[#e5e5e5] hover:bg-[#262626] rounded transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    </svg>
+                  </button>
+
+                  {/* Selected Year */}
+                  <div className="w-full py-1.5 text-xs text-center font-medium text-white bg-[#262626] rounded">
+                    {year}
+                  </div>
+
+                  {/* Arrow Down */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onYearSelect(year + 1);
+                    }}
+                    className="w-full flex items-center justify-center py-1.5 text-[#525252] hover:text-[#e5e5e5] hover:bg-[#262626] rounded transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <button
+            onClick={onNextMonth}
+            className="flex items-center justify-center w-6 h-6 rounded-md transition-all duration-200"
+            style={{ color: '#737373' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(64, 64, 64, 0.5)';
+              e.currentTarget.style.color = '#e5e5e5';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = '#737373';
+            }}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-3.5 w-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
       <div className="table-wrapper">
         <div className="table-container">
           <table className="min-w-full text-center" onPaste={handlePaste}>
@@ -104,27 +510,28 @@ const handlePaste = (e: React.ClipboardEvent) => {
               {/* Date Row */}
               <tr style={{ height: '20px' }}>
                 <th className="hour-header border-none" style={{ background: '#0a0a0a' }}></th>
-                {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => {
+                {Array.from({ length: 31 }, (_, i) => i + 1).map(d => {
+                  const isInvalid = d > daysInMonth;
                   const today = new Date();
-                  const isToday =
+                  const isToday = !isInvalid &&
                     today.getFullYear() === year &&
                     today.getMonth() === month &&
                     today.getDate() === d;
-                  const isActiveDate = activeCell?.year === year && activeCell?.month === month && activeCell?.day === d;
-                  
+                  const isActiveDate = !isInvalid && activeCell?.year === year && activeCell?.month === month && activeCell?.day === d;
+
                   return (
                     <th
                       key={`date-${d}`}
-                      onClick={() => setActiveCell({ year, month, day: d, hour: 0 })}
-                      className={`activity-cell relative pt-3 ${isToday ? 'font-bold text-white' : 'text-[#737373]'} ${isActiveDate ? 'bg-[#1a1a1a] text-[#e5e5e5]' : ''} text-[10px] border-l font-normal border-b-0 cursor-pointer hover:bg-[#1a1a1a] transition-colors`}
-                      
-                      style={{ 
+                      onClick={() => !isInvalid && setActiveCell({ year, month, day: d, hour: 0 })}
+                      className={`activity-cell relative pt-3 ${isInvalid ? 'opacity-20 pointer-events-none' : ''} ${isToday ? 'font-bold text-white' : 'text-[#737373]'} ${isActiveDate ? 'bg-[#1a1a1a] text-[#e5e5e5]' : ''} text-[10px] border-l font-normal border-b-0 ${!isInvalid ? 'cursor-pointer hover:bg-[#1a1a1a]' : ''} transition-colors`}
+
+                      style={{
                         background: isActiveDate ? '#1a1a1a' : '#0a0a0a',
                         borderColor: '#262626'
                       }}
                     >
-                      {d}
-                      {getNotes(year, month, d).length > 0 && (
+                      {!isInvalid && d}
+                      {!isInvalid && getNotes(year, month, d).length > 0 && (
                         <span className="absolute top-[3px] left-1/2 -translate-x-1/2 w-[3px] h-[3px] rounded-full bg-[#a3a3a3]"></span>
                       )}
                     </th>
@@ -134,27 +541,28 @@ const handlePaste = (e: React.ClipboardEvent) => {
               {/* Day Initial Row */}
               <tr style={{ height: '20px' }}>
                 <th className="hour-header border-none" style={{ background: '#0a0a0a' }}></th>
-                {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => {
-                  const dayIndex = new Date(year, month, d).getDay();
+                {Array.from({ length: 31 }, (_, i) => i + 1).map(d => {
+                  const isInvalid = d > daysInMonth;
+                  const dayIndex = isInvalid ? 0 : new Date(year, month, d).getDay();
                   const dayAbbrev = DAY_ABBREVIATIONS[dayIndex];
                   const today = new Date();
-                  const isToday =
+                  const isToday = !isInvalid &&
                     today.getFullYear() === year &&
                     today.getMonth() === month &&
                     today.getDate() === d;
-                  const isActiveDate = activeCell?.year === year && activeCell?.month === month && activeCell?.day === d;
-                  
+                  const isActiveDate = !isInvalid && activeCell?.year === year && activeCell?.month === month && activeCell?.day === d;
+
                   return (
                     <th
                       key={`day-${d}`}
-                      className={`activity-cell ${isToday ? 'font-bold text-white' : 'text-[#525252]'} ${isActiveDate ? 'bg-[#1a1a1a] text-[#e5e5e5]' : ''} text-[8px] border-l font-light border-t-0 cursor-pointer hover:bg-[#1a1a1a] transition-colors`}
-                      
-                      style={{ 
+                      className={`activity-cell ${isInvalid ? 'opacity-20 pointer-events-none' : ''} ${isToday ? 'font-bold text-white' : 'text-[#525252]'} ${isActiveDate ? 'bg-[#1a1a1a] text-[#e5e5e5]' : ''} text-[8px] border-l font-light border-t-0 ${!isInvalid ? 'cursor-pointer hover:bg-[#1a1a1a]' : ''} transition-colors`}
+
+                      style={{
                         background: isActiveDate ? '#1a1a1a' : '#0a0a0a',
                         borderColor: '#262626'
                       }}
                     >
-                      {dayAbbrev}
+                      {!isInvalid && dayAbbrev}
                     </th>
                   );
                 })}
@@ -164,42 +572,51 @@ const handlePaste = (e: React.ClipboardEvent) => {
               {Array.from({ length: 24 }, (_, hour) => (
                 <tr key={hour}>
                   <td className="hour-header">{hour.toString().padStart(2, '0')}</td>
-                  {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
-                    const value = loadActivity(year, month, day, hour);
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map(day => {
+                    const isInvalid = day > daysInMonth;
+                    const value = isInvalid ? '' : loadActivity(year, month, day, hour);
                     const cellId = `cell-${year}-${month + 1}-${day}-${hour}`;
-                    const isSelected = selectedCells.has(cellId);
-                    const isCopied = copiedCellIds.has(cellId);
-                    const cellColor = categoryMap[value];
-                    
+                    const isSelected = !isInvalid && selectedCells.has(cellId);
+                    const isCopied = !isInvalid && copiedCellIds.has(cellId);
+                    const cellColor = isInvalid ? undefined : categoryMap[value];
+
                     // Dynamic style based on category color
-                    const cellStyle: React.CSSProperties = cellColor
+                    const cellStyle: React.CSSProperties = isInvalid
                       ? {
+                        backgroundColor: '#0d0d0d',
+                        opacity: 0.3,
+                        pointerEvents: 'none',
+                      }
+                      : cellColor
+                        ? {
                           backgroundColor: cellColor,
                           color: '#ffffff',
                           boxShadow: `0 0 0 1px ${cellColor}33`,
                         }
-                      : {
+                        : {
                           backgroundColor: '#171717',
                           color: '#525252',
                         };
-                    
+
                     return (
                       <td
                         key={`${cellId}-${dataVersion}`}
-                        className={`activity-cell ${isSelected ? 'cell-selected' : ''} ${isCopied && !isSelected ? 'cell-copied' : ''} ${(hour+1) % 6 === 0 ? 'border-b-gray-700 border-b-2' : ''}`}
+                        className={`activity-cell ${isSelected ? 'cell-selected' : ''} ${isCopied && !isSelected ? 'cell-copied' : ''} ${(hour + 1) % 6 === 0 ? 'border-b-gray-700 border-b-2' : ''}`}
                         style={cellStyle}
-                        onMouseDown={e => handleCellMouseDown(e, day, hour)}
+                        onMouseDown={e => !isInvalid && handleCellMouseDown(e, day, hour)}
                       >
-                        <ActivityCell
-                          year={year}
-                          month={month}
-                          day={day}
-                          hour={hour}
-                          value={value}
-                          onMouseEnter={e => handleCellMouseEnter(e, day, hour)}
-                          onFocus={handleCellFocus}
-                          onChange={onUpdate}
-                        />
+                        {!isInvalid && (
+                          <ActivityCell
+                            year={year}
+                            month={month}
+                            day={day}
+                            hour={hour}
+                            value={value}
+                            onMouseEnter={e => handleCellMouseEnter(e, day, hour)}
+                            onFocus={handleCellFocus}
+                            onChange={onUpdate}
+                          />
+                        )}
                       </td>
                     );
                   })}

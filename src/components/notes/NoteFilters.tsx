@@ -63,6 +63,24 @@ export const NoteFilters: React.FC<NoteFiltersProps> = ({
   showRecycleBin,
   onRecycleBinToggle
 }) => {
+  // Ref for tag menu wrapper
+  const tagMenuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (tagMenuRef.current && !tagMenuRef.current.contains(event.target as Node)) {
+        onTagMenuToggle(false);
+      }
+    };
+
+    if (tagMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [tagMenuOpen, onTagMenuToggle]);
+
   return (
     <>
       {/* Row 1: Search & Tags (50/50 Split) */}
@@ -89,7 +107,7 @@ export const NoteFilters: React.FC<NoteFiltersProps> = ({
 
         {/* Tags Filter Dropdown */}
         <div className="col-span-6 flex">
-          <div className="relative flex-1 tag-filter-menu h-full">
+          <div ref={tagMenuRef} className="relative flex-1 tag-filter-menu h-full">
             <button
               onClick={() => onTagMenuToggle(!tagMenuOpen)}
               className={`w-full h-full px-3 flex items-center justify-between rounded-l-lg border transition-all duration-200 ${selectedTag

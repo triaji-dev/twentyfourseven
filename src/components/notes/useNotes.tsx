@@ -733,6 +733,37 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
     triggerUpdate();
   }, [allTimeNotes, year, month, fetchAllNotes, triggerUpdate]);
 
+  // Handle unpin all
+  const handleUnpinAll = useCallback(() => {
+    allTimeNotes.forEach(group => {
+      const pinnedNotes = group.notes.filter(n => n.isPinned && !n.deletedAt);
+      if (pinnedNotes.length === 0) return;
+
+      const key = `twentyfourseven-notes-${group.date.getFullYear()}-${group.date.getMonth()}`;
+      const day = group.date.getDate();
+
+      let currentNotes: Record<number, NoteItem[]>;
+      try {
+        currentNotes = JSON.parse(localStorage.getItem(key) || '{}');
+      } catch {
+        currentNotes = {};
+      }
+
+      const dayNotes = currentNotes[day] || [];
+      const updatedDayNotes = dayNotes.map(n => ({ ...n, isPinned: false }));
+
+      const updatedNotes = { ...currentNotes, [day]: updatedDayNotes };
+      localStorage.setItem(key, JSON.stringify(updatedNotes));
+
+      if (group.date.getFullYear() === year && group.date.getMonth() === month) {
+        setNotes(updatedNotes);
+      }
+    });
+
+    setAllTimeNotes(fetchAllNotes());
+    triggerUpdate();
+  }, [allTimeNotes, year, month, fetchAllNotes, triggerUpdate]);
+
   // Handle toggle select
   const handleToggleSelect = useCallback((noteId: string) => {
     setSelectedNoteIds(prev => {
@@ -919,6 +950,7 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
     handlePermanentDelete,
     handleEmptyBin,
     handleRestoreAll,
+    handleUnpinAll,
     handleToggleSelect,
     handleUpdateNoteContent,
     handleToggleInlineCheckbox,

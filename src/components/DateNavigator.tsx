@@ -8,9 +8,10 @@ interface DateNavigatorProps {
   datesWithNotes?: Set<string>;
   children?: React.ReactNode;
   isViewAll?: boolean;
+  disabled?: boolean;
 }
 
-export const DateNavigator: React.FC<DateNavigatorProps> = ({ date, onDateChange, className, datesWithNotes, children, isViewAll }) => {
+export const DateNavigator: React.FC<DateNavigatorProps> = ({ date, onDateChange, className, datesWithNotes, children, isViewAll, disabled }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -67,14 +68,16 @@ export const DateNavigator: React.FC<DateNavigatorProps> = ({ date, onDateChange
       <div className="flex items-center flex-1">
         <button
           onClick={handlePrevDay}
-          className="p-1 text-[#737373] hover:text-[#e5e5e5] hover:bg-[#262626] rounded transition-colors"
+          disabled={disabled}
+          className={`p-1 text-[#737373] hover:text-[#e5e5e5] hover:bg-[#262626] rounded transition-colors ${disabled ? 'opacity-30 cursor-not-allowed pointer-events-none' : ''}`}
         >
           <ChevronLeft size={16} />
         </button>
 
         <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="flex-1 flex items-center justify-center gap-2 px-2 text-sm font-playfair font-medium text-[#d4d4d4] hover:text-white transition-colors"
+          onClick={() => !disabled && setIsOpen(!isOpen)}
+          disabled={disabled}
+          className={`flex-1 flex items-center justify-center gap-2 px-2 text-sm font-playfair font-medium transition-colors ${disabled ? 'text-[#525252] cursor-not-allowed' : 'text-[#d4d4d4] hover:text-white'}`}
         >
           {date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           {(() => {
@@ -90,7 +93,8 @@ export const DateNavigator: React.FC<DateNavigatorProps> = ({ date, onDateChange
 
         <button
           onClick={handleNextDay}
-          className="p-1 text-[#737373] hover:text-[#e5e5e5] hover:bg-[#262626] rounded transition-colors"
+          disabled={disabled}
+          className={`p-1 text-[#737373] hover:text-[#e5e5e5] hover:bg-[#262626] rounded transition-colors ${disabled ? 'opacity-30 cursor-not-allowed pointer-events-none' : ''}`}
         >
           <ChevronRight size={16} />
         </button>

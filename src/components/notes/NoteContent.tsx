@@ -45,7 +45,31 @@ export const NoteContent: React.FC<NoteContentProps> = ({
           .replace(/^\d+\.\s*/, '');
       })
       .join(' • ');
-    return <span className="opacity-60">{highlightSearchText(cleanContent)}</span>;
+    // Micro view - parse tags within the single line
+    const parts = cleanContent.split(/(#[\w\u0600-\u06FF]+)/g);
+    return (
+      <span className="opacity-60 flex items-center leading-none">
+        {parts.map((part, i) => {
+          if (part.startsWith('#')) {
+            return (
+              <span
+                key={i}
+                onClick={(e) => {
+                  if (isSelectMode) return;
+                  e.stopPropagation();
+                  onTagClick(part.toUpperCase());
+                }}
+                className={`inline-flex items-center px-1 py-0 mx-0.5 text-[8px] font-medium rounded bg-[#262626] text-[#a0c4ff] hover:bg-[#3b82f6] hover:text-white cursor-pointer align-baseline`}
+                style={{ height: '12px', lineHeight: '12px' }}
+              >
+                {highlightSearchText(part)}
+              </span>
+            );
+          }
+          return <span key={i}>{highlightSearchText(part)}</span>;
+        })}
+      </span>
+    );
   }
 
   const lines = note.content.split('\n');
