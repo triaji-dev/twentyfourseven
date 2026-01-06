@@ -123,13 +123,9 @@ export const Header: React.FC = () => {
 
   return (
     <header
-      className="flex items-center justify-between px-5 py-2 rounded-xl mb-2 relative z-[60]"
+      className="flex items-center justify-between px-5 py-2 rounded-xl mb-2 relative z-[60] backdrop-blur-xl border border-[#404040]/50 shadow-[0_4px_24px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)]"
       style={{
-        background: 'linear-gradient(135deg, rgba(23, 23, 23, 0.95) 0%, rgba(38, 38, 38, 0.9) 100%)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(64, 64, 64, 0.5)',
-        boxShadow: '0 4px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+        background: 'linear-gradient(135deg, rgba(23, 23, 23, 0.95) 0%, rgba(38, 38, 38, 0.9) 100%)'
       }}
     >
       {/* Logo Section */}
@@ -153,10 +149,10 @@ export const Header: React.FC = () => {
           />
         </div>
         <div className="flex flex-col">
-          <span className="text-xl font-playfair tracking-wider" style={{ color: '#f5f5f5' }}>
+          <span className="text-xl font-playfair tracking-wider text-[#f5f5f5]">
             TwentyFourSeven
           </span>
-          <span className="text-[10px] font-normal tracking-wider uppercase min-w-[120px]" style={{ color: '#525252' }}>
+          <span className="text-[10px] font-normal tracking-wider uppercase min-w-[120px] text-[#525252]">
             {displayText}
             <span className="animate-pulse ml-0.5 font-bold">|</span>
           </span>
@@ -165,22 +161,9 @@ export const Header: React.FC = () => {
 
       {/* Action Buttons */}
       <div className="flex items-center gap-2">
-        {/* Download Button */}
         <button
           onClick={handleDownload}
-          className="group relative flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200"
-          style={{
-            background: 'rgba(38, 38, 38, 0.6)',
-            border: '1px solid rgba(64, 64, 64, 0.4)'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(64, 64, 64, 0.8)';
-            e.currentTarget.style.transform = 'translateY(-1px)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(38, 38, 38, 0.6)';
-            e.currentTarget.style.transform = 'translateY(0)';
-          }}
+          className="group relative flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200 bg-[#262626]/60 border border-[#404040]/40 hover:bg-[#404040]/80 hover:-translate-y-px"
           title="Download Backup"
         >
           <svg
@@ -202,19 +185,7 @@ export const Header: React.FC = () => {
         {/* Upload Button */}
         <button
           onClick={handleUploadClick}
-          className="group relative flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200"
-          style={{
-            background: 'rgba(38, 38, 38, 0.6)',
-            border: '1px solid rgba(64, 64, 64, 0.4)'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(64, 64, 64, 0.8)';
-            e.currentTarget.style.transform = 'translateY(-1px)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(38, 38, 38, 0.6)';
-            e.currentTarget.style.transform = 'translateY(0)';
-          }}
+          className="group relative flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200 bg-[#262626]/60 border border-[#404040]/40 hover:bg-[#404040]/80 hover:-translate-y-px"
           title="Upload Backup"
         >
           <svg

@@ -720,9 +720,8 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
               handleAddNote(e);
             }}
             placeholder="Add a note..."
-            className="w-full bg-[#171717] text-[#e5e5e5] placeholder-[#525252] text-xs p-3 pr-16 rounded-xl border border-[#262626] focus:border-[#525252] focus:bg-[#202020] outline-none resize-none overflow-hidden transition-all shadow-sm"
+            className="w-full bg-[#171717] text-[#e5e5e5] placeholder-[#525252] text-xs p-3 pr-16 rounded-xl border border-[#262626] focus:border-[#525252] focus:bg-[#202020] outline-none resize-none overflow-hidden transition-all shadow-sm min-h-[42px]"
             rows={1}
-            style={{ minHeight: '42px' }}
           />
           <div className="absolute right-3 top-3 flex items-center gap-2">
             {newNote && (

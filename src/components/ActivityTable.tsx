@@ -136,10 +136,10 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
   };
 
   return (
-    <section className="table-section p-2 lg:col-span-3 rounded-xl" style={{ background: '#171717', border: '1px solid #262626' }}>
+    <section className="table-section p-2 lg:col-span-3 rounded-xl bg-[#171717] border border-[#262626]">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <h2 className="text-md font-playfair tracking-wider pl-2" style={{ color: '#a3a3a3' }}>Activity Tracker</h2>
+          <h2 className="text-md font-playfair tracking-wider pl-2 text-[#a3a3a3]">Activity Tracker</h2>
           <div className="relative" ref={categoryDropdownRef}>
             <button
               onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
@@ -338,24 +338,11 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
 
         {/* Date Navigation */}
         <div
-          className="flex items-center gap-1 px-2 py-1 rounded-lg"
-          style={{
-            background: 'rgba(23, 23, 23, 0.6)',
-            border: '1px solid rgba(64, 64, 64, 0.3)'
-          }}
+          className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#171717]/60 border border-[#404040]/30"
         >
           <button
             onClick={onPrevMonth}
-            className="flex items-center justify-center w-6 h-6 rounded-md transition-all duration-200"
-            style={{ color: '#737373' }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(64, 64, 64, 0.5)';
-              e.currentTarget.style.color = '#e5e5e5';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.color = '#737373';
-            }}
+            className="flex items-center justify-center w-6 h-6 rounded-md transition-all duration-200 text-[#737373] hover:bg-[#404040]/50 hover:text-[#e5e5e5]"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -378,19 +365,14 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
             <div className="relative" ref={monthPickerRef}>
               <button
                 onClick={() => setIsMonthPickerOpen(!isMonthPickerOpen)}
-                className="text-sm font-playfair tracking-wide hover:text-[#a3a3a3] transition-colors min-w-[75px] text-center"
-                style={{ color: '#e5e5e5' }}
+                className="text-sm font-playfair tracking-wide hover:text-[#a3a3a3] transition-colors min-w-[75px] text-center text-[#e5e5e5]"
               >
                 {MONTH_NAMES[month]}
               </button>
 
               {isMonthPickerOpen && (
                 <div
-                  className="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-2 rounded-xl grid grid-cols-3 gap-1 w-[280px] z-50 shadow-xl"
-                  style={{
-                    background: '#171717',
-                    border: '1px solid #262626'
-                  }}
+                  className="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-2 rounded-xl grid grid-cols-3 gap-1 w-[280px] z-50 shadow-xl bg-[#171717] border border-[#262626]"
                 >
                   {MONTH_NAMES.map((m, idx) => (
                     <button
@@ -416,19 +398,14 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                 onClick={() => {
                   setIsYearPickerOpen(!isYearPickerOpen);
                 }}
-                className="text-sm font-playfair tracking-wide hover:text-[#a3a3a3] transition-colors px-2 min-w-[50px]"
-                style={{ color: '#e5e5e5' }}
+                className="text-sm font-playfair tracking-wide hover:text-[#a3a3a3] transition-colors px-2 min-w-[50px] text-[#e5e5e5]"
               >
                 {year}
               </button>
 
               {isYearPickerOpen && (
                 <div
-                  className="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-1 rounded-xl flex flex-col items-center gap-0.5 w-[70px] z-50 shadow-xl"
-                  style={{
-                    background: '#171717',
-                    border: '1px solid #262626'
-                  }}
+                  className="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-1 rounded-xl flex flex-col items-center gap-0.5 w-[70px] z-50 shadow-xl bg-[#171717] border border-[#262626]"
                   onWheel={(e) => {
                     e.preventDefault();
                     if (e.deltaY < 0) {
@@ -475,16 +452,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
 
           <button
             onClick={onNextMonth}
-            className="flex items-center justify-center w-6 h-6 rounded-md transition-all duration-200"
-            style={{ color: '#737373' }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(64, 64, 64, 0.5)';
-              e.currentTarget.style.color = '#e5e5e5';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.color = '#737373';
-            }}
+            className="flex items-center justify-center w-6 h-6 rounded-md transition-all duration-200 text-[#737373] hover:bg-[#404040]/50 hover:text-[#e5e5e5]"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -506,10 +474,10 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
       <div className="table-wrapper">
         <div className="table-container">
           <table className="min-w-full text-center" onPaste={handlePaste}>
-            <thead className="sticky top-0 z-10" style={{ background: '#0a0a0a' }}>
+            <thead className="sticky top-0 z-10 bg-[#0a0a0a]">
               {/* Date Row */}
-              <tr style={{ height: '20px' }}>
-                <th className="hour-header border-none" style={{ background: '#0a0a0a' }}></th>
+              <tr className="h-5">
+                <th className="hour-header border-none bg-[#0a0a0a]"></th>
                 {Array.from({ length: 31 }, (_, i) => i + 1).map(d => {
                   const isInvalid = d > daysInMonth;
                   const today = new Date();
@@ -523,12 +491,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                     <th
                       key={`date-${d}`}
                       onClick={() => !isInvalid && setActiveCell({ year, month, day: d, hour: 0 })}
-                      className={`activity-cell relative pt-3 ${isInvalid ? 'opacity-20 pointer-events-none' : ''} ${isToday ? 'font-bold text-white' : 'text-[#737373]'} ${isActiveDate ? 'bg-[#1a1a1a] text-[#e5e5e5]' : ''} text-[10px] border-l font-normal border-b-0 ${!isInvalid ? 'cursor-pointer hover:bg-[#1a1a1a]' : ''} transition-colors`}
-
-                      style={{
-                        background: isActiveDate ? '#1a1a1a' : '#0a0a0a',
-                        borderColor: '#262626'
-                      }}
+                      className={`activity-cell relative pt-3 ${isInvalid ? 'opacity-20 pointer-events-none' : ''} ${isToday ? 'font-bold text-white' : 'text-[#737373]'} ${isActiveDate ? 'bg-[#1a1a1a] text-[#e5e5e5]' : 'bg-[#0a0a0a]'} text-[10px] border-l border-[#262626] font-normal border-b-0 ${!isInvalid ? 'cursor-pointer hover:bg-[#1a1a1a]' : ''} transition-colors`}
                     >
                       {!isInvalid && d}
                       {!isInvalid && getNotes(year, month, d).length > 0 && (
@@ -539,8 +502,8 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                 })}
               </tr>
               {/* Day Initial Row */}
-              <tr style={{ height: '20px' }}>
-                <th className="hour-header border-none" style={{ background: '#0a0a0a' }}></th>
+              <tr className="h-5">
+                <th className="hour-header border-none bg-[#0a0a0a]"></th>
                 {Array.from({ length: 31 }, (_, i) => i + 1).map(d => {
                   const isInvalid = d > daysInMonth;
                   const dayIndex = isInvalid ? 0 : new Date(year, month, d).getDay();
@@ -555,12 +518,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                   return (
                     <th
                       key={`day-${d}`}
-                      className={`activity-cell ${isInvalid ? 'opacity-20 pointer-events-none' : ''} ${isToday ? 'font-bold text-white' : 'text-[#525252]'} ${isActiveDate ? 'bg-[#1a1a1a] text-[#e5e5e5]' : ''} text-[8px] border-l font-light border-t-0 ${!isInvalid ? 'cursor-pointer hover:bg-[#1a1a1a]' : ''} transition-colors`}
-
-                      style={{
-                        background: isActiveDate ? '#1a1a1a' : '#0a0a0a',
-                        borderColor: '#262626'
-                      }}
+                      className={`activity-cell ${isInvalid ? 'opacity-20 pointer-events-none' : ''} ${isToday ? 'font-bold text-white' : 'text-[#525252]'} ${isActiveDate ? 'bg-[#1a1a1a] text-[#e5e5e5]' : 'bg-[#0a0a0a]'} text-[8px] border-l border-[#262626] font-light border-t-0 ${!isInvalid ? 'cursor-pointer hover:bg-[#1a1a1a]' : ''} transition-colors`}
                     >
                       {!isInvalid && dayAbbrev}
                     </th>
