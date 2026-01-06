@@ -2,7 +2,7 @@ import { forwardRef, useImperativeHandle } from 'react';
 import { DateNavigator } from './DateNavigator';
 import { extractTags } from '../utils/notes';
 import {
-  X, Square, Rows4, Rows3, Rows2, Ellipsis, GripHorizontal, Grip
+  X, Grid2x2, Square, Rows4, Rows3, Rows2, Ellipsis, GripHorizontal, Grip
 } from 'lucide-react';
 import { NoteType } from '../types';
 
@@ -314,7 +314,7 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
       `}</style>
 
       {/* Filters / Select Mode Bar */}
-      <div className="flex flex-col mb-2 gap-2 pr-[10px]">
+      <div className="flex flex-col mb-2 gap-2">
         {isSelectMode ? (
           <SelectModeBar
             selectedCount={selectedNoteIds.size}
@@ -372,230 +372,226 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
       )}
 
       {/* Notes List */}
-      <div ref={listRef} className="flex-1 overflow-y-auto custom-scrollbar pr-[10px]">
-        {filteredNotes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            {/* Header with navigation and toggle */}
-            <div className="w-full flex items-center justify-between mb-6 px-4">
-              <div className={isSelectMode ? 'opacity-50 pointer-events-none' : ''}>
-                <DateNavigator
-                  date={activeCell ? new Date(activeCell.year, activeCell.month, activeCell.day) : new Date()}
-                  onDateChange={handleDateChange}
-                  datesWithNotes={datesWithNotes}
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                {isViewAll && (
-                  <button
-                    onClick={handleGlobalToggle}
-                    disabled={isSelectMode}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all ${isSelectMode ? 'opacity-50 cursor-not-allowed' : ''} bg-[#1a1a1a]/80 backdrop-blur-sm border-[#262626] text-[#525252] hover:border-[#404040] hover:text-[#737373] hover:bg-[#202020]`}
-                    title="Toggle view mode"
-                  >
-                    <GlobalIcon size={14} />
-                  </button>
-                )}
-                <button
-                  onClick={() => setIsViewAll(!isViewAll)}
-                  disabled={isSelectMode}
-                  className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all ${isSelectMode ? 'opacity-50 cursor-not-allowed' : ''} ${isViewAll ? 'bg-[#262626] border-[#525252] text-[#e5e5e5]' : 'bg-[#1a1a1a]/80 backdrop-blur-sm border-[#262626] text-[#525252] hover:border-[#404040] hover:text-[#737373] hover:bg-[#202020]'}`}
-                  title={isViewAll ? 'View by day' : 'View all'}
-                >
-                  <Square size={14} />
-                </button>
-              </div>
-            </div>
-            <div className="text-[#404040] text-sm">No notes found</div>
-            <div className="text-[#333] text-xs mt-1">
-              {searchQuery ? 'Try a different search term' : 'Click + to add your first note'}
-            </div>
-          </div>
-        ) : (
-          <>
-            {/* View mode toggle row */}
-            <div className="flex items-center justify-between mb-3 px-1">
-              <div className={isSelectMode ? 'opacity-50 pointer-events-none' : ''}>
-                <DateNavigator
-                  date={activeCell ? new Date(activeCell.year, activeCell.month, activeCell.day) : new Date()}
-                  onDateChange={handleDateChange}
-                  datesWithNotes={datesWithNotes}
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                {isViewAll && (
-                  <button
-                    onClick={handleGlobalToggle}
-                    disabled={isSelectMode}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all ${isSelectMode ? 'opacity-50 cursor-not-allowed' : ''} bg-[#1a1a1a]/80 backdrop-blur-sm border-[#262626] text-[#525252] hover:border-[#404040] hover:text-[#737373] hover:bg-[#202020]`}
-                    title="Toggle view mode"
-                  >
-                    <GlobalIcon size={14} />
-                  </button>
-                )}
-                <button
-                  onClick={() => setIsViewAll(!isViewAll)}
-                  disabled={isSelectMode}
-                  className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all ${isSelectMode ? 'opacity-50 cursor-not-allowed' : ''} ${isViewAll ? 'bg-[#262626] border-[#525252] text-[#e5e5e5]' : 'bg-[#1a1a1a]/80 backdrop-blur-sm border-[#262626] text-[#525252] hover:border-[#404040] hover:text-[#737373] hover:bg-[#202020]'}`}
-                  title={isViewAll ? 'View by day' : 'View all'}
-                >
-                  <Square size={14} />
-                </button>
-                {/* Display mode toggles */}
-                <div className="flex items-center">
-                  <button
-                    onClick={() => { setIsCompact(false); setIsMicro(false); }}
-                    className={`w-8 h-8 flex items-center justify-center rounded-l-lg border transition-all ${!isCompact && !isMicro ? 'bg-[#262626] border-[#525252] text-[#e5e5e5]' : 'bg-[#1a1a1a]/80 backdrop-blur-sm border-[#262626] text-[#525252] hover:border-[#404040] hover:text-[#737373] hover:bg-[#202020]'}`}
-                    title="Full view"
-                  >
-                    <Rows2 size={14} />
-                  </button>
-                  <button
-                    onClick={() => { setIsCompact(true); setIsMicro(false); }}
-                    className={`w-8 h-8 flex items-center justify-center border-y transition-all ${isCompact && !isMicro ? 'bg-[#262626] border-[#525252] text-[#e5e5e5]' : 'bg-[#1a1a1a]/80 backdrop-blur-sm border-[#262626] text-[#525252] hover:border-[#404040] hover:text-[#737373] hover:bg-[#202020]'}`}
-                    title="Compact view"
-                  >
-                    <Rows3 size={14} />
-                  </button>
-                  <button
-                    onClick={() => { setIsCompact(true); setIsMicro(true); }}
-                    className={`w-8 h-8 flex items-center justify-center rounded-r-lg border transition-all ${isMicro ? 'bg-[#262626] border-[#525252] text-[#e5e5e5]' : 'bg-[#1a1a1a]/80 backdrop-blur-sm border-[#262626] text-[#525252] hover:border-[#404040] hover:text-[#737373] hover:bg-[#202020]'}`}
-                    title="Micro view"
-                  >
-                    <Rows4 size={14} />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Notes by date */}
-            {filteredNotes.map(({ date, notes: dayNotes }) => {
-              const dateKey = date.toDateString();
-              const viewState = dateViewStates[dateKey] || 'collapsed';
-              const isSmallGroup = dayNotes.length <= 3;
-              const displayNotes = isSmallGroup || viewState === 'full'
-                ? dayNotes
-                : viewState === 'semi'
-                  ? dayNotes.slice(0, Math.min(5, dayNotes.length))
-                  : dayNotes.slice(0, 3);
-
-              const getViewIcon = () => {
-                if (isSmallGroup) return viewState === 'collapsed' ? Ellipsis : Grip;
-                if (viewState === 'collapsed') return Ellipsis;
-                if (viewState === 'semi') return GripHorizontal;
-                return Grip;
-              };
-              const ViewIcon = getViewIcon();
-
-              const handleDateToggle = () => {
-                if (isSmallGroup) {
-                  setDateViewStates(prev => ({
-                    ...prev,
-                    [dateKey]: viewState === 'collapsed' ? 'full' : 'collapsed'
-                  }));
+      <div className="flex-1 flex flex-col min-h-0">
+        {/* Fixed Header */}
+        <div className={`mb-3 shrink-0 ${isSelectMode ? 'opacity-50 pointer-events-none' : ''}`}>
+          <DateNavigator
+            date={activeCell ? new Date(activeCell.year, activeCell.month, activeCell.day) : new Date()}
+            onDateChange={handleDateChange}
+            datesWithNotes={datesWithNotes}
+            isViewAll={isViewAll}
+          >
+            {isViewAll && (
+              <button
+                onClick={handleGlobalToggle}
+                disabled={isSelectMode}
+                className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all ${isSelectMode ? 'opacity-50 cursor-not-allowed' : ''} backdrop-blur-sm border-[#262626] text-[#535353] hover:text-[#737373] hover:bg-[#202020]`}
+                title="Toggle View Mode"
+              >
+                <GlobalIcon size={14} />
+              </button>
+            )}
+            {/* Display mode toggle */}
+            <button
+              onClick={() => {
+                // Cycle: Full → Compact → Micro → Full
+                if (!isCompact && !isMicro) {
+                  // Currently Full, go to Compact
+                  setIsCompact(true);
+                  setIsMicro(false);
+                } else if (isCompact && !isMicro) {
+                  // Currently Compact, go to Micro
+                  setIsMicro(true);
                 } else {
-                  const nextState = viewState === 'collapsed' ? 'semi' : viewState === 'semi' ? 'full' : 'collapsed';
-                  setDateViewStates(prev => ({ ...prev, [dateKey]: nextState }));
+                  // Currently Micro, go to Full
+                  setIsCompact(false);
+                  setIsMicro(false);
                 }
-              };
+              }}
+              disabled={filteredNotes.length === 0}
+              className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all backdrop-blur-sm border-[#262626] ${filteredNotes.length === 0
+                ? 'opacity-50 cursor-not-allowed text-[#404040]'
+                : 'text-[#535353] hover:text-[#737373] hover:bg-[#202020]'
+                }`}
+              title={!isCompact && !isMicro ? 'Full view' : isCompact && !isMicro ? 'Compact view' : 'Micro view'}
+            >
+              {!isCompact && !isMicro ? <Rows2 size={14} /> : isCompact && !isMicro ? <Rows3 size={14} /> : <Rows4 size={14} />}
+            </button>
+            <button
+              onClick={() => {
+                if (isViewAll) {
+                  // Switching to View Day mode - focus the input and go to today
+                  handleDateChange(new Date());
+                  setTimeout(() => {
+                    addNoteInputRef.current?.focus();
+                  }, 50);
+                }
+                setIsViewAll(!isViewAll);
+              }}
+              disabled={isSelectMode}
+              className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all ${isSelectMode ? 'opacity-50 cursor-not-allowed' : ''} backdrop-blur-sm border-[#262626] text-[#535353] hover:text-[#737373] hover:bg-[#202020]`}
+              title={isViewAll ? 'Add note' : 'View all'}
+            >
+              {isViewAll ? <Square size={14} /> : <Grid2x2 size={14} />}
+            </button>
+          </DateNavigator>
+        </div>
 
-              return (
-                <div key={dateKey} className="mb-4">
-                  {/* Date header */}
-                  {isViewAll && (
-                    <div className="flex items-center justify-between mb-2 px-1">
-                      <span className="text-[10px] font-medium text-[#525252] uppercase tracking-wider">
-                        {date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[9px] text-[#404040]">{dayNotes.length}</span>
-                        <button
-                          onClick={handleDateToggle}
-                          className="w-6 h-6 flex items-center justify-center rounded bg-[#1a1a1a]/80 border border-[#262626] text-[#525252] hover:border-[#404040] hover:text-[#737373] transition-all"
+        {/* Scrollable List */}
+        <div ref={listRef} className="flex-1 overflow-y-auto custom-scrollbar pr-2">
+          {filteredNotes.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="text-[#525252] text-xs">No notes found</div>
+              <div className="text-[#303030] text-xs mt-1">
+                {searchQuery ? 'Try a different search term' : 'Add a note below'}
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Notes by date */}
+              {filteredNotes.map(({ date, notes: dayNotes }) => {
+                const dateKey = date.toDateString();
+                const viewState = dateViewStates[dateKey] || 'collapsed';
+                const isSmallGroup = dayNotes.length <= 3;
+                const displayNotes = isSmallGroup || viewState === 'full'
+                  ? dayNotes
+                  : viewState === 'semi'
+                    ? dayNotes.slice(0, Math.min(5, dayNotes.length))
+                    : dayNotes.slice(0, 3);
+
+                const getViewIcon = () => {
+                  if (isSmallGroup) return viewState === 'collapsed' ? Ellipsis : Grip;
+                  if (viewState === 'collapsed') return Ellipsis;
+                  if (viewState === 'semi') return GripHorizontal;
+                  return Grip;
+                };
+                const ViewIcon = getViewIcon();
+
+                const handleDateToggle = () => {
+                  if (isSmallGroup) {
+                    setDateViewStates(prev => ({
+                      ...prev,
+                      [dateKey]: viewState === 'collapsed' ? 'full' : 'collapsed'
+                    }));
+                  } else {
+                    const nextState = viewState === 'collapsed' ? 'semi' : viewState === 'semi' ? 'full' : 'collapsed';
+                    setDateViewStates(prev => ({ ...prev, [dateKey]: nextState }));
+                  }
+                };
+
+                return (
+                  <div key={dateKey} className="mb-4">
+                    {/* Date header */}
+                    {isViewAll && (
+                      <div
+                        onClick={() => {
+                          handleDateChange(date);
+                          setIsViewAll(false);
+                          setTimeout(() => {
+                            addNoteInputRef.current?.focus();
+                          }, 50);
+                        }}
+                        className="group flex items-center justify-between mb-2 px-3 py-2 bg-[#1e1e1e] rounded-lg transition-all hover:border-[#404040] cursor-pointer"
+                      >
+                        <span
+                          className="flex items-center gap-2 text-xs font-playfair font-semibold text-[#a3a3a3] group-hover:text-[#e5e5e5] tracking-wide transition-colors"
                         >
-                          <ViewIcon size={12} />
-                        </button>
+                          {date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}
+                        </span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-[10px] font-medium text-[#525252] bg-[#262626] px-1.5 py-0.5 rounded transition-colors group-hover:text-[#737373]">{dayNotes.length}</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDateToggle();
+                            }}
+                            className="w-6 h-6 flex items-center justify-center rounded text-[#525252] hover:text-[#e5e5e5] hover:bg-[#262626] transition-all"
+                          >
+                            <ViewIcon size={14} />
+                          </button>
+                        </div>
                       </div>
+                    )}
+
+                    {/* Notes list */}
+                    <div key={viewState} className="flex flex-col gap-1">
+                      {displayNotes.map(note => (
+                        <NoteItemComponent
+                          key={note.id}
+                          note={note}
+                          date={date}
+                          isCompact={isCompact}
+                          isMicro={isMicro}
+                          isViewAll={isViewAll}
+                          isSelectMode={isSelectMode}
+                          isSelected={selectedNoteIds.has(note.id)}
+                          onToggleSelect={() => {
+                            if (!isSelectMode) {
+                              setIsSelectMode(true);
+                              setSelectedNoteIds(new Set([note.id]));
+                            } else {
+                              handleToggleSelect(note.id);
+                            }
+                          }}
+                          editingId={editingId}
+                          editContent={editContent}
+                          onEditContentChange={setEditContent}
+                          onStartEdit={handleStartEdit}
+                          onSaveEdit={handleSaveEdit}
+                          onCancelEdit={() => setEditingId(null)}
+                          tagSuggestions={tagSuggestions}
+                          suggestionActiveIndex={suggestionActiveIndex}
+                          suggestionSource={suggestionSource}
+                          onTagSuggestionSelect={insertTag}
+                          onSuggestionIndexChange={setSuggestionActiveIndex}
+                          onCheckTagSuggestions={checkTagSuggestions}
+                          onSuggestionSourceChange={setSuggestionSource}
+                          onToggleTodo={handleToggleTodo}
+                          onTogglePin={handleTogglePin}
+                          onSetType={handleSetType}
+                          onDeleteNote={handleDeleteNote}
+                          onRestoreNote={handleRestoreNote}
+                          onPermanentDelete={handlePermanentDelete}
+                          onCopy={handleCopy}
+                          isCopying={copyingIds.has(note.id)}
+                          activeContextMenu={activeContextMenu}
+                          onContextMenuToggle={setActiveContextMenu}
+                          activeTypeMenu={activeTypeMenu}
+                          onTypeMenuToggle={setActiveTypeMenu}
+                          confirmDeleteId={confirmDeleteId}
+                          onConfirmDeleteChange={setConfirmDeleteId}
+                          isTransitioning={transitioningIds.has(note.id)}
+                          isNewlyAdded={newlyAddedIds.has(note.id)}
+                          showRecycleBin={showRecycleBin}
+                          editingLink={editingLink}
+                          onEditLink={setEditingLink}
+                          onCancelEditLink={() => setEditingLink(null)}
+                          onSaveLink={handleSaveLink}
+                          onTagClick={(tag: string) => {
+                            setSelectedTag(tag);
+                            setLastUsedTag(tag);
+                          }}
+                          onToggleInlineCheckbox={handleToggleInlineCheckbox}
+                          highlightSearchText={highlightSearchText}
+                        />
+                      ))}
                     </div>
-                  )}
 
-                  {/* Notes list */}
-                  <div key={viewState} className="flex flex-col gap-1">
-                    {displayNotes.map(note => (
-                      <NoteItemComponent
-                        key={note.id}
-                        note={note}
-                        date={date}
-                        isCompact={isCompact}
-                        isMicro={isMicro}
-                        isViewAll={isViewAll}
-                        isSelectMode={isSelectMode}
-                        isSelected={selectedNoteIds.has(note.id)}
-                        onToggleSelect={() => {
-                          if (!isSelectMode) {
-                            setIsSelectMode(true);
-                            setSelectedNoteIds(new Set([note.id]));
-                          } else {
-                            handleToggleSelect(note.id);
-                          }
-                        }}
-                        editingId={editingId}
-                        editContent={editContent}
-                        onEditContentChange={setEditContent}
-                        onStartEdit={handleStartEdit}
-                        onSaveEdit={handleSaveEdit}
-                        onCancelEdit={() => setEditingId(null)}
-                        tagSuggestions={tagSuggestions}
-                        suggestionActiveIndex={suggestionActiveIndex}
-                        suggestionSource={suggestionSource}
-                        onTagSuggestionSelect={insertTag}
-                        onSuggestionIndexChange={setSuggestionActiveIndex}
-                        onCheckTagSuggestions={checkTagSuggestions}
-                        onSuggestionSourceChange={setSuggestionSource}
-                        onToggleTodo={handleToggleTodo}
-                        onTogglePin={handleTogglePin}
-                        onSetType={handleSetType}
-                        onDeleteNote={handleDeleteNote}
-                        onRestoreNote={handleRestoreNote}
-                        onPermanentDelete={handlePermanentDelete}
-                        onCopy={handleCopy}
-                        isCopying={copyingIds.has(note.id)}
-                        activeContextMenu={activeContextMenu}
-                        onContextMenuToggle={setActiveContextMenu}
-                        activeTypeMenu={activeTypeMenu}
-                        onTypeMenuToggle={setActiveTypeMenu}
-                        confirmDeleteId={confirmDeleteId}
-                        onConfirmDeleteChange={setConfirmDeleteId}
-                        isTransitioning={transitioningIds.has(note.id)}
-                        isNewlyAdded={newlyAddedIds.has(note.id)}
-                        showRecycleBin={showRecycleBin}
-                        editingLink={editingLink}
-                        onEditLink={setEditingLink}
-                        onCancelEditLink={() => setEditingLink(null)}
-                        onSaveLink={handleSaveLink}
-                        onTagClick={(tag: string) => {
-                          setSelectedTag(tag);
-                          setLastUsedTag(tag);
-                        }}
-                        onToggleInlineCheckbox={handleToggleInlineCheckbox}
-                        highlightSearchText={highlightSearchText}
-                      />
-                    ))}
+                    {/* Show more button */}
+                    {isViewAll && displayNotes.length < dayNotes.length && (
+                      <button
+                        onClick={() => setDateViewStates(prev => ({ ...prev, [dateKey]: 'full' }))}
+                        className="w-full mt-1 py-1 text-[10px] text-[#525252] hover:text-[#a3a3a3] hover:bg-[#1a1a1a] rounded transition-colors"
+                      >
+                        +{dayNotes.length - displayNotes.length} more
+                      </button>
+                    )}
                   </div>
-
-                  {/* Show more button */}
-                  {isViewAll && displayNotes.length < dayNotes.length && (
-                    <button
-                      onClick={() => setDateViewStates(prev => ({ ...prev, [dateKey]: 'full' }))}
-                      className="w-full mt-1 py-1 text-[10px] text-[#525252] hover:text-[#a3a3a3] hover:bg-[#1a1a1a] rounded transition-colors"
-                    >
-                      +{dayNotes.length - displayNotes.length} more
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </>
-        )}
+                );
+              })}
+            </>
+          )}
+        </div>
       </div>
 
       {/* Add Note Input */}

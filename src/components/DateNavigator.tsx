@@ -6,9 +6,11 @@ interface DateNavigatorProps {
   onDateChange: (date: Date) => void;
   className?: string;
   datesWithNotes?: Set<string>;
+  children?: React.ReactNode;
+  isViewAll?: boolean;
 }
 
-export const DateNavigator: React.FC<DateNavigatorProps> = ({ date, onDateChange, className, datesWithNotes }) => {
+export const DateNavigator: React.FC<DateNavigatorProps> = ({ date, onDateChange, className, datesWithNotes, children, isViewAll }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -41,37 +43,64 @@ export const DateNavigator: React.FC<DateNavigatorProps> = ({ date, onDateChange
   const defaultStyleClasses = "bg-[#252525] border border-[#262626] rounded-lg p-1 transition-colors hover:border-[#404040]";
   const finalClassName = `${layoutClasses} ${className !== undefined ? className : defaultStyleClasses}`;
 
+  // View All mode - simplified display
+  if (isViewAll) {
+    return (
+      <div ref={containerRef} className={finalClassName} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center flex-1 justify-center">
+          <span className="px-2 py-1 text-sm font-playfair font-medium text-[#d4d4d4]">
+            All Notes
+          </span>
+        </div>
+
+        {children && (
+          <div className="flex items-center gap-1 ml-2">
+            {children}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div ref={containerRef} className={finalClassName} onClick={(e) => e.stopPropagation()}>
-      <button
-        onClick={handlePrevDay}
-        className="p-1 text-[#737373] hover:text-[#e5e5e5] hover:bg-[#262626] rounded transition-colors"
-      >
-        <ChevronLeft size={16} />
-      </button>
+      <div className="flex items-center flex-1">
+        <button
+          onClick={handlePrevDay}
+          className="p-1 text-[#737373] hover:text-[#e5e5e5] hover:bg-[#262626] rounded transition-colors"
+        >
+          <ChevronLeft size={16} />
+        </button>
 
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex-1 flex items-center justify-center gap-2 px-2 text-sm font-playfair font-medium text-[#d4d4d4] hover:text-white transition-colors"
-      >
-        {date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-        {(() => {
-          const today = new Date();
-          if (date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear()) {
-            return (
-              <span className="ml-1 px-1.5 py-0.5 rounded-md bg-[#262626] border border-[#404040] text-[8px] font-bold text-[#a3a3a3] tracking-wider uppercase">Today</span>
-            );
-          }
-          return null;
-        })()}
-      </button>
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex-1 flex items-center justify-center gap-2 px-2 text-sm font-playfair font-medium text-[#d4d4d4] hover:text-white transition-colors"
+        >
+          {date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          {(() => {
+            const today = new Date();
+            if (date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear()) {
+              return (
+                <span className="ml-1 px-1.5 py-0.5 rounded-md bg-[#262626] border border-[#404040] text-[8px] font-bold text-[#a3a3a3] tracking-wider uppercase">Today</span>
+              );
+            }
+            return null;
+          })()}
+        </button>
 
-      <button
-        onClick={handleNextDay}
-        className="p-1 text-[#737373] hover:text-[#e5e5e5] hover:bg-[#262626] rounded transition-colors"
-      >
-        <ChevronRight size={16} />
-      </button>
+        <button
+          onClick={handleNextDay}
+          className="p-1 text-[#737373] hover:text-[#e5e5e5] hover:bg-[#262626] rounded transition-colors"
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
+
+      {children && (
+        <div className="flex items-center gap-1 ml-2">
+          {children}
+        </div>
+      )}
 
       {isOpen && (
         <div className="absolute top-full left-0 mt-2 z-50">
@@ -177,10 +206,10 @@ const DatePicker = ({ selectedDate, onChange, datesWithNotes }: { selectedDate: 
               onChange(new Date(viewDate.getFullYear(), viewDate.getMonth(), d));
             }}
             className={`aspect-square flex flex-col items-center justify-center relative text-xs rounded-lg transition-all ${isSelected(d)
-                ? 'bg-[#e5e5e5] text-[#171717] font-medium'
-                : isToday(d)
-                  ? 'bg-[#262626] text-[#e5e5e5] border border-[#404040]'
-                  : 'text-[#a3a3a3] hover:bg-[#262626] hover:text-[#e5e5e5]'
+              ? 'bg-[#e5e5e5] text-[#171717] font-medium'
+              : isToday(d)
+                ? 'bg-[#262626] text-[#e5e5e5] border border-[#404040]'
+                : 'text-[#a3a3a3] hover:bg-[#262626] hover:text-[#e5e5e5]'
               }`}
           >
             <span className="z-10">{d}</span>
