@@ -5,15 +5,15 @@
 
 ---
 
-## 📚 Documentation & Reports
+## Documentation & Reports
 This repository contains detailed documentation and reports:
-- **[📘 Full Documentation](./DOCUMENTATION.md)**: Detailed feature breakdown, user flows, and glossary.
-- **[📋 Changelog](./CHANGELOG.md)**: Version history and release notes.
-- **[🎨 UX Report](./UX_REPORT.md)**: Usability evaluation and design strategy.
+- **[Full Documentation](./DOCUMENTATION.md)**: Detailed feature breakdown, user flows, and glossary.
+- **[Changelog](./CHANGELOG.md)**: Version history and release notes.
+- **[UX Report](./UX_REPORT.md)**: Usability evaluation and design strategy.
 
 ---
 
-## 🚀 Key Features
+## Key Features
 - **24/7 Activity Grid:** Log time in 1-hour increments with a high-density table.
 - **Smart Notes:** Contextual note-taking with auto-detection for `!important`, `todo tasks`, and `http://links`.
 - **Statistics Engine:** Real-time visual breakdown of your time usage.
@@ -22,7 +22,7 @@ This repository contains detailed documentation and reports:
 
 ---
 
-## 📦 Latest Updates (v1.1.2)
+## Latest Updates (v1.1.2)
 **Date:** 2026-01-07
 **Focus:** Architectural Refactoring and UI Polish.
 
@@ -33,7 +33,7 @@ This repository contains detailed documentation and reports:
 
 ---
 
-## 🛠️ Technical Architecture
+## Technical Architecture
 The project follows a modular **Feature-First** directory structure:
 
 ```
@@ -50,7 +50,7 @@ src/
 
 ---
 
-## 💻 Tech Stack
+## Tech Stack
 - **Framework:** React + Vite
 - **Language:** TypeScript
 - **Styling:** TailwindCSS + Vanilla CSS Variables
@@ -59,7 +59,7 @@ src/
 
 ---
 
-## 🏃‍♂️ Running Locally
+## Running Locally
 
 1. **Install dependencies:**
    ```bash
