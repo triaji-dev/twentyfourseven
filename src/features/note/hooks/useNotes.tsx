@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { useStore } from '../../store/useStore';
-import { NoteItem, NoteType } from '../../types';
-import { processNoteContent, extractTags } from '../../utils/notes';
-import { NoteGroup, DateViewState, CompletedFilter, SuggestionSource } from './types';
+import { useStore } from '../../../shared/store/useStore';
+import { NoteItem, NoteType } from '../../../shared/types';
+import { processNoteContent, extractTags } from '../../../shared/utils/notes';
+import { NoteGroup, DateViewState, CompletedFilter, SuggestionSource } from '../types';
 
 interface UseNotesProps {
   year: number;

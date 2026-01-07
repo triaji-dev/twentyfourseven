@@ -1,10 +1,10 @@
 import { useCallback, useMemo, useEffect, useState, useRef } from 'react';
 import { PaintBucket, Pencil, Check, Trash2, Plus } from 'lucide-react';
 import { ActivityCell } from './ActivityCell';
-import { getDaysInMonth, loadActivity, getNotes, migrateActivityKey } from '../utils/storage';
-import { DAY_ABBREVIATIONS, MONTH_NAMES } from '../constants';
-import { useStore } from '../store/useStore';
-import { useSettings } from '../store/useSettings';
+import { getDaysInMonth, loadActivity, getNotes, migrateActivityKey } from '../../../shared/utils/storage';
+import { DAY_ABBREVIATIONS, MONTH_NAMES } from '../../../shared/constants';
+import { useStore } from '../../../shared/store/useStore';
+import { useSettings } from '../../../shared/store/useSettings';
 interface ActivityTableProps {
   year: number;
   month: number;

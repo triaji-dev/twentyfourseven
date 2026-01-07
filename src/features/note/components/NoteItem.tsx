@@ -1,6 +1,6 @@
 import React from 'react';
-import { NoteItem, NoteType } from '../../types';
-import { NOTE_TYPES } from './types';
+import { NoteItem, NoteType } from '../../../shared/types';
+import { NOTE_TYPES } from '../types';
 import { NoteContent } from './NoteContent';
 import {
   X, Check, Copy, Pin, PinOff, Layers, Trash, Tag,

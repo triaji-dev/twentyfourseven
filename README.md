@@ -1,5 +1,5 @@
 # TwentyFourSeven UI/UX Documentation
-*Version 1.0.0 | System Date: Jan 2026*
+*Version 1.1.2 | System Date: Jan 2026*
 
 ## 1. Overview
 ### 1.1 Brief Purpose
@@ -183,3 +183,15 @@ TwentyFourSeven is a high-performance, modular time-tracking and note-taking das
 *   *Assumption 1:* Browser supports `localStorage` with at least 5MB of space.
 *   *Assumption 2:* URL parsing for "Link" notes relies on standard URL regex patterns.
 *   *Assumption 3:* Exported JSON files are intended to be held privately by the user (no server storage).
+
+---
+
+## 9. Technical Architecture
+### 9.1 Folder Structure
+The project follows a **Feature-First** architecture to ensure modularity and scalability:
+- **`src/features/`**: Contains self-contained feature modules (`note`, `activity`, `statistic`).
+  - Each feature has its own `components`, `hooks`, and `types`.
+- **`src/shared/`**: Common utilities, reusable components, global stores, and constants.
+  - `components/`: Generic UI elements (Header, DateNavigator).
+  - `store/`: Global state management (Zustand).
+  - `utils/`: Helper functions.

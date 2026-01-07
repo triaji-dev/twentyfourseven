@@ -1,5 +1,5 @@
 import { Type, CheckSquare, AlertCircle, Link as LinkIcon } from 'lucide-react';
-import { NoteItem, NoteType } from '../../types';
+import { NoteItem, NoteType } from '../../shared/types';
 
 export const NOTE_TYPES: Record<NoteType, { color: string; label: string; icon: any }> = {
   text: { color: '#d0d0d0ff', label: 'Text', icon: Type },

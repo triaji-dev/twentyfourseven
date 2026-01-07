@@ -12,6 +12,18 @@ This product follows **Semantic Versioning (SemVer)**:
 
 ---
 
+## [1.1.2] - 2026-01-07
+### Status: Stable
+**Main Focus:** Architectural Refactoring and UI Polish.
+
+### Changed
+- **Codebase Architecture:** Refactored entire project to a Feature-First folder structure (`features/`, `shared/`) for better scalability and maintainability.
+- **Date Header Toggles:** Simplified the expand/collapse logic for small note groups (<= 3 notes) to bypass the 'semi' state.
+- **Filter Bar UI:**
+    - Standardized gap spacing across all filter groups.
+    - Implemented mutual exclusivity between "Pinned" and "Recycle Bin" modes.
+    - Optimized button sizing for "View Options" and "Status" groups.
+
 ## [1.1.1] - 2026-01-06
 ### Status: Stable
 **Main Focus:** UI Refinement, Filter Bar Redesign, and Enhanced Recycle Bin.

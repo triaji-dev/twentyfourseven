@@ -1,8 +1,8 @@
 import React, { useRef } from 'react';
-import type { MonthStats } from '../types';
+import type { MonthStats } from '../../../shared/types';
 import { Statistic } from './Statistic';
-import { Notes, NotesHandle } from './Notes';
-import { useStore } from '../store/useStore';
+import { Notes, NotesHandle } from '../../note/components/Notes';
+import { useStore } from '../../../shared/store/useStore';
 import { Download } from 'lucide-react';
 
 interface StatsProps {

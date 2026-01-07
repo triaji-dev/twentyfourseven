@@ -1,5 +1,5 @@
 import React from 'react';
-import { NoteItem } from '../../types';
+import { NoteItem } from '../../../shared/types';
 import { Square, CheckSquare, Pencil } from 'lucide-react';
 import { LinkEditForm } from './LinkEditForm';
 

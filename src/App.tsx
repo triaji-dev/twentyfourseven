@@ -1,9 +1,10 @@
-import { Header } from './components/Header';
-import { ActivityTable } from './components/ActivityTable';
-import { Stats } from './components/Stats';
-import { SettingsModal } from './components/SettingsModal';
-import { useStore } from './store/useStore';
-import { useKeyboardShortcuts, useStats } from './hooks';
+import { Header } from './shared/components/Header';
+import { ActivityTable } from './features/activity/components/ActivityTable';
+import { Stats } from './features/statistic/components/Stats';
+import { SettingsModal } from './shared/components/SettingsModal';
+import { useStore } from './shared/store/useStore';
+import { useKeyboardShortcuts } from './shared/hooks/useKeyboardShortcuts';
+import { useStats } from './features/statistic/hooks/useStats';
 import './index.css';
 
 function App() {

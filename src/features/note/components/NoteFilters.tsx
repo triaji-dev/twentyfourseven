@@ -3,8 +3,8 @@ import {
   Search, X, ChevronDown, RefreshCcw,
   CheckCheck, List, Pin, Trash2
 } from 'lucide-react';
-import { NoteType } from '../../types';
-import { NOTE_TYPES } from './types';
+import { NoteType } from '../../../shared/types';
+import { NOTE_TYPES } from '../types';
 
 
 interface NoteFiltersProps {

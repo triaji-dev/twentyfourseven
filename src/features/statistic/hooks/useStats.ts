@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useStore } from '../store/useStore';
+import { useStore } from '../../../shared/store/useStore';
 
 export const useStats = (year: number, month: number) => {
   const calculateStats = useStore(state => state.calculateStats);

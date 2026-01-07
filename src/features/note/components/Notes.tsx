@@ -1,22 +1,17 @@
 import { forwardRef, useImperativeHandle } from 'react';
-import { DateNavigator } from './DateNavigator';
-import { extractTags } from '../utils/notes';
+import { DateNavigator } from '../../../shared/components/DateNavigator';
+import { extractTags } from '../../../shared/utils/notes';
 import {
   X, Grid2x2, Square, Rows4, Rows3, Rows2, FoldVertical, UnfoldVertical,
   Calendar, Tag, Type, CheckCircle, AlertCircle, Link as LinkIcon
 } from 'lucide-react';
-import { NoteType } from '../types';
-
-// Import refactored components
-import {
-  useNotes,
-  TYPE_PRIORITY,
-  NoteFilters,
-  SelectModeBar,
-  PinnedNotesHeader,
-  RecycleBinHeader,
-  NoteItemComponent
-} from './notes/index';
+import { NoteType } from '../../../shared/types';
+import { TYPE_PRIORITY } from '../types';
+import { useNotes } from '../hooks/useNotes';
+import { NoteFilters } from './NoteFilters';
+import { SelectModeBar } from './SelectModeBar';
+import { PinnedNotesHeader, RecycleBinHeader } from './NoteHeaders';
+import { NoteItemComponent } from './NoteItem';
 
 export interface NotesHandle {
   downloadNotes: () => void;

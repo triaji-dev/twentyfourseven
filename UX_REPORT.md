@@ -4,7 +4,7 @@
 ## 1. Title and Context
 **Product Name:** TwentyFourSeven  
 **Evaluation Target:** Daily time-tracking and contextual note-taking dashboard.  
-**Evaluation Date:** January 5, 2026  
+**Evaluation Date:** January 7, 2026  
 **Scope:** Core interface components including the 24-hour Activity Table, Interactive Notes Sidebar, Statistics Engine, and Settings Customization Modal.
 
 ---
@@ -117,3 +117,9 @@
 - **Unknown:** How does performance hold up when `localStorage` exceeds 2MB of raw text?
 - **Assumption:** Users prefer the 24-hour vertical layout over a more traditional calendar view for "Micro-tracking."
 - **Research Needed:** Conduct a 5-second test on the "Add Category" icon to see if users understand the "+" affordance in a dark UI.
+
+---
+
+## 12. Recent Improvements (v1.1.2)
+- **Filter Bar Redesign:** Addressed clutter and alignment issues in the filter bar, improving visual hierarchy (Heuristic: Consistency and Standards).
+- **Date Header Interaction:** Simplified toggles for small note groups to reduce interaction cost (Heuristic: Flexibility and Efficiency of Use).

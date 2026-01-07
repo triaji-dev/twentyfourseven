@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getDaysInMonth, loadActivity } from '../utils/storage';
-import type { MonthStats } from '../types';
+import { getDaysInMonth, loadActivity } from '../../../shared/utils/storage';
+import type { MonthStats } from '../../../shared/types';
 
 export const useMonthlyStats = (year: number, month: number): MonthStats => {
   const [stats, setStats] = useState<MonthStats>({ stats: {}, totalHours: 0 });
