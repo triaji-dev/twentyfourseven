@@ -122,7 +122,7 @@ export const DateNavigator: React.FC<DateNavigatorProps> = ({ date, onDateChange
   );
 };
 
-const DatePicker = ({ selectedDate, onChange, datesWithNotes }: { selectedDate: Date, onChange: (d: Date) => void, datesWithNotes?: Set<string> }) => {
+export const DatePicker = ({ selectedDate, onChange, datesWithNotes }: { selectedDate: Date, onChange: (d: Date) => void, datesWithNotes?: Set<string> }) => {
   const [viewDate, setViewDate] = useState(selectedDate);
 
   const getDaysInMonth = (year: number, month: number) => {

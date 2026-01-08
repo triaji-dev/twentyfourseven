@@ -1,10 +1,11 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { NoteItem, NoteType } from '../../../shared/types';
 import { NOTE_TYPES } from '../types';
 import { NoteContent } from './NoteContent';
 import {
   X, Check, Copy, Pin, PinOff, Layers, Trash, Tag,
-  Square, CheckSquare, ListChecks, MoreVertical, RefreshCcw
+  Square, CheckSquare, ListChecks, MoreVertical, RefreshCcw, Scissors
 } from 'lucide-react';
 
 interface NoteItemProps {
@@ -60,6 +61,10 @@ interface NoteItemProps {
   confirmDeleteId: string | null;
   onConfirmDeleteChange: (noteId: string | null) => void;
 
+  // Split
+  onSplit: (date: Date, noteId: string) => void;
+
+
   // Visual state
   isTransitioning: boolean;
   isNewlyAdded: boolean;
@@ -114,6 +119,7 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
   onTypeMenuToggle,
   confirmDeleteId,
   onConfirmDeleteChange,
+  onSplit,
   isTransitioning,
   isNewlyAdded,
   showRecycleBin,
@@ -128,6 +134,7 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
 }) => {
   const isNoteDone = note.isDone && !isTransitioning;
   const contextMenuRef = React.useRef<HTMLDivElement>(null);
+  const typeMenuRef = React.useRef<HTMLButtonElement>(null);
   const [isExpanded, setIsExpanded] = React.useState(false);
 
   // Simple heuristic for long content
@@ -240,7 +247,7 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
         ) : (
           <div className="relative">
             <div
-              className={`${isMicro ? 'text-[9px] truncate leading-none py-0' : isCompact ? (isExpanded ? 'text-[11px] pb-6' : 'text-[11px] line-clamp-3 pb-1') : 'text-xs'} block break-words ${isMicro ? 'leading-none' : 'leading-relaxed'} ${isNoteDone ? 'text-[#a3a3a3]' : (note.type === 'link' ? 'text-[#a0c4ff]' : (note.type === 'important' ? 'text-[#f87171]' : 'text-[#d4d4d4]'))}`}
+              className={`${isMicro ? 'text-[9px] truncate leading-none py-0' : isCompact ? (isExpanded ? 'text-[11px]' : 'text-[11px] line-clamp-3') : 'text-xs'} block break-words ${isMicro ? 'leading-none' : 'leading-relaxed'} ${isNoteDone ? 'text-[#a3a3a3]' : (note.type === 'link' ? 'text-[#a0c4ff]' : (note.type === 'important' ? 'text-[#f87171]' : 'text-[#d4d4d4]'))}`}
               onDoubleClick={() => !isSelectMode && !isViewAll && !isNoteDone && onStartEdit(note)}
             >
               <NoteContent
@@ -259,15 +266,17 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
               />
             </div>
             {isCompact && isLongContent && !isSelectMode && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsExpanded(!isExpanded);
-                }}
-                className={`text-[9px] text-[#525252] hover:text-[#a3a3a3] transition-colors ${isExpanded ? 'absolute bottom-1 right-0' : 'absolute bottom-0 right-0 py-0.5 bg-gradient-to-l from-[#1a1a1a] via-[#1a1a1a] to-transparent pl-4'}`}
-              >
-                {isExpanded ? 'Show less' : '... Show more'}
-              </button>
+              <div className="flex justify-end w-full">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsExpanded(!isExpanded);
+                  }}
+                  className="text-[9px] text-[#525252] hover:text-[#a3a3a3] transition-colors mt-0.5"
+                >
+                  {isExpanded ? 'Show less' : 'Show more'}
+                </button>
+              </div>
             )}
           </div>
         )}
@@ -292,6 +301,7 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
             ) : !showRecycleBin ? (
               <>
                 <button onClick={() => onCopy(note.id, note.content)} className="text-[#525252] hover:text-[#e5e5e5] px-1" title="Copy"><Copy size={14} /></button>
+                <button onClick={(e) => { e.stopPropagation(); onSplit(date, note.id); }} className="text-[#525252] hover:text-[#e5e5e5] px-1" title="Split"><Scissors size={14} /></button>
                 <button onClick={(e) => { e.stopPropagation(); onToggleSelect(note.id); }} className="text-[#525252] hover:text-[#cecece] px-1" title="Select"><ListChecks size={14} /></button>
                 {!isNoteDone && (
                   <>
@@ -311,14 +321,22 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
                     </button>
                     <div className="relative">
                       <button
+                        ref={typeMenuRef}
                         onClick={(e) => { e.stopPropagation(); onTypeMenuToggle(activeTypeMenu === note.id ? null : note.id); }}
                         className={`text-[#525252] hover:text-[#e5e5e5] px-1 transition-colors ${activeTypeMenu === note.id ? 'text-[#e5e5e5]' : ''}`}
                         title="Type"
                       >
                         <Layers size={14} />
                       </button>
-                      {activeTypeMenu === note.id && (
-                        <div className="absolute right-0 bottom-full mb-2 bg-[#171717] border border-[#262626] rounded-lg shadow-xl z-50 py-1 min-w-[100px] animate-in fade-in slide-in-from-bottom-1 duration-200" onClick={e => e.stopPropagation()}>
+                      {activeTypeMenu === note.id && createPortal(
+                        <div
+                          className="fixed z-[9999] py-1 min-w-[100px] bg-[#171717] border border-[#262626] rounded-lg shadow-xl animate-in fade-in slide-in-from-bottom-1 duration-200"
+                          style={{
+                            bottom: (window.innerHeight - (typeMenuRef.current?.getBoundingClientRect().top ?? 0) + 8) + 'px',
+                            right: (window.innerWidth - (typeMenuRef.current?.getBoundingClientRect().right ?? 0)) + 'px'
+                          }}
+                          onClick={e => e.stopPropagation()}
+                        >
                           {(['text', 'todo', 'important'] as NoteType[]).map(type => (
                             <button
                               key={type}
@@ -329,7 +347,8 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
                               {NOTE_TYPES[type].label}
                             </button>
                           ))}
-                        </div>
+                        </div>,
+                        document.body
                       )}
                     </div>
                   </>
@@ -346,17 +365,17 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
         </div>
       </div>
 
-      {/* Compact mode context menu */}
-      {!editingId && isCompact && !isSelectMode && !isViewAll && (
-        <div className={`flex items-center gap-0 transition-opacity mt-0.5 relative ${isSelectMode ? 'hidden' : ''} ${activeContextMenu === note.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+      {/* Compact/Micro mode context menu */}
+      {!editingId && (isCompact || isMicro) && !isSelectMode && !isViewAll && (
+        <div className={`flex items-center gap-0 transition-opacity relative ${isMicro ? 'mt-0' : 'mt-0.5'} ${isSelectMode ? 'hidden' : ''} ${activeContextMenu === note.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
           {!showRecycleBin ? (
             <>
               <button
                 onClick={(e) => { e.stopPropagation(); onContextMenuToggle(activeContextMenu === note.id ? null : note.id); }}
-                className={`p-1 transition-colors rounded hover:bg-[#262626] ${activeContextMenu === note.id ? 'text-[#e5e5e5] bg-[#262626]' : 'text-[#737373] hover:text-[#e5e5e5]'}`}
+                className={`${isMicro ? 'p-0.5' : 'p-1'} transition-colors rounded hover:bg-[#262626] ${activeContextMenu === note.id ? 'text-[#e5e5e5] bg-[#262626]' : 'text-[#737373] hover:text-[#e5e5e5]'}`}
                 title="More actions"
               >
-                <MoreVertical size={14} />
+                <MoreVertical size={isMicro ? 12 : 14} />
               </button>
 
               {activeContextMenu === note.id && (
@@ -381,6 +400,12 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
                     className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[#d4d4d4] hover:bg-[#262626] hover:text-white transition-colors"
                   >
                     <Copy size={12} /> Copy
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onSplit(date, note.id); onContextMenuToggle(null); }}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[#d4d4d4] hover:bg-[#262626] hover:text-white transition-colors"
+                  >
+                    <Scissors size={12} /> Split
                   </button>
                   {!isNoteDone && (
                     <>

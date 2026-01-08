@@ -573,42 +573,81 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
     );
 
     const mergedContent = selectedNotes.map(sn => sn.note.content).join('\n');
-    const firstNote = selectedNotes[0];
-    const firstDate = firstNote.date;
+    const firstNoteData = selectedNotes[0];
+    const secondaryNotes = selectedNotes.slice(1);
 
-    // Update first note with merged content
-    const key = `twentyfourseven-notes-${firstDate.getFullYear()}-${firstDate.getMonth()}`;
-    const day = firstDate.getDate();
+    // Group actions by localStorage key (Month)
+    const updatesByKey: Record<string, {
+      updateContent?: { id: string, content: string },
+      deletions: Set<string>
+    }> = {};
 
-    let currentNotes: Record<number, NoteItem[]>;
-    try {
-      currentNotes = JSON.parse(localStorage.getItem(key) || '{}');
-    } catch {
-      currentNotes = {};
-    }
+    // Helper to get key
+    const getKey = (date: Date) => `twentyfourseven-notes-${date.getFullYear()}-${date.getMonth()}`;
 
-    const dayNotes = currentNotes[day] || [];
-    const updatedDayNotes = dayNotes.map(n =>
-      n.id === firstNote.note.id ? { ...n, content: mergedContent, updatedAt: new Date().toISOString() } : n
-    );
+    // Plan update for first note
+    const firstKey = getKey(firstNoteData.date);
+    if (!updatesByKey[firstKey]) updatesByKey[firstKey] = { deletions: new Set() };
+    updatesByKey[firstKey].updateContent = { id: firstNoteData.note.id, content: mergedContent };
 
-    const updatedNotes = { ...currentNotes, [day]: updatedDayNotes };
-    localStorage.setItem(key, JSON.stringify(updatedNotes));
+    // Plan deletions for others
+    secondaryNotes.forEach(({ note, date }) => {
+      const key = getKey(date);
+      if (!updatesByKey[key]) updatesByKey[key] = { deletions: new Set() };
+      updatesByKey[key].deletions.add(note.id);
+    });
 
-    if (firstDate.getFullYear() === year && firstDate.getMonth() === month) {
-      setNotes(updatedNotes);
-    }
+    // Execute updates
+    Object.entries(updatesByKey).forEach(([key, actions]) => {
+      let currentNotes: Record<number, NoteItem[]>;
+      try {
+        currentNotes = JSON.parse(localStorage.getItem(key) || '{}');
+      } catch {
+        currentNotes = {};
+      }
 
-    // Delete other notes
-    selectedNotes.slice(1).forEach(({ note, date }) => {
-      handleDeleteNote(date, note.id);
+      let hasChanges = false;
+      const days = Object.keys(currentNotes).map(Number);
+
+      days.forEach(day => {
+        const dayNotes = currentNotes[day];
+        const updatedDayNotes = dayNotes.map(n => {
+          // Check for content update
+          if (actions.updateContent && n.id === actions.updateContent.id) {
+            hasChanges = true;
+            return { ...n, content: actions.updateContent.content, updatedAt: new Date().toISOString() };
+          }
+          // Check for deletion
+          if (actions.deletions.has(n.id)) {
+            hasChanges = true;
+            return { ...n, deletedAt: new Date().toISOString() };
+          }
+          return n;
+        });
+        currentNotes[day] = updatedDayNotes;
+      });
+
+      if (hasChanges) {
+        localStorage.setItem(key, JSON.stringify(currentNotes));
+
+        // Update state if this is the current view
+        // Note: key was constructed as `twentyfourseven-notes-${date.getFullYear()}-${date.getMonth()}`
+        // So split by '-' gives ["twentyfourseven", "notes", "YYYY", "MM"]
+        const parts = key.split('-');
+        const y = parseInt(parts[2]);
+        const m = parseInt(parts[3]);
+
+        if (y === year && m === month) {
+          setNotes(currentNotes);
+        }
+      }
     });
 
     setIsSelectMode(false);
     setSelectedNoteIds(new Set());
     setAllTimeNotes(fetchAllNotes());
     triggerUpdate();
-  }, [selectedNoteIds, allTimeNotes, year, month, handleDeleteNote, fetchAllNotes, triggerUpdate]);
+  }, [selectedNoteIds, allTimeNotes, year, month, fetchAllNotes, triggerUpdate]);
 
   // Handle restoring note
   const handleRestoreNote = useCallback((date: Date, noteId: string) => {
@@ -764,6 +803,88 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
     setAllTimeNotes(fetchAllNotes());
     triggerUpdate();
   }, [allTimeNotes, year, month, fetchAllNotes, triggerUpdate]);
+
+  // Handle splitting a note
+  const handleSplitNote = useCallback((date: Date, noteId: string) => {
+    const key = `twentyfourseven-notes-${date.getFullYear()}-${date.getMonth()}`;
+    const day = date.getDate();
+
+    let currentNotes: Record<number, NoteItem[]>;
+    try {
+      currentNotes = JSON.parse(localStorage.getItem(key) || '{}');
+    } catch {
+      currentNotes = {};
+    }
+
+    const dayNotes = currentNotes[day] || [];
+    const noteToSplit = dayNotes.find(n => n.id === noteId);
+
+    if (!noteToSplit) return;
+
+    // Split content by newlines and filter out empty lines
+    const contentParts = noteToSplit.content.split('\n')
+      .map(part => part.trim())
+      .filter(part => part.length > 0);
+
+    if (contentParts.length <= 1) return; // Nothing to split
+
+    const newNotes: NoteItem[] = [];
+    const timestamp = new Date().toISOString();
+
+    // Create new notes for secondary parts
+    contentParts.slice(1).forEach(part => {
+      const { type, content } = processNoteContent(part);
+      newNotes.push({
+        id: Math.random().toString(36).substr(2, 9),
+        content,
+        type: type, // Or inherit from parent? processing it seems safer
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        isDone: noteToSplit.isDone, // Inherit state? Optional. Let's inherit completion but maybe not pinned
+        isPinned: noteToSplit.isPinned
+      });
+    });
+
+    // Update the original note with the first part
+    const updatedDayNotes = dayNotes.flatMap(n => {
+      if (n.id === noteId) {
+        const { type, content } = processNoteContent(contentParts[0]);
+        const firstPartNote = {
+          ...n,
+          content,
+          type: n.type === 'todo' || n.type === 'important' ? n.type : type, // Preserve manual types
+          updatedAt: timestamp
+        };
+        // Return original (updated) + new notes
+        return [firstPartNote, ...newNotes];
+      }
+      return [n];
+    });
+
+    const updatedNotes = { ...currentNotes, [day]: updatedDayNotes };
+    localStorage.setItem(key, JSON.stringify(updatedNotes));
+
+    if (date.getFullYear() === year && date.getMonth() === month) {
+      setNotes(updatedNotes);
+    }
+
+    setAllTimeNotes(fetchAllNotes());
+    triggerUpdate();
+
+    // Flash animation for all new IDs including original
+    const allIds = [noteId, ...newNotes.map(n => n.id)];
+    allIds.forEach(id => {
+      setNewlyAddedIds(prev => new Set(prev).add(id));
+      setTimeout(() => {
+        setNewlyAddedIds(prev => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+      }, 1000);
+    });
+
+  }, [year, month, notes, fetchAllNotes, triggerUpdate]);
 
   // Handle toggle select
   const handleToggleSelect = useCallback((noteId: string) => {
@@ -957,6 +1078,7 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
     handleToggleInlineCheckbox,
     handleSaveLink,
     highlightSearchText,
+    handleSplitNote,
     fetchAllNotes,
     setActiveCell,
     triggerUpdate,

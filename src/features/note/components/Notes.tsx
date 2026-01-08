@@ -1,5 +1,5 @@
-import { forwardRef, useImperativeHandle } from 'react';
-import { DateNavigator } from '../../../shared/components/DateNavigator';
+import { forwardRef, useImperativeHandle, useRef, useState, useEffect } from 'react';
+import { DateNavigator, DatePicker } from '../../../shared/components/DateNavigator';
 import { extractTags } from '../../../shared/utils/notes';
 import {
   X, Grid2x2, Square, Rows4, Rows3, Rows2, FoldVertical, UnfoldVertical,
@@ -110,7 +110,21 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
     handleToggleInlineCheckbox,
     handleSaveLink,
     highlightSearchText,
+    handleSplitNote,
   } = useNotes({ year, month });
+
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const datePickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
+        setIsDatePickerOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Handle type toggle
   const handleTypeToggle = (type: NoteType) => {
@@ -381,13 +395,40 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
             disabled={isSelectMode}
           >
             {isViewAll && (
-              <button
-                onClick={handleGlobalToggle}
-                className="w-8 h-8 flex items-center justify-center rounded-lg border transition-all backdrop-blur-sm border-[#262626] text-[#535353] hover:text-[#737373] hover:bg-[#202020]"
-                title="Toggle View Mode"
-              >
-                <GlobalIcon size={14} />
-              </button>
+              <>
+                <button
+                  onClick={handleGlobalToggle}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg border transition-all backdrop-blur-sm border-[#262626] text-[#535353] hover:text-[#737373] hover:bg-[#202020]"
+                  title="Toggle View Mode"
+                >
+                  <GlobalIcon size={14} />
+                </button>
+                <div ref={datePickerRef}>
+                  <button
+                    onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all backdrop-blur-sm border-[#262626] ${isDatePickerOpen ? 'bg-[#262626] text-[#e5e5e5]' : 'text-[#535353] hover:text-[#737373] hover:bg-[#202020]'}`}
+                    title="Jump to date"
+                  >
+                    <Calendar size={14} />
+                  </button>
+                  {isDatePickerOpen && (
+                    <div className="absolute top-full left-0 mt-2 z-50">
+                      <DatePicker
+                        selectedDate={new Date()}
+                        onChange={(d) => {
+                          handleDateChange(d);
+                          setIsViewAll(false);
+                          setIsDatePickerOpen(false);
+                          setTimeout(() => {
+                            addNoteInputRef.current?.focus();
+                          }, 50);
+                        }}
+                        datesWithNotes={datesWithNotes}
+                      />
+                    </div>
+                  )}
+                </div>
+              </>
             )}
             {/* Display mode toggle */}
             <button
@@ -576,6 +617,7 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
                             setIsViewAll(false);
                             handleDateChange(clickedDate);
                           }}
+                          onSplit={handleSplitNote}
                         />
                       ))}
                     </div>
@@ -613,7 +655,7 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
 
             {/* Detected Type */}
             <div className={`flex items-center gap-1.5 text-[10px] px-2 py-1 rounded border transition-colors ${newNote.startsWith('! ') || newNote.startsWith('!') ? 'text-red-400 bg-red-400/10 border-red-400/20' :
-              newNote.startsWith('* ') || newNote.startsWith('todo ') ? 'text-orange-400 bg-orange-400/10 border-orange-400/20' :
+              newNote.startsWith('* ') || newNote.startsWith('todo ') ? 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20' :
                 newNote.includes('http') ? 'text-blue-400 bg-blue-400/10 border-blue-400/20' :
                   'text-[#525252] bg-[#1a1a1a] border-[#262626]'
               }`}>
