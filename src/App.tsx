@@ -23,7 +23,7 @@ function App() {
 
 
   return (
-    <div className="p-2 h-screen overflow-hidden">
+    <div className="p-2 min-h-screen lg:h-screen lg:overflow-hidden">
       <Header />
 
       <main className="main-container grid grid-cols-1 lg:grid-cols-4 gap-2">
