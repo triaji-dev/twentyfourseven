@@ -135,5 +135,7 @@ The Notes storage structure has been flattened to support global search.
 ---
 
 ## Appendix: Historical Versions Summary
-- **v1.1.0 (Current):** Refined UI, Dynamic Categories, and Smart Notes.
-- **v1.0.0 (Nov 2025):** Core Grid and Basic Stats release.
+### Current Version: v1.1.2 (2026-01-07)
+- **v1.1.2 (2026-01-07):** Architectural Refactoring and UI Polish.
+- **v1.1.0 (2026-01-05):** Refined UI, Dynamic Categories, and Smart Notes.
+- **v1.0.0 (2025-11-01):** Core Grid and Basic Stats release.

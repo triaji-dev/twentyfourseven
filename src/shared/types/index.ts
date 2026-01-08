@@ -40,6 +40,7 @@ export interface NoteItem {
   isDone?: boolean;
   isPinned?: boolean; 
   completedAt?: string; // ISO string
+  updatedAt?: string; // ISO string for last modified
   deletedAt?: string; // ISO string for recycle bin
   color?: string; // Legacy
 }

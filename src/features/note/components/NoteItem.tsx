@@ -128,6 +128,12 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
 }) => {
   const isNoteDone = note.isDone && !isTransitioning;
   const contextMenuRef = React.useRef<HTMLDivElement>(null);
+  const [isExpanded, setIsExpanded] = React.useState(false);
+
+  // Simple heuristic for long content
+  const isLongContent = React.useMemo(() => {
+    return note.content.length > 200 || note.content.split('\n').length > 3;
+  }, [note.content]);
 
   React.useEffect(() => {
     if (activeContextMenu !== note.id) return;
@@ -139,6 +145,12 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [activeContextMenu, note.id, onContextMenuToggle]);
+
+  React.useEffect(() => {
+    if (!isCompact || isMicro) {
+      setIsExpanded(false);
+    }
+  }, [isCompact, isMicro]);
 
   return (
     <div
@@ -168,7 +180,12 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
       {/* Type Indicator */}
       <div className={`flex items-center relative ${isMicro ? 'h-3' : 'h-4'}`} data-picker-id={note.id}>
         {isSelectMode ? null : isMicro ? (
-          <div className="w-1 h-1 rounded-full opacity-40 flex-shrink-0" style={{ backgroundColor: isNoteDone ? '#737373' : (note.type === 'todo' ? '#facc15' : NOTE_TYPES[note.type || 'text'].color) }} />
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleTodo(date, note.id); }}
+            className="w-2 h-2 flex items-center justify-center hover:scale-150 transition-transform cursor-pointer"
+          >
+            <div className="w-1 h-1 rounded-full opacity-40 flex-shrink-0" style={{ backgroundColor: isNoteDone ? '#737373' : (note.type === 'todo' ? '#facc15' : NOTE_TYPES[note.type || 'text'].color) }} />
+          </button>
         ) : isCompact ? (
           <button onClick={(e) => { e.stopPropagation(); onToggleTodo(date, note.id); }} className="w-3 h-3 flex items-center justify-center hover:scale-125 transition-transform cursor-pointer">
             <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: isNoteDone ? '#737373' : (note.type === 'todo' ? '#facc15' : NOTE_TYPES[note.type || 'text'].color) }} />
@@ -197,7 +214,7 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
                 onCheckTagSuggestions(e.target.value, e.target.selectionStart, 'edit');
               }}
               onBlur={() => setTimeout(() => { onSaveEdit(date, note.id); onSuggestionSourceChange(null); }, 200)}
-              className={isCompact ? "w-full bg-[#262626] text-[#e5e5e5] text-xs p-1 rounded border-0 outline-none resize-none overflow-hidden" : "w-full bg-transparent text-[#e5e5e5] text-xs p-0 border-0 outline-none resize-none overflow-hidden"}
+              className={isCompact || isMicro ? "w-full bg-[#262626] text-[#e5e5e5] text-xs p-1 rounded border-0 outline-none resize-none overflow-hidden" : "w-full bg-transparent text-[#e5e5e5] text-xs p-0 border-0 outline-none resize-none overflow-hidden"}
               onFocus={(e) => { e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; e.target.selectionStart = e.target.selectionEnd = e.target.value.length; }}
               autoFocus
               onKeyDown={(e) => {
@@ -221,32 +238,50 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
             )}
           </div>
         ) : (
-          <div
-            className={`${isMicro ? 'text-[9px] truncate leading-none py-0' : isCompact ? 'text-[11px] line-clamp-3' : 'text-xs'} block break-words ${isMicro ? 'leading-none' : 'leading-relaxed'} ${isNoteDone ? 'text-[#a3a3a3]' : (note.type === 'link' ? 'text-[#a0c4ff]' : (note.type === 'important' ? 'text-[#f87171]' : 'text-[#d4d4d4]'))}`}
-            onDoubleClick={() => !isSelectMode && !isViewAll && onStartEdit(note)}
-          >
-            <NoteContent
-              note={note}
-              date={date}
-              isMicro={isMicro}
-              isCompact={isCompact}
-              isSelectMode={isSelectMode}
-              editingLink={editingLink}
-              onEditLink={onEditLink}
-              onCancelEditLink={onCancelEditLink}
-              onSaveLink={onSaveLink}
-              onTagClick={onTagClick}
-              onToggleInlineCheckbox={onToggleInlineCheckbox}
-              highlightSearchText={highlightSearchText}
-            />
+          <div className="relative">
+            <div
+              className={`${isMicro ? 'text-[9px] truncate leading-none py-0' : isCompact ? (isExpanded ? 'text-[11px] pb-6' : 'text-[11px] line-clamp-3 pb-1') : 'text-xs'} block break-words ${isMicro ? 'leading-none' : 'leading-relaxed'} ${isNoteDone ? 'text-[#a3a3a3]' : (note.type === 'link' ? 'text-[#a0c4ff]' : (note.type === 'important' ? 'text-[#f87171]' : 'text-[#d4d4d4]'))}`}
+              onDoubleClick={() => !isSelectMode && !isViewAll && !isNoteDone && onStartEdit(note)}
+            >
+              <NoteContent
+                note={note}
+                date={date}
+                isMicro={isMicro}
+                isCompact={isCompact && !isExpanded}
+                isSelectMode={isSelectMode}
+                editingLink={editingLink}
+                onEditLink={onEditLink}
+                onCancelEditLink={onCancelEditLink}
+                onSaveLink={onSaveLink}
+                onTagClick={onTagClick}
+                onToggleInlineCheckbox={onToggleInlineCheckbox}
+                highlightSearchText={highlightSearchText}
+              />
+            </div>
+            {isCompact && isLongContent && !isSelectMode && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsExpanded(!isExpanded);
+                }}
+                className={`text-[9px] text-[#525252] hover:text-[#a3a3a3] transition-colors ${isExpanded ? 'absolute bottom-1 right-0' : 'absolute bottom-0 right-0 py-0.5 bg-gradient-to-l from-[#1a1a1a] via-[#1a1a1a] to-transparent pl-4'}`}
+              >
+                {isExpanded ? 'Show less' : '... Show more'}
+              </button>
+            )}
           </div>
         )}
 
         {/* Full mode action bar */}
-        <div className={`flex items-center justify-between mt-4 ${isCompact ? "hidden" : ""}`}>
-          <span className="text-[11px] text-[#525252]">
+        <div className={`flex items-center justify-between mt-4 ${isCompact || isMicro ? "hidden" : ""}`}>
+          <span className="text-[11px] text-[#525252] flex items-center gap-1">
             {new Date(note.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            {isNoteDone && note.completedAt && (<span className="text-[#525252] opacity-75"> • {new Date(note.completedAt).toLocaleDateString([], { day: 'numeric', month: 'numeric' })}</span>)}
+            {note.updatedAt && (
+              <span className="text-[#525252] opacity-75" title={`Last modified: ${new Date(note.updatedAt).toLocaleString()}`}>
+                • Edited {new Date(note.updatedAt).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
+            {!note.updatedAt && isNoteDone && note.completedAt && (<span className="text-[#525252] opacity-75"> • {new Date(note.completedAt).toLocaleDateString([], { day: 'numeric', month: 'numeric' })}</span>)}
           </span>
           <div className={`flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ${(isSelectMode || isViewAll) ? 'hidden' : ''}`}>
             {editingId === note.id ? (
@@ -258,43 +293,47 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
               <>
                 <button onClick={() => onCopy(note.id, note.content)} className="text-[#525252] hover:text-[#e5e5e5] px-1" title="Copy"><Copy size={14} /></button>
                 <button onClick={(e) => { e.stopPropagation(); onToggleSelect(note.id); }} className="text-[#525252] hover:text-[#cecece] px-1" title="Select"><ListChecks size={14} /></button>
-                <button onClick={(e) => { e.stopPropagation(); onTogglePin(date, note.id); }} className={`text-[#525252] hover:text-[#e5e5e5] px-1 ${note.isPinned ? '!text-[#e5e5e5]' : ''}`} title={note.isPinned ? "Unpin" : "Pin"}>{note.isPinned ? <PinOff size={14} /> : <Pin size={14} />}</button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const newContent = note.content + (note.content.endsWith(' ') ? '#' : ' #');
-                    onStartEdit(note);
-                    onEditContentChange(newContent);
-                    onCheckTagSuggestions(newContent, newContent.length, 'edit');
-                  }}
-                  className="text-[#525252] hover:text-[#e5e5e5] px-1"
-                  title="Add Tag"
-                >
-                  <Tag size={14} />
-                </button>
-                <div className="relative">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onTypeMenuToggle(activeTypeMenu === note.id ? null : note.id); }}
-                    className={`text-[#525252] hover:text-[#e5e5e5] px-1 transition-colors ${activeTypeMenu === note.id ? 'text-[#e5e5e5]' : ''}`}
-                    title="Type"
-                  >
-                    <Layers size={14} />
-                  </button>
-                  {activeTypeMenu === note.id && (
-                    <div className="absolute right-0 bottom-full mb-2 bg-[#171717] border border-[#262626] rounded-lg shadow-xl z-50 py-1 min-w-[100px] animate-in fade-in slide-in-from-bottom-1 duration-200" onClick={e => e.stopPropagation()}>
-                      {(['text', 'todo', 'important'] as NoteType[]).map(type => (
-                        <button
-                          key={type}
-                          onClick={() => onSetType(date, note.id, type)}
-                          className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[#d4d4d4] hover:bg-[#262626] hover:text-white transition-colors"
-                        >
-                          {React.createElement(NOTE_TYPES[type].icon, { size: 12, style: { color: NOTE_TYPES[type].color } })}
-                          {NOTE_TYPES[type].label}
-                        </button>
-                      ))}
+                {!isNoteDone && (
+                  <>
+                    <button onClick={(e) => { e.stopPropagation(); onTogglePin(date, note.id); }} className={`text-[#525252] hover:text-[#e5e5e5] px-1 ${note.isPinned ? '!text-[#e5e5e5]' : ''}`} title={note.isPinned ? "Unpin" : "Pin"}>{note.isPinned ? <PinOff size={14} /> : <Pin size={14} />}</button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const newContent = note.content + (note.content.endsWith(' ') ? '#' : ' #');
+                        onStartEdit(note);
+                        onEditContentChange(newContent);
+                        onCheckTagSuggestions(newContent, newContent.length, 'edit');
+                      }}
+                      className="text-[#525252] hover:text-[#e5e5e5] px-1"
+                      title="Add Tag"
+                    >
+                      <Tag size={14} />
+                    </button>
+                    <div className="relative">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onTypeMenuToggle(activeTypeMenu === note.id ? null : note.id); }}
+                        className={`text-[#525252] hover:text-[#e5e5e5] px-1 transition-colors ${activeTypeMenu === note.id ? 'text-[#e5e5e5]' : ''}`}
+                        title="Type"
+                      >
+                        <Layers size={14} />
+                      </button>
+                      {activeTypeMenu === note.id && (
+                        <div className="absolute right-0 bottom-full mb-2 bg-[#171717] border border-[#262626] rounded-lg shadow-xl z-50 py-1 min-w-[100px] animate-in fade-in slide-in-from-bottom-1 duration-200" onClick={e => e.stopPropagation()}>
+                          {(['text', 'todo', 'important'] as NoteType[]).map(type => (
+                            <button
+                              key={type}
+                              onClick={() => onSetType(date, note.id, type)}
+                              className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[#d4d4d4] hover:bg-[#262626] hover:text-white transition-colors"
+                            >
+                              {React.createElement(NOTE_TYPES[type].icon, { size: 12, style: { color: NOTE_TYPES[type].color } })}
+                              {NOTE_TYPES[type].label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </>
+                )}
                 <button onClick={(e) => { e.stopPropagation(); onDeleteNote(date, note.id); }} className="text-[#525252] hover:text-[#ef4444] px-1 transition-colors" title="Delete" data-delete-trigger={note.id}><Trash size={14} /></button>
               </>
             ) : (
@@ -328,54 +367,60 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
                   >
                     <ListChecks size={12} /> Select
                   </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onTogglePin(date, note.id); onContextMenuToggle(null); }}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[#d4d4d4] hover:bg-[#262626] hover:text-white transition-colors"
-                  >
-                    {note.isPinned ? <PinOff size={12} /> : <Pin size={12} />}
-                    {note.isPinned ? 'Unpin' : 'Pin'}
-                  </button>
+                  {!isNoteDone && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onTogglePin(date, note.id); onContextMenuToggle(null); }}
+                      className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[#d4d4d4] hover:bg-[#262626] hover:text-white transition-colors"
+                    >
+                      {note.isPinned ? <PinOff size={12} /> : <Pin size={12} />}
+                      {note.isPinned ? 'Unpin' : 'Pin'}
+                    </button>
+                  )}
                   <button
                     onClick={(e) => { e.stopPropagation(); onCopy(note.id, note.content); onContextMenuToggle(null); }}
                     className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[#d4d4d4] hover:bg-[#262626] hover:text-white transition-colors"
                   >
                     <Copy size={12} /> Copy
                   </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onContextMenuToggle(null);
-                      const newContent = note.content + (note.content.endsWith(' ') ? '#' : ' #');
-                      onStartEdit(note);
-                      onEditContentChange(newContent);
-                      onCheckTagSuggestions(newContent, newContent.length, 'edit');
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[#d4d4d4] hover:bg-[#262626] hover:text-white transition-colors"
-                  >
-                    <Tag size={12} /> Add Tag
-                  </button>
-                  <div className="relative">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onTypeMenuToggle(activeTypeMenu === note.id ? null : note.id); }}
-                      className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[#d4d4d4] hover:bg-[#262626] hover:text-white transition-colors"
-                    >
-                      <Layers size={12} /> Type
-                    </button>
-                    {activeTypeMenu === note.id && (
-                      <div className="absolute right-full top-0 mr-1 bg-[#171717] border border-[#262626] rounded-lg shadow-xl z-[70] py-1 min-w-[100px] animate-in fade-in slide-in-from-right-1 duration-200" onClick={e => e.stopPropagation()}>
-                        {(['text', 'todo', 'important'] as NoteType[]).map(type => (
-                          <button
-                            key={type}
-                            onClick={() => { onSetType(date, note.id, type); onContextMenuToggle(null); }}
-                            className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[#d4d4d4] hover:bg-[#262626] hover:text-white transition-colors"
-                          >
-                            {React.createElement(NOTE_TYPES[type].icon, { size: 12, style: { color: NOTE_TYPES[type].color } })}
-                            {NOTE_TYPES[type].label}
-                          </button>
-                        ))}
+                  {!isNoteDone && (
+                    <>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onContextMenuToggle(null);
+                          const newContent = note.content + (note.content.endsWith(' ') ? '#' : ' #');
+                          onStartEdit(note);
+                          onEditContentChange(newContent);
+                          onCheckTagSuggestions(newContent, newContent.length, 'edit');
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[#d4d4d4] hover:bg-[#262626] hover:text-white transition-colors"
+                      >
+                        <Tag size={12} /> Add Tag
+                      </button>
+                      <div className="relative">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onTypeMenuToggle(activeTypeMenu === note.id ? null : note.id); }}
+                          className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[#d4d4d4] hover:bg-[#262626] hover:text-white transition-colors"
+                        >
+                          <Layers size={12} /> Type
+                        </button>
+                        {activeTypeMenu === note.id && (
+                          <div className="absolute right-full top-0 mr-1 bg-[#171717] border border-[#262626] rounded-lg shadow-xl z-[70] py-1 min-w-[100px] animate-in fade-in slide-in-from-right-1 duration-200" onClick={e => e.stopPropagation()}>
+                            {(['text', 'todo', 'important'] as NoteType[]).map(type => (
+                              <button
+                                key={type}
+                                onClick={() => { onSetType(date, note.id, type); onContextMenuToggle(null); }}
+                                className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[#d4d4d4] hover:bg-[#262626] hover:text-white transition-colors"
+                              >
+                                {React.createElement(NOTE_TYPES[type].icon, { size: 12, style: { color: NOTE_TYPES[type].color } })}
+                                {NOTE_TYPES[type].label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    </>
+                  )}
                   <div className="h-px bg-[#262626] my-1" />
                   <button
                     onClick={(e) => { e.stopPropagation(); onDeleteNote(date, note.id); onContextMenuToggle(null); }}
@@ -396,15 +441,17 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
       )}
 
       {/* Permanent delete confirmation */}
-      {showRecycleBin && confirmDeleteId === note.id && (
-        <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-2 bg-[#171717] border border-[#262626] rounded-lg pl-3 pr-1 py-1 z-50 shadow-lg" data-delete-confirm={note.id} onClick={(e) => e.stopPropagation()}>
-          <span className="text-[10px] text-[#e5e5e5] whitespace-nowrap font-medium">Permanently Delete?</span>
-          <div className="flex items-center gap-0.5 border-l border-[#262626] pl-1.5 ml-1">
-            <button onClick={(e) => { e.stopPropagation(); onConfirmDeleteChange(null); }} className="p-1 text-[#737373] hover:text-[#e5e5e5] hover:bg-[#262626] rounded transition-colors"><X size={12} /></button>
-            <button onClick={(e) => { e.stopPropagation(); onPermanentDelete(date, note.id); onConfirmDeleteChange(null); }} className="p-1 text-[#ef4444] hover:text-[#dc2626] hover:bg-[#ef4444]/10 rounded transition-colors"><Trash size={12} /></button>
+      {
+        showRecycleBin && confirmDeleteId === note.id && (
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-2 bg-[#171717] border border-[#262626] rounded-lg pl-3 pr-1 py-1 z-50 shadow-lg" data-delete-confirm={note.id} onClick={(e) => e.stopPropagation()}>
+            <span className="text-[10px] text-[#e5e5e5] whitespace-nowrap font-medium">Permanently Delete?</span>
+            <div className="flex items-center gap-0.5 border-l border-[#262626] pl-1.5 ml-1">
+              <button onClick={(e) => { e.stopPropagation(); onConfirmDeleteChange(null); }} className="p-1 text-[#737373] hover:text-[#e5e5e5] hover:bg-[#262626] rounded transition-colors"><X size={12} /></button>
+              <button onClick={(e) => { e.stopPropagation(); onPermanentDelete(date, note.id); onConfirmDeleteChange(null); }} className="p-1 text-[#ef4444] hover:text-[#dc2626] hover:bg-[#ef4444]/10 rounded transition-colors"><Trash size={12} /></button>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 };

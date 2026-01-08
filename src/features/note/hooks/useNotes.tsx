@@ -350,7 +350,7 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
     const updatedDayNotes = dayNotes.map(n => {
       if (n.id === noteId) {
         const shouldPreserve = n.type === 'todo' || n.type === 'important';
-        return { ...n, content, type: shouldPreserve ? n.type : type };
+        return { ...n, content, type: shouldPreserve ? n.type : type, updatedAt: new Date().toISOString() };
       }
       return n;
     });
@@ -390,7 +390,8 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
         return {
           ...n,
           isDone: newIsDone,
-          completedAt: newIsDone ? new Date().toISOString() : undefined
+          completedAt: newIsDone ? new Date().toISOString() : undefined,
+          updatedAt: new Date().toISOString()
         };
       }
       return n;
@@ -435,7 +436,7 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
 
     const dayNotes = currentNotes[day] || [];
     const updatedDayNotes = dayNotes.map(n =>
-      n.id === noteId ? { ...n, isPinned: !n.isPinned } : n
+      n.id === noteId ? { ...n, isPinned: !n.isPinned, updatedAt: new Date().toISOString() } : n
     );
 
     const updatedNotes = { ...currentNotes, [day]: updatedDayNotes };
@@ -467,7 +468,7 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
 
     const dayNotes = currentNotes[day] || [];
     const updatedDayNotes = dayNotes.map(n =>
-      n.id === noteId ? { ...n, type } : n
+      n.id === noteId ? { ...n, type, updatedAt: new Date().toISOString() } : n
     );
 
     const updatedNotes = { ...currentNotes, [day]: updatedDayNotes };
@@ -588,7 +589,7 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
 
     const dayNotes = currentNotes[day] || [];
     const updatedDayNotes = dayNotes.map(n =>
-      n.id === firstNote.note.id ? { ...n, content: mergedContent } : n
+      n.id === firstNote.note.id ? { ...n, content: mergedContent, updatedAt: new Date().toISOString() } : n
     );
 
     const updatedNotes = { ...currentNotes, [day]: updatedDayNotes };
@@ -627,7 +628,7 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
 
     const dayNotes = currentNotes[day] || [];
     const updatedDayNotes = dayNotes.map(n =>
-      n.id === noteId ? { ...n, deletedAt: undefined } : n
+      n.id === noteId ? { ...n, deletedAt: undefined, updatedAt: new Date().toISOString() } : n
     );
 
     const updatedNotes = { ...currentNotes, [day]: updatedDayNotes };
@@ -719,7 +720,7 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
       }
 
       const dayNotes = currentNotes[day] || [];
-      const updatedDayNotes = dayNotes.map(n => ({ ...n, deletedAt: undefined }));
+      const updatedDayNotes = dayNotes.map(n => ({ ...n, deletedAt: undefined, updatedAt: new Date().toISOString() }));
 
       const updatedNotes = { ...currentNotes, [day]: updatedDayNotes };
       localStorage.setItem(key, JSON.stringify(updatedNotes));
@@ -750,7 +751,7 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
       }
 
       const dayNotes = currentNotes[day] || [];
-      const updatedDayNotes = dayNotes.map(n => ({ ...n, isPinned: false }));
+      const updatedDayNotes = dayNotes.map(n => ({ ...n, isPinned: false, updatedAt: new Date().toISOString() }));
 
       const updatedNotes = { ...currentNotes, [day]: updatedDayNotes };
       localStorage.setItem(key, JSON.stringify(updatedNotes));
@@ -795,7 +796,7 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
 
     const dayNotes = currentNotes[day] || [];
     const updatedDayNotes = dayNotes.map(n =>
-      n.id === noteId ? { ...n, content: newContent } : n
+      n.id === noteId ? { ...n, content: newContent, updatedAt: new Date().toISOString() } : n
     );
 
     const updatedNotes = { ...currentNotes, [day]: updatedDayNotes };

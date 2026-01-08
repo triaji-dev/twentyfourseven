@@ -400,6 +400,7 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
                 } else if (isCompact && !isMicro) {
                   // Currently Compact, go to Micro
                   setIsMicro(true);
+                  setIsCompact(false);
                 } else {
                   // Currently Micro, go to Full
                   setIsCompact(false);

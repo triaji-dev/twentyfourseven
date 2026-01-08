@@ -18,34 +18,37 @@ TwentyFourSeven is a high-performance, modular time-tracking and note-taking das
 
 ## 2. Information Architecture
 ### 2.1 Navigation Model
-*   **Global Navigation:** Header-based navigation for time (Month/Year) and system settings (Import/Export/Categories).
-*   **Local Navigation (Contextual):** Tab-based switching in the sidebar between Statistics and Notes.
-*   **Temporal Navigation:** Ability to jump between days by clicking columns in the Activity Table or using the Date Navigator in the Notes panel.
+*   **Global Navigation:** Header-based access to Data Import/Export.
+*   **Dashboard Navigation:** Month/Year switching within the Activity Table view.
+*   **Local Navigation (Contextual):** Tab-based switching in the sidebar between Statistics and Notes features.
+*   **Temporal Navigation:** Ability to jump between days by clicking columns in the Activity Table or using the Date Navigator in the Notes tab.
 
 ### 2.2 Sitemap (Markdown Outline)
 - **Main View**
-  - **Header**
-    - Logo & Dynamic Subtitle
-    - Settings Button (Modal Trigger)
-    - Data Export (JSON Download)
-    - Data Import (JSON Upload)
-    - Month/Year Picker
+  - **Global Header**
+    - Logo & Dynamic Quest Subtitle
+    - Data Export (JSON Backup)
+    - Data Import (JSON Restore)
   - **Main Dashboard**
-    - **Activity Table (Activity Tracker)**
+    - **Activity Table**
+      - Month/Year Navigation Controls
       - 24-hour Row Header (00-23)
       - Date/Day Column Headers
-      - Interactive Activity Cells (Grid)
+      - Interactive Activity Grid
     - **Sidebar (Utility Panel)**
       - **Statistic Tab**
-        - Category Distribution Pie Chart
-        - Legend with Hours & Percentages
+        - Scope Toggles (Daily / Monthly / All Time)
+        - Category Distribution Chart (Donut)
+        - Categories Performance List
       - **Notes Tab**
-        - Global Notes Search/Filter Bar
-        - Tag Suggestion List
-        - Date Navigator (Calendar Strip)
-        - Note Type Toggles (Important, Todo, Link, Text)
-        - Active Note Stream
-        - Recycle Bin (Soft-deleted notes)
+        - **Filter Bar**
+          - Search Input
+          - Tag Filter Dropdown
+          - Note Type Toggles
+          - View Options (Completed / Sort)
+          - Status Toggles (Pinned / Bin)
+        - **Date Navigator** (Calendar Strip)
+        - **Active Note Stream**
 - **Settings Modal**
   - Category Management (Key, Name, Color)
   - Color Picker Tool
