@@ -13,6 +13,8 @@ function App() {
   const prevMonth = useStore((state) => state.prevMonth);
   const nextMonth = useStore((state) => state.nextMonth);
   const refreshStats = useStore((state) => state.refreshStats);
+  const statsPanelMode = useStore((state) => state.statsPanelMode);
+  const notesPanelMode = useStore((state) => state.notesPanelMode);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -27,9 +29,9 @@ function App() {
     <div className="p-2 min-h-screen lg:h-screen lg:overflow-hidden">
       <Header />
 
-      <main className="main-container flex gap-2 lg:overflow-hidden h-[calc(100vh-80px)]">
+      <main className="main-container flex flex-col lg:flex-row gap-2 h-auto lg:h-[calc(100vh-80px)] overflow-y-auto lg:overflow-hidden">
         {/* Activity Table - Takes remaining space */}
-        <div className="flex-1 min-w-0 h-full">
+        <div className="flex-1 min-w-0 min-h-[500px] lg:h-full">
           <ActivityTable
             year={year}
             month={month}
@@ -50,12 +52,18 @@ function App() {
         </div>
 
         {/* Stats Panel - Fixed width or minimized */}
-        <div className="h-full transition-all duration-300 ease-in-out flex-shrink-0" style={{ width: useStore(s => s.statsPanelMode) === 'minimized' ? '48px' : '420px' }}>
+        <div
+          className={`transition-all duration-300 ease-in-out flex-shrink-0 w-full lg:w-[var(--stats-width)] ${statsPanelMode === 'minimized' ? 'h-[48px]' : 'h-[400px] lg:min-w-[320px]'} lg:h-full`}
+          style={{ '--stats-width': statsPanelMode === 'minimized' ? '48px' : '25%' } as React.CSSProperties}
+        >
           <Stats stats={stats} year={year} month={month} />
         </div>
 
         {/* Notes Panel - Fixed width or minimized */}
-        <div className="h-full transition-all duration-300 ease-in-out flex-shrink-0" style={{ width: useStore(s => s.notesPanelMode) === 'minimized' ? '48px' : '420px' }}>
+        <div
+          className={`transition-all duration-300 ease-in-out flex-shrink-0 w-full lg:w-[var(--notes-width)] ${notesPanelMode === 'minimized' ? 'h-[48px]' : 'h-[400px] lg:min-w-[320px]'} lg:h-full`}
+          style={{ '--notes-width': notesPanelMode === 'minimized' ? '48px' : '25%' } as React.CSSProperties}
+        >
           <NotesPanel year={year} month={month} />
         </div>
       </main>

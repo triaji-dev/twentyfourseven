@@ -20,12 +20,12 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
 
       {/* Minimized Content */}
       <div
-        className={`vertical-rl text-md  text-white font-medium font-playfair tracking-widest whitespace-nowrap transform absolute inset-0 flex flex-col items-center py-4 cursor-pointer hover:bg-[#1a1a1a] transition-all duration-300 ${mode === 'minimized' ? 'opacity-100 pointer-events-auto delay-100' : 'opacity-0 pointer-events-none'}`}
+        className={`lg:vertical-rl text-white text-md font-medium font-playfair tracking-widest whitespace-nowrap transform absolute inset-0 flex flex-row lg:flex-col items-center justify-center lg:py-4 cursor-pointer hover:bg-[#1a1a1a] transition-all duration-300 ${mode === 'minimized' ? 'opacity-100 pointer-events-auto delay-100' : 'opacity-0 pointer-events-none'}`}
         onClick={() => setMode('full')}
         title="Expand Statistic"
       >
-        <Maximize2 size={16} className="mb-6 transform" />
-        <span className='rotate-90 pl-16'>Statistic</span>
+        <Maximize2 size={16} className="mr-2 lg:mr-0 lg:mb-6 transform" />
+        <span className='lg:rotate-90 lg:pl-16'>Statistic</span>
       </div>
 
       {/* Full Content */}
