@@ -30,7 +30,7 @@ export const ActivityCell: React.FC<ActivityCellProps> = ({
   const [shouldReplace, setShouldReplace] = useState(false);
   const setActiveCell = useStore(state => state.setActiveCell);
   const setActiveStatsDate = useStore(state => state.setActiveStatsDate);
-  const setActivePanel = useStore(state => state.setActivePanel);
+  const setStatsPanelMode = useStore(state => state.setStatsPanelMode);
   const categories = useSettings((state) => state.categories);
 
   // Memoize valid keys to prevent infinite loops
@@ -50,7 +50,7 @@ export const ActivityCell: React.FC<ActivityCellProps> = ({
       saveActivity(year, month, day, hour, newValue);
       setActiveCell({ year, month, day, hour });
       setActiveStatsDate({ year, month, day, hour });
-      setActivePanel('statistic');
+      setStatsPanelMode('full');
       onChange();
       setShouldReplace(false);
     } else {

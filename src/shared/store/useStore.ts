@@ -49,6 +49,12 @@ interface AppState {
   // Stats cache
   statsCache: MonthStats | null;
 
+  // Panel layout state
+  statsPanelMode: 'full' | 'minimized';
+  notesPanelMode: 'full' | 'minimized';
+  setStatsPanelMode: (mode: 'full' | 'minimized') => void;
+  setNotesPanelMode: (mode: 'full' | 'minimized') => void;
+
   // Undo/Redo state
   history: Array<{ [cellId: string]: ActivityKey }>;
   future: Array<{ [cellId: string]: ActivityKey }>;
@@ -140,6 +146,13 @@ export const useStore = create<AppState>((set, get) => ({
   activeCell: { year: new Date().getFullYear(), month: new Date().getMonth(), day: new Date().getDate(), hour: 0 },
   activeStatsDate: { year: new Date().getFullYear(), month: new Date().getMonth(), day: new Date().getDate(), hour: 0 },
   statsCache: null,
+
+  // Panel layout state
+  statsPanelMode: 'full',
+  notesPanelMode: 'full',
+  setStatsPanelMode: (mode) => set({ statsPanelMode: mode }),
+  setNotesPanelMode: (mode) => set({ notesPanelMode: mode }),
+
   clearCopiedCells: () => set({ copiedCellIds: new Set(), copiedCells: [] }),
 
   history: [],

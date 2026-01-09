@@ -1,6 +1,8 @@
+
 import React, { useRef } from 'react';
 import { Notes, NotesHandle } from './Notes';
-import { Download } from 'lucide-react';
+import { Download, Minimize2, Maximize2 } from 'lucide-react';
+import { useStore } from '../../../shared/store/useStore';
 
 interface NotesPanelProps {
   year: number;
@@ -9,28 +11,53 @@ interface NotesPanelProps {
 
 export const NotesPanel: React.FC<NotesPanelProps> = ({ year, month }) => {
   const notesRef = useRef<NotesHandle>(null);
+  const mode = useStore(state => state.notesPanelMode);
+  const setMode = useStore(state => state.setNotesPanelMode);
 
   return (
-    <div className="stats-panel flex flex-col h-full bg-[#171717]/80 backdrop-blur-md rounded-xl p-4 border border-[#262626] shadow-2xl relative overflow-hidden">
-      {/* Header / Title */}
-      <div className="flex items-center justify-between mb-6 flex-shrink-0 min-h-[32px]">
-        <div className="flex items-center gap-2 px-3 py-1 rounded-md text-white bg-[#262626]">
-          <span className="text-md font-playfair tracking-wide">Note</span>
-        </div>
+    <div className="stats-panel flex flex-col h-full bg-[#171717]/80 backdrop-blur-md rounded-xl border border-[#262626] shadow-2xl relative overflow-hidden transition-all duration-300">
 
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            notesRef.current?.downloadNotes();
-          }}
-          className="text-[#737373] hover:text-[#e5e5e5] transition-colors p-1 rounded-md hover:bg-[#262626]"
-          title="Download Notes"
-        >
-          <Download size={16} />
-        </button>
+      {/* Minimized Content */}
+      <div
+        className={`vertical-rl text-white text-md font-medium font-playfair tracking-widest whitespace-nowrap transform absolute inset-0 flex flex-col items-center py-4 cursor-pointer bg-[#171717] hover:bg-[#1a1a1a] transition-all duration-300 ${mode === 'minimized' ? 'opacity-100 pointer-events-auto delay-100' : 'opacity-0 pointer-events-none'}`}
+        onClick={() => setMode('full')}
+        title="Expand Notes"
+      >
+        <Maximize2 size={16} className="mb-6 transform" />
+        <span className='rotate-90 pl-10'>Notes</span>
       </div>
 
-      <Notes ref={notesRef} year={year} month={month} />
+      {/* Full Content */}
+      <div className={`flex flex-col h-full p-4 transition-all duration-300 ${mode === 'full' ? 'opacity-100 pointer-events-auto delay-100' : 'opacity-0 pointer-events-none'}`}>
+        {/* Header / Title */}
+        <div className="flex items-center justify-between mb-6 flex-shrink-0 min-h-[32px]">
+          <div className="flex items-center gap-2 px-3 py-1 rounded-md text-white">
+            <span className="text-md font-playfair tracking-wide">Note</span>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                notesRef.current?.downloadNotes();
+              }}
+              className="text-[#737373] hover:text-[#e5e5e5] transition-colors p-1 rounded-md hover:bg-[#262626]"
+              title="Download Notes"
+            >
+              <Download size={16} />
+            </button>
+            <button
+              onClick={() => setMode('minimized')}
+              className="text-[#737373] hover:text-[#e5e5e5] transition-colors p-1 rounded-md hover:bg-[#262626]"
+              title="Minimize"
+            >
+              <Minimize2 size={16} />
+            </button>
+          </div>
+        </div>
+
+        <Notes ref={notesRef} year={year} month={month} />
+      </div>
     </div>
   );
 };

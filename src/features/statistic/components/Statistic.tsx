@@ -129,6 +129,7 @@ export const Statistic: React.FC<StatisticProps> = ({ stats, year, month }) => {
   }, [displayStats, categories]);
 
   const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    // ... same as before
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -219,7 +220,7 @@ export const Statistic: React.FC<StatisticProps> = ({ stats, year, month }) => {
             border: activeTab === 'alltime' ? '1px solid #404040' : '1px solid transparent',
           }}
         >
-          All Time
+          All
         </button>
       </div>
 
@@ -261,6 +262,9 @@ export const Statistic: React.FC<StatisticProps> = ({ stats, year, month }) => {
           <span className="text-xs">No data available</span>
         </div>
       )}
+
+
+
 
       <div className="space-y-3 text-xs flex-1">
         <h3 className="text-lg font-playfair tracking-wide pb-2 mb-3" style={{ color: '#737373', borderBottom: '1px solid #262626' }}>

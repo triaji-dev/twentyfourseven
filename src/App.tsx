@@ -27,8 +27,9 @@ function App() {
     <div className="p-2 min-h-screen lg:h-screen lg:overflow-hidden">
       <Header />
 
-      <main className="main-container grid grid-cols-1 lg:grid-cols-4 gap-2">
-        <div className="lg:col-span-2 min-h-0 h-full">
+      <main className="main-container flex gap-2 lg:overflow-hidden h-[calc(100vh-80px)]">
+        {/* Activity Table - Takes remaining space */}
+        <div className="flex-1 min-w-0 h-full">
           <ActivityTable
             year={year}
             month={month}
@@ -47,10 +48,14 @@ function App() {
             }}
           />
         </div>
-        <div className="lg:col-span-1 min-h-0 h-full">
+
+        {/* Stats Panel - Fixed width or minimized */}
+        <div className="h-full transition-all duration-300 ease-in-out flex-shrink-0" style={{ width: useStore(s => s.statsPanelMode) === 'minimized' ? '48px' : '420px' }}>
           <Stats stats={stats} year={year} month={month} />
         </div>
-        <div className="lg:col-span-1 min-h-0 h-full">
+
+        {/* Notes Panel - Fixed width or minimized */}
+        <div className="h-full transition-all duration-300 ease-in-out flex-shrink-0" style={{ width: useStore(s => s.notesPanelMode) === 'minimized' ? '48px' : '420px' }}>
           <NotesPanel year={year} month={month} />
         </div>
       </main>
