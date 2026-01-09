@@ -111,15 +111,37 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
     handleSaveLink,
     highlightSearchText,
     handleSplitNote,
+    activeType,
+    lastUsedType,
+    setLastUsedType,
   } = useNotes({ year, month });
 
+  /* Header DatePicker State */
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const datePickerRef = useRef<HTMLDivElement>(null);
+
+  /* Input Metadata Preview States */
+  const [isInputDatePickerOpen, setIsInputDatePickerOpen] = useState(false);
+  const [isInputTypeMenuOpen, setIsInputTypeMenuOpen] = useState(false);
+  const [isInputTagMenuOpen, setIsInputTagMenuOpen] = useState(false);
+
+  const inputDatePickerRef = useRef<HTMLDivElement>(null);
+  const inputTypeMenuRef = useRef<HTMLDivElement>(null);
+  const inputTagMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
         setIsDatePickerOpen(false);
+      }
+      if (inputDatePickerRef.current && !inputDatePickerRef.current.contains(event.target as Node)) {
+        setIsInputDatePickerOpen(false);
+      }
+      if (inputTypeMenuRef.current && !inputTypeMenuRef.current.contains(event.target as Node)) {
+        setIsInputTypeMenuOpen(false);
+      }
+      if (inputTagMenuRef.current && !inputTagMenuRef.current.contains(event.target as Node)) {
+        setIsInputTagMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -642,57 +664,142 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
       {/* Add Note Input */}
       <div className={`mt-3 pr-[10px] ${isViewAll || showPinnedOnly || showRecycleBin ? 'hidden' : ''}`}>
         {/* Metadata Preview */}
-        {isAddInputFocused && (
+        {(isAddInputFocused || isInputDatePickerOpen || isInputTypeMenuOpen || isInputTagMenuOpen) && (
           <div className="flex items-center gap-3 px-1 mb-2 animate-in fade-in slide-in-from-bottom-1 duration-200">
             {/* Target Date */}
-            <div className="flex items-center gap-1.5 text-[10px] text-[#525252] bg-[#1a1a1a] px-2 py-1 rounded border border-[#262626]">
-              <Calendar size={10} />
-              <span className="font-medium">
-                {(activeCell ? new Date(activeCell.year, activeCell.month, activeCell.day) : new Date())
-                  .toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-              </span>
+            <div className="relative" ref={inputDatePickerRef}>
+              <div
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setIsInputDatePickerOpen(!isInputDatePickerOpen)}
+                className="flex items-center gap-1.5 text-[10px] text-[#525252] bg-[#1a1a1a] px-2 py-1 rounded border border-[#262626] hover:bg-[#202020] hover:text-[#a3a3a3] hover:border-[#404040] cursor-pointer transition-colors"
+                title="Change date"
+              >
+                <Calendar size={10} />
+                <span className="font-medium">
+                  {(activeCell ? new Date(activeCell.year, activeCell.month, activeCell.day) : new Date())
+                    .toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                </span>
+              </div>
+              {isInputDatePickerOpen && (
+                <div className="absolute bottom-full left-0 mb-2 z-50">
+                  <DatePicker
+                    selectedDate={activeCell ? new Date(activeCell.year, activeCell.month, activeCell.day) : new Date()}
+                    onChange={(d) => {
+                      handleDateChange(d);
+                      setIsViewAll(false); // Nav to view day mode
+                      setIsInputDatePickerOpen(false);
+                      setTimeout(() => {
+                        addNoteInputRef.current?.focus();
+                      }, 50);
+                    }}
+                    datesWithNotes={datesWithNotes}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Detected Type */}
-            <div className={`flex items-center gap-1.5 text-[10px] px-2 py-1 rounded border transition-colors ${newNote.startsWith('! ') || newNote.startsWith('!') ? 'text-red-400 bg-red-400/10 border-red-400/20' :
-              newNote.startsWith('* ') || newNote.startsWith('todo ') ? 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20' :
-                newNote.includes('http') ? 'text-blue-400 bg-blue-400/10 border-blue-400/20' :
-                  'text-[#525252] bg-[#1a1a1a] border-[#262626]'
-              }`}>
-              {(() => {
-                const content = newNote.toLowerCase();
-                if (content.startsWith('! ') || content.startsWith('!')) return <AlertCircle size={10} />;
-                if (content.startsWith('* ') || content.startsWith('todo ')) return <CheckCircle size={10} />;
-                if (content.includes('http')) return <LinkIcon size={10} />;
-                return <Type size={10} />;
-              })()}
-              <span className="font-medium capitalize">
+            <div className="relative" ref={inputTypeMenuRef}>
+              <div
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setIsInputTypeMenuOpen(!isInputTypeMenuOpen)}
+                className={`flex items-center gap-1.5 text-[10px] px-2 py-1 rounded border transition-colors cursor-pointer hover:opacity-80
+                ${activeType === 'important' ? 'text-red-400 bg-red-400/10 border-red-400/20' :
+                    activeType === 'todo' ? 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20' :
+                      activeType === 'link' ? 'text-blue-400 bg-blue-400/10 border-blue-400/20' :
+                        'text-[#525252] bg-[#1a1a1a] border-[#262626]'
+                  }`}
+                title="Change type"
+              >
                 {(() => {
-                  const content = newNote.toLowerCase();
-                  if (content.startsWith('! ') || content.startsWith('!')) return 'Important';
-                  if (content.startsWith('* ') || content.startsWith('todo ')) return 'Todo';
-                  if (content.includes('http')) return 'Link';
-                  return 'Text';
+                  if (activeType === 'important') return <AlertCircle size={10} />;
+                  if (activeType === 'todo') return <CheckCircle size={10} />;
+                  if (activeType === 'link') return <LinkIcon size={10} />;
+                  return <Type size={10} />;
                 })()}
-              </span>
+                <span className="font-medium capitalize">
+                  {activeType === 'important' ? 'Important' : activeType === 'todo' ? 'Todo' : activeType === 'link' ? 'Link' : 'Text'}
+                </span>
+              </div>
+
+              {isInputTypeMenuOpen && (
+                <div className="absolute bottom-full left-0 mb-1 w-32 bg-[#171717] border border-[#262626] rounded-lg shadow-xl overflow-hidden z-50 py-1">
+                  {(['text', 'important', 'todo'] as NoteType[]).map(type => (
+                    <div
+                      key={type}
+                      className={`px-3 py-2 text-[10px] cursor-pointer flex items-center gap-2 hover:bg-[#202020] ${lastUsedType === type ? 'text-[#e5e5e5] bg-[#202020]' : 'text-[#a3a3a3]'}`}
+                      onClick={() => {
+                        setLastUsedType(type);
+                        setIsInputTypeMenuOpen(false);
+                        addNoteInputRef.current?.focus();
+                      }}
+                    >
+                      {type === 'important' && <AlertCircle size={12} className="text-red-400" />}
+                      {type === 'todo' && <CheckCircle size={12} className="text-yellow-400" />}
+                      {type === 'text' && <Type size={12} className="text-[#a3a3a3]" />}
+                      <span className="capitalize">{type}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Active Tags */}
-            {(selectedTag || extractTags(newNote).length > 0) && (
-              <div className="flex items-center gap-1.5 text-[10px] text-[#525252] bg-[#1a1a1a] px-2 py-1 rounded border border-[#262626]">
-                <Tag size={10} />
-                <div className="flex gap-1">
-                  {selectedTag && (
-                    <span className="text-[#c0c0c0] font-medium">#{selectedTag.replace(/^#/, '')}</span>
+            <div className="relative" ref={inputTagMenuRef}>
+              {(selectedTag || extractTags(newNote).length > 0 || lastUsedTag || isInputTagMenuOpen) && (
+                <>
+                  <div
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => setIsInputTagMenuOpen(!isInputTagMenuOpen)}
+                    className="flex items-center gap-1.5 text-[10px] text-[#525252] bg-[#1a1a1a] px-2 py-1 rounded border border-[#262626] hover:bg-[#202020] hover:text-[#a3a3a3] hover:border-[#404040] cursor-pointer transition-colors"
+                  >
+                    <Tag size={10} />
+                    <div className="flex gap-1">
+                      {selectedTag && (
+                        <span className="text-[#c0c0c0] font-medium">#{selectedTag.replace(/^#/, '')}</span>
+                      )}
+                      {extractTags(newNote)
+                        .filter(t => t !== selectedTag)
+                        .map(t => (
+                          <span key={t} className="text-[#737373]">#{t.replace(/^#/, '')}</span>
+                        ))}
+                      {!selectedTag && lastUsedTag && !extractTags(newNote).includes(lastUsedTag) && (
+                        <span className="text-[#c0c0c0] font-medium">#{lastUsedTag.replace(/^#/, '')}</span>
+                      )}
+                      {!selectedTag && extractTags(newNote).length === 0 && !lastUsedTag && (
+                        <span className="text-[#525252]">No tags</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {isInputTagMenuOpen && (
+                    <div className="absolute bottom-full left-0 mb-1 w-48 bg-[#171717] border border-[#262626] rounded-lg shadow-xl overflow-hidden max-h-[150px] overflow-y-auto z-50 custom-scrollbar">
+                      <div className="px-3 py-1.5 text-[10px] font-semibold text-[#525252] border-b border-[#262626]">
+                        Last Used / All Tags
+                      </div>
+                      {allTags.length === 0 && (
+                        <div className="px-3 py-2 text-[10px] text-[#525252] italic">No tags found</div>
+                      )}
+                      {allTags.map(([tag]) => (
+                        <div
+                          key={tag}
+                          className={`px-3 py-1.5 text-[10px] cursor-pointer flex items-center justify-between hover:bg-[#262626] ${lastUsedTag === tag ? 'text-[#e5e5e5] bg-[#202020]' : 'text-[#a3a3a3]'}`}
+                          onClick={() => {
+                            if (lastUsedTag === tag) setLastUsedTag(null); // Toggle off? or just set. prompt says "make the shown tag is last used".
+                            else setLastUsedTag(tag);
+                            setIsInputTagMenuOpen(false);
+                            addNoteInputRef.current?.focus();
+                          }}
+                        >
+                          <span>{tag.replace(/^#/, '')}</span>
+                          {lastUsedTag === tag && <CheckCircle size={10} className="text-green-400" />}
+                        </div>
+                      ))}
+                    </div>
                   )}
-                  {extractTags(newNote)
-                    .filter(t => t !== selectedTag)
-                    .map(t => (
-                      <span key={t} className="text-[#737373]">#{t.replace(/^#/, '')}</span>
-                    ))}
-                </div>
-              </div>
-            )}
+                </>
+              )}
+            </div>
           </div>
         )}
 

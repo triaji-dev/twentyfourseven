@@ -44,7 +44,35 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
   const [tagSuggestions, setTagSuggestions] = useState<string[]>([]);
   const [suggestionActiveIndex, setSuggestionActiveIndex] = useState(0);
   const [suggestionSource, setSuggestionSource] = useState<SuggestionSource>(null);
-  const [lastUsedTag, setLastUsedTag] = useState<string | null>(null);
+
+  // Persistence states
+  const [lastUsedTag, setLastUsedTagState] = useState<string | null>(() => {
+    return localStorage.getItem('twentyfourseven-last-tag');
+  });
+  const [lastUsedType, setLastUsedTypeState] = useState<NoteType>(() => {
+    return (localStorage.getItem('twentyfourseven-last-type') as NoteType) || 'text';
+  });
+
+  const setLastUsedTag = useCallback((tag: string | null) => {
+    setLastUsedTagState(tag);
+    if (tag) {
+      localStorage.setItem('twentyfourseven-last-tag', tag);
+    } else {
+      localStorage.removeItem('twentyfourseven-last-tag');
+    }
+  }, []);
+
+  const setLastUsedType = useCallback((type: NoteType) => {
+    setLastUsedTypeState(type);
+    localStorage.setItem('twentyfourseven-last-type', type);
+  }, []);
+
+  // Active Type Calculation
+  const activeType = useMemo(() => {
+    const { type } = processNoteContent(newNote);
+    if (type !== 'text') return type;
+    return lastUsedType;
+  }, [newNote, lastUsedType]);
 
   // Selection state
   const [isSelectMode, setIsSelectMode] = useState(false);
@@ -252,11 +280,25 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
       }
 
       const input = newNote.trim();
-      let { type, content } = processNoteContent(input);
+      let { content } = processNoteContent(input); // Detect content cleaning only
 
-      // Auto-add active filter tag
-      if (selectedTag && !content.toUpperCase().includes(selectedTag.toUpperCase())) {
-        content = `${selectedTag} ${content}`;
+      // Use activeType for the type
+      const type = activeType;
+
+      // Auto-add active filter tag OR last used tag if enabled/logic'd
+      const tagToAdd = selectedTag || lastUsedTag;
+      if (tagToAdd && !content.toUpperCase().includes(tagToAdd.toUpperCase())) {
+        // Only add if we're not using selectedTag (which handles filtering) 
+        // or if we decide lastUsedTag should strictly be added. 
+        // The prompt says "make the shown tag is last used tags".
+        // Let's defer to selectedTag if present, else lastUsedTag.
+        content = `${tagToAdd} ${content}`;
+      }
+
+      // Update lastUsedTag if the new content has tags
+      const currentTags = extractTags(content);
+      if (currentTags.length > 0) {
+        setLastUsedTag(currentTags[0]);
       }
 
       const newItem: NoteItem = {
@@ -316,7 +358,7 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
         e.target.style.height = 'auto';
       }
     }
-  }, [newNote, activeCell, selectedTag, year, month, notes, fetchAllNotes, triggerUpdate]);
+  }, [newNote, activeCell, selectedTag, lastUsedTag, activeType, year, month, notes, fetchAllNotes, triggerUpdate]);
 
   // Handle starting edit
   const handleStartEdit = useCallback((note: NoteItem) => {
@@ -1082,5 +1124,8 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
     fetchAllNotes,
     setActiveCell,
     triggerUpdate,
+    activeType,
+    lastUsedType,
+    setLastUsedType,
   };
 };
