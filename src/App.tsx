@@ -1,6 +1,7 @@
 import { Header } from './shared/components/Header';
 import { ActivityTable } from './features/activity/components/ActivityTable';
 import { Stats } from './features/statistic/components/Stats';
+import { NotesPanel } from './features/note/components/NotesPanel';
 import { SettingsModal } from './shared/components/SettingsModal';
 import { useStore } from './shared/store/useStore';
 import { useKeyboardShortcuts } from './shared/hooks/useKeyboardShortcuts';
@@ -27,24 +28,31 @@ function App() {
       <Header />
 
       <main className="main-container grid grid-cols-1 lg:grid-cols-4 gap-2">
-        <ActivityTable
-          year={year}
-          month={month}
-          onUpdate={refreshStats}
-          onPrevMonth={prevMonth}
-          onNextMonth={nextMonth}
-          onMonthSelect={(monthIndex) => {
-            const newDate = new Date(currentDate);
-            newDate.setMonth(monthIndex);
-            useStore.getState().setCurrentDate(newDate);
-          }}
-          onYearSelect={(selectedYear) => {
-            const newDate = new Date(currentDate);
-            newDate.setFullYear(selectedYear);
-            useStore.getState().setCurrentDate(newDate);
-          }}
-        />
-        <Stats stats={stats} year={year} month={month} />
+        <div className="lg:col-span-2 min-h-0 h-full">
+          <ActivityTable
+            year={year}
+            month={month}
+            onUpdate={refreshStats}
+            onPrevMonth={prevMonth}
+            onNextMonth={nextMonth}
+            onMonthSelect={(monthIndex) => {
+              const newDate = new Date(currentDate);
+              newDate.setMonth(monthIndex);
+              useStore.getState().setCurrentDate(newDate);
+            }}
+            onYearSelect={(selectedYear) => {
+              const newDate = new Date(currentDate);
+              newDate.setFullYear(selectedYear);
+              useStore.getState().setCurrentDate(newDate);
+            }}
+          />
+        </div>
+        <div className="lg:col-span-1 min-h-0 h-full">
+          <Stats stats={stats} year={year} month={month} />
+        </div>
+        <div className="lg:col-span-1 min-h-0 h-full">
+          <NotesPanel year={year} month={month} />
+        </div>
       </main>
 
       {/* Settings Modal */}

@@ -472,8 +472,8 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
         </div>
       </div>
       <div className="table-wrapper">
-        <div className="table-container">
-          <table className="min-w-full text-center" onPaste={handlePaste}>
+        <div className="table-container !overflow-x-auto custom-scrollbar">
+          <table className="min-w-[800px] text-center" onPaste={handlePaste}>
             <thead className="sticky top-0 z-10 bg-[#0a0a0a]">
               {/* Date Row */}
               <tr className="h-5">

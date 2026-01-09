@@ -45,7 +45,6 @@ interface AppState {
   // Active cell tracking
   activeCell: ActiveCell | null;
   activeStatsDate: ActiveCell | null;
-  activePanel: 'statistic' | 'notes';
 
   // Stats cache
   statsCache: MonthStats | null;
@@ -88,7 +87,6 @@ interface AppState {
   // Active cell actions
   setActiveCell: (cell: ActiveCell | null) => void;
   setActiveStatsDate: (cell: ActiveCell | null) => void;
-  setActivePanel: (panel: 'statistic' | 'notes') => void;
 
   // Stats actions
   calculateStats: (year: number, month: number) => MonthStats;
@@ -141,7 +139,6 @@ export const useStore = create<AppState>((set, get) => ({
   dataVersion: 0,
   activeCell: { year: new Date().getFullYear(), month: new Date().getMonth(), day: new Date().getDate(), hour: 0 },
   activeStatsDate: { year: new Date().getFullYear(), month: new Date().getMonth(), day: new Date().getDate(), hour: 0 },
-  activePanel: 'statistic',
   statsCache: null,
   clearCopiedCells: () => set({ copiedCellIds: new Set(), copiedCells: [] }),
 
@@ -559,7 +556,6 @@ export const useStore = create<AppState>((set, get) => ({
 
   setActiveCell: (cell: ActiveCell | null) => set({ activeCell: cell }),
   setActiveStatsDate: (cell: ActiveCell | null) => set({ activeStatsDate: cell }),
-  setActivePanel: (panel) => set({ activePanel: panel }),
 
   refreshStats: () => {
     const { currentDate, calculateStats } = get();
