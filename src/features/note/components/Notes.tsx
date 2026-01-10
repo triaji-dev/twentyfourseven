@@ -745,60 +745,79 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
             </div>
 
             {/* Active Tags */}
-            <div className="relative" ref={inputTagMenuRef}>
-              {(selectedTag || extractTags(newNote).length > 0 || lastUsedTag || isInputTagMenuOpen) && (
-                <>
-                  <div
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => setIsInputTagMenuOpen(!isInputTagMenuOpen)}
-                    className="flex items-center gap-1.5 text-[10px] text-[#525252] bg-[#1a1a1a] px-2 py-1 rounded border border-[#262626] hover:bg-[#202020] hover:text-[#a3a3a3] hover:border-[#404040] cursor-pointer transition-colors"
-                  >
-                    <Tag size={10} />
-                    <div className="flex gap-1">
-                      {selectedTag && (
-                        <span className="text-[#c0c0c0] font-medium">#{selectedTag.replace(/^#/, '')}</span>
-                      )}
-                      {extractTags(newNote)
-                        .filter(t => t !== selectedTag)
-                        .map(t => (
-                          <span key={t} className="text-[#737373]">#{t.replace(/^#/, '')}</span>
-                        ))}
-                      {!selectedTag && lastUsedTag && !extractTags(newNote).includes(lastUsedTag) && (
-                        <span className="text-[#c0c0c0] font-medium">#{lastUsedTag.replace(/^#/, '')}</span>
-                      )}
-                      {!selectedTag && extractTags(newNote).length === 0 && !lastUsedTag && (
-                        <span className="text-[#525252]">No tags</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {isInputTagMenuOpen && (
-                    <div className="absolute bottom-full left-0 mb-1 w-48 bg-[#171717] border border-[#262626] rounded-lg shadow-xl overflow-hidden max-h-[150px] overflow-y-auto z-50 custom-scrollbar">
-                      <div className="px-3 py-1.5 text-[10px] font-semibold text-[#525252] border-b border-[#262626]">
-                        Last Used / All Tags
-                      </div>
-                      {allTags.length === 0 && (
-                        <div className="px-3 py-2 text-[10px] text-[#525252] italic">No tags found</div>
-                      )}
-                      {allTags.map(([tag]) => (
-                        <div
-                          key={tag}
-                          className={`px-3 py-1.5 text-[10px] cursor-pointer flex items-center justify-between hover:bg-[#262626] ${lastUsedTag === tag ? 'text-[#e5e5e5] bg-[#202020]' : 'text-[#a3a3a3]'}`}
-                          onClick={() => {
-                            if (lastUsedTag === tag) setLastUsedTag(null); // Toggle off? or just set. prompt says "make the shown tag is last used".
-                            else setLastUsedTag(tag);
-                            setIsInputTagMenuOpen(false);
-                            addNoteInputRef.current?.focus();
-                          }}
-                        >
-                          <span>{tag.replace(/^#/, '')}</span>
-                          {lastUsedTag === tag && <CheckCircle size={10} className="text-green-400" />}
-                        </div>
+            <div className="relative flex items-center gap-1.5" ref={inputTagMenuRef}>
+              <>
+                <div
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setIsInputTagMenuOpen(!isInputTagMenuOpen)}
+                  className="flex items-center gap-1.5 text-[10px] text-[#525252] bg-[#1a1a1a] px-2 py-1 rounded border border-[#262626] hover:bg-[#202020] hover:text-[#a3a3a3] hover:border-[#404040] cursor-pointer transition-colors"
+                >
+                  <Tag size={10} />
+                  <div className="flex gap-1">
+                    {selectedTag && (
+                      <span className="text-[#c0c0c0] font-medium">#{selectedTag.replace(/^#/, '')}</span>
+                    )}
+                    {extractTags(newNote)
+                      .filter(t => t !== selectedTag)
+                      .map(t => (
+                        <span key={t} className="text-[#737373]">#{t.replace(/^#/, '')}</span>
                       ))}
-                    </div>
+                    {!selectedTag && lastUsedTag && !extractTags(newNote).includes(lastUsedTag) && (
+                      <span className="text-[#c0c0c0] font-medium">#{lastUsedTag.replace(/^#/, '')}</span>
+                    )}
+                    {!selectedTag && extractTags(newNote).length === 0 && !lastUsedTag && (
+                      <span className="text-[#525252]">No tags</span>
+                    )}
+                  </div>
+                  {(selectedTag || lastUsedTag || extractTags(newNote).length > 0) && (
+                    <button
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Clear all tags logic
+                        setSelectedTag(null);
+                        setLastUsedTag(null);
+                        // Remove tags from newNote content
+                        const cleanedNote = newNote.replace(/(^|\s)#[\w\u0600-\u06FF]+/g, '$1').trim();
+                        setNewNote(cleanedNote);
+                      }}
+                      className="rounded text-[#525252] hover:text-[#e5e5e5] hover:bg-[#262626] transition-colors"
+                      title="Clear tags"
+                    >
+                      <X size={10} />
+                    </button>
                   )}
-                </>
-              )}
+                </div>
+
+                {isInputTagMenuOpen && (
+                  <div className="absolute bottom-full left-0 mb-1 w-48 bg-[#171717] border border-[#262626] rounded-lg shadow-xl overflow-hidden max-h-[150px] overflow-y-auto z-50 custom-scrollbar">
+                    <div className="px-3 py-1.5 text-[10px] font-semibold text-[#525252] border-b border-[#262626]">
+                      Last Used / All Tags
+                    </div>
+                    {allTags.length === 0 && (
+                      <div className="px-3 py-2 text-[10px] text-[#525252] italic">No tags found</div>
+                    )}
+                    {allTags.map(([tag]) => (
+                      <div
+                        key={tag}
+                        className={`px-3 py-1.5 text-[10px] cursor-pointer flex items-center justify-between hover:bg-[#262626] ${lastUsedTag === tag ? 'text-[#e5e5e5] bg-[#202020]' : 'text-[#a3a3a3]'}`}
+                        onClick={() => {
+                          if (lastUsedTag === tag) setLastUsedTag(null);
+                          else setLastUsedTag(tag);
+                          setIsInputTagMenuOpen(false);
+                          addNoteInputRef.current?.focus();
+                        }}
+                      >
+                        <span>{tag.replace(/^#/, '')}</span>
+                        {lastUsedTag === tag && <CheckCircle size={10} className="text-green-400" />}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             </div>
           </div>
         )}
