@@ -3,7 +3,7 @@ import { useAuth } from './AuthProvider';
 import { User as UserIcon, Lock, Loader2, AlertCircle } from 'lucide-react';
 
 export const AuthPage: React.FC = () => {
-  const { signInWithEmail, signUp, signInWithGoogle } = useAuth();
+  const { signInWithEmail, signUp } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
