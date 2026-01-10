@@ -8,7 +8,13 @@ import { useKeyboardShortcuts } from './shared/hooks/useKeyboardShortcuts';
 import { useStats } from './features/statistic/hooks/useStats';
 import './index.css';
 
-function App() {
+// Auth & Query Imports
+import { AuthProvider, useAuth } from './features/auth/AuthProvider';
+import { AuthPage } from './features/auth/AuthPage';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from './lib/queryClient';
+
+function Dashboard() {
   const currentDate = useStore((state) => state.currentDate);
   const prevMonth = useStore((state) => state.prevMonth);
   const nextMonth = useStore((state) => state.nextMonth);
@@ -22,8 +28,6 @@ function App() {
   // Custom hooks for keyboard shortcuts and stats
   useKeyboardShortcuts();
   const stats = useStats(year, month);
-
-
 
   return (
     <div className="p-2 min-h-screen lg:h-screen lg:overflow-hidden">
@@ -74,5 +78,28 @@ function App() {
   );
 }
 
-export default App;
+function AppContent() {
+  const { user, loading } = useAuth();
 
+  if (loading) {
+    return <div className="min-h-screen bg-[#09090b] flex items-center justify-center text-white">Loading...</div>;
+  }
+
+  if (!user) {
+    return <AuthPage />;
+  }
+
+  return <Dashboard />;
+}
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+}
+
+export default App;

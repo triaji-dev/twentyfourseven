@@ -1,10 +1,12 @@
 import { useCallback, useMemo, useEffect, useState, useRef } from 'react';
-import { PaintBucket, Pencil, Check, Trash2, Plus } from 'lucide-react';
+import { PaintBucket, Check, Plus } from 'lucide-react';
 import { ActivityCell } from './ActivityCell';
-import { getDaysInMonth, loadActivity, getNotes, migrateActivityKey } from '../../../shared/utils/storage';
 import { DAY_ABBREVIATIONS, MONTH_NAMES } from '../../../shared/constants';
 import { useStore } from '../../../shared/store/useStore';
-import { useSettings } from '../../../shared/store/useSettings';
+// Use React Query hooks instead of local store/storage
+import { useActivities, useUpdateActivity, useSettings, useUpdateSettings, useNotes } from '../../../hooks/useSupabaseQuery';
+import { DEFAULT_CATEGORIES, ActivityKey, DynamicCategory } from '../../../shared/types';
+
 interface ActivityTableProps {
   year: number;
   month: number;
@@ -29,14 +31,8 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
   const [isYearPickerOpen, setIsYearPickerOpen] = useState(false);
   const yearPickerRef = useRef<HTMLDivElement>(null);
 
+  // Zustand State (Client UI State)
   const selectedCells = useStore((state) => state.selectedCells);
-  const categories = useSettings((state) => state.categories);
-  const setCategories = useSettings((state) => state.setCategories);
-  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
-  const categoryDropdownRef = useRef<HTMLDivElement>(null);
-  const [editingCategoryKey, setEditingCategoryKey] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState('');
-  const [deletingCategoryKey, setDeletingCategoryKey] = useState<string | null>(null);
   const copiedCellIds = useStore((state) => state.copiedCellIds);
   const dataVersion = useStore((state) => state.dataVersion);
   const isSelecting = useStore((state) => state.isSelecting);
@@ -49,7 +45,33 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
   const activeCell = useStore((state) => state.activeCell);
   const setActiveCell = useStore((state) => state.setActiveCell);
 
-  // Create a map for faster category lookup
+  // React Query Hooks (Server State)
+  const { data: activities = [] } = useActivities(year, month);
+  const updateActivityMutation = useUpdateActivity();
+  const { data: settings } = useSettings();
+  const updateSettingsMutation = useUpdateSettings();
+  const { data: notes = [] } = useNotes();
+
+  const categories: DynamicCategory[] = settings?.categories || DEFAULT_CATEGORIES;
+
+  // Category UI State
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
+  const [editingCategoryKey, setEditingCategoryKey] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
+  // unused: const [deletingCategoryKey, setDeletingCategoryKey] = useState<string | null>(null);
+
+  // Create a map for faster lookup
+  const activityMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    activities.forEach(a => {
+      const day = parseInt(a.date.split('-')[2]); // Parse day from YYYY-MM-DD
+      map[`${day}-${a.hour}`] = a.value;
+    });
+    return map;
+  }, [activities]);
+
+  // Create category map for colors
   const categoryMap = useMemo(() => {
     const map: Record<string, string> = {};
     categories.forEach(cat => {
@@ -58,7 +80,31 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
     return map;
   }, [categories]);
 
-  const daysInMonth = getDaysInMonth(year, month);
+  // Note dots map
+  const notesMap = useMemo(() => {
+    const map: Record<number, boolean> = {};
+    notes.forEach(note => {
+      const d = new Date(note.createdAt);
+      if (d.getFullYear() === year && d.getMonth() === month && !note.deletedAt && !note.isDone) {
+        // Show dot for active notes? Or all notes? 
+        // Original code used getNotes() which returns array. Length > 0 shows dot.
+        // Assuming getNotes returned all active notes.
+        map[d.getDate()] = true;
+      }
+    });
+    return map;
+  }, [notes, year, month]);
+
+  const daysInMonth = useMemo(() => new Date(year, month + 1, 0).getDate(), [year, month]);
+
+  const handleSaveActivity = useCallback((day: number, hour: number, value: ActivityKey) => {
+    updateActivityMutation.mutate({ year, month, day, hour, value });
+    onUpdate(); // Trigger stats refresh if needed (though Query should handle it)
+  }, [updateActivityMutation, year, month, onUpdate]);
+
+  const handleUpdateCategories = (newCategories: typeof categories) => {
+    updateSettingsMutation.mutate(newCategories);
+  };
 
   useEffect(() => {
     const handleGlobalMouseUp = () => {
@@ -100,8 +146,6 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
           setSelectionStart({ year, month, day, hour });
         }
       } else {
-        // Don't prevent default on simple click - allow input focus for typing
-        // e.preventDefault(); // REMOVED
         clearSelection();
         setSelectionStart({ year, month, day, hour });
         toggleCellSelection(cellId);
@@ -126,8 +170,6 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
       // Optional: clear selection on focus if not selecting
     }
   }, [isSelecting]);
-
-  // Keyboard handlers would be added at App level for global scope
 
   const handlePaste = (e: React.ClipboardEvent) => {
     const text = e.clipboardData.getData('text/plain');
@@ -177,7 +219,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                             const newCategories = categories.map(cat =>
                               cat.key === category.key ? { ...cat, color: e.target.value } : cat
                             );
-                            setCategories(newCategories);
+                            handleUpdateCategories(newCategories);
                           }}
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                         />
@@ -200,13 +242,12 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                                 if (e.key === 'Enter' && !isDuplicate) {
                                   const newName = editingName.trim();
                                   if (newName) {
-                                    const oldKey = category.key;
-                                    migrateActivityKey(oldKey, newKey);
+                                    // TODO: Implement server-side migration for key change
+                                    // migrateActivityKey(oldKey, newKey);
                                     const newCategories = categories.map(cat =>
                                       cat.key === category.key ? { ...cat, name: newName, key: newKey } : cat
                                     );
-                                    setCategories(newCategories);
-                                    onUpdate();
+                                    handleUpdateCategories(newCategories);
                                   }
                                   setEditingCategoryKey(null);
                                 } else if (e.key === 'Escape') {
@@ -226,13 +267,11 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                                 if (isDuplicate) return;
                                 const newName = editingName.trim();
                                 if (newName) {
-                                  const oldKey = category.key;
-                                  migrateActivityKey(oldKey, newKey);
+                                  // TODO: Implement server-side migration
                                   const newCategories = categories.map(cat =>
                                     cat.key === category.key ? { ...cat, name: newName, key: newKey } : cat
                                   );
-                                  setCategories(newCategories);
-                                  onUpdate();
+                                  handleUpdateCategories(newCategories);
                                 }
                                 setEditingCategoryKey(null);
                               }}
@@ -255,47 +294,6 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                           >
                             {category.name}
                           </span>
-                          <div className="flex items-center gap-0.5 shrink-0">
-                            <button
-                              onClick={() => {
-                                setEditingCategoryKey(category.key);
-                                setEditingName(category.name);
-                              }}
-                              className="p-1 text-[#404040] hover:text-[#a3a3a3] transition-colors opacity-0 group-hover/row:opacity-100"
-                              title="Edit name"
-                            >
-                              <Pencil size={12} />
-                            </button>
-                            {deletingCategoryKey === category.key ? (
-                              <div className="flex items-center gap-1 bg-red-500/10 border border-red-500/20 rounded px-1 py-0.5 animate-in fade-in slide-in-from-right-2 duration-200">
-                                <span className="text-[9px] text-red-400 px-0.5">Delete?</span>
-                                <button
-                                  onClick={() => {
-                                    const newCategories = categories.filter(cat => cat.key !== category.key);
-                                    setCategories(newCategories);
-                                    setDeletingCategoryKey(null);
-                                  }}
-                                  className="text-[9px] px-1.5 py-0.5 bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
-                                >
-                                  Yes
-                                </button>
-                                <button
-                                  onClick={() => setDeletingCategoryKey(null)}
-                                  className="text-[9px] px-1.5 py-0.5 hover:bg-red-500/20 text-red-400 rounded transition-colors"
-                                >
-                                  No
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => setDeletingCategoryKey(category.key)}
-                                className="p-1 text-[#404040] hover:text-red-400 transition-colors opacity-0 group-hover/row:opacity-100"
-                                title="Delete category"
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            )}
-                          </div>
                         </>
                       )}
                     </div>
@@ -305,7 +303,6 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                   <div className="px-3 pb-3 pt-1">
                     <button
                       onClick={() => {
-                        // Find next available letter
                         const usedKeys = new Set(categories.map(c => c.name.charAt(0).toUpperCase()));
                         const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
                         let newName = 'New';
@@ -318,7 +315,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                         const newKey = newName.charAt(0).toUpperCase();
                         const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
                         const newColor = colors[categories.length % colors.length];
-                        setCategories([...categories, { key: newKey, name: newName, color: newColor }]);
+                        handleUpdateCategories([...categories, { key: newKey, name: newName, color: newColor }]);
                       }}
                       className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-[10px] font-medium text-[#525252] hover:text-[#a3a3a3] hover:bg-[#171717] border border-dashed border-[#404040] hover:border-[#525252] transition-all"
                     >
@@ -337,31 +334,17 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
         </div>
 
         {/* Date Navigation */}
-        <div
-          className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#171717]/60 border border-[#404040]/30"
-        >
+        <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#171717]/60 border border-[#404040]/30">
           <button
             onClick={onPrevMonth}
             className="flex items-center justify-center w-6 h-6 rounded-md transition-all duration-200 text-[#737373] hover:bg-[#404040]/50 hover:text-[#e5e5e5]"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-3.5 w-3.5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M15 19l-7-7 7-7"
-              />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
 
           <div className="flex items-center relative">
-            {/* Month Picker wrapper */}
             <div className="relative" ref={monthPickerRef}>
               <button
                 onClick={() => setIsMonthPickerOpen(!isMonthPickerOpen)}
@@ -369,11 +352,8 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
               >
                 {MONTH_NAMES[month]}
               </button>
-
               {isMonthPickerOpen && (
-                <div
-                  className="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-2 rounded-xl grid grid-cols-3 gap-1 w-[280px] z-50 shadow-xl bg-[#171717] border border-[#262626]"
-                >
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-2 rounded-xl grid grid-cols-3 gap-1 w-[280px] z-50 shadow-xl bg-[#171717] border border-[#262626]">
                   {MONTH_NAMES.map((m, idx) => (
                     <button
                       key={m}
@@ -381,10 +361,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                         onMonthSelect(idx);
                         setIsMonthPickerOpen(false);
                       }}
-                      className={`px-3 py-2 text-xs rounded-lg transition-colors ${month === idx
-                        ? 'bg-[#262626] text-white font-medium'
-                        : 'text-[#737373] hover:bg-[#262626] hover:text-[#e5e5e5]'
-                        }`}
+                      className={`px-3 py-2 text-xs rounded-lg transition-colors ${month === idx ? 'bg-[#262626] text-white font-medium' : 'text-[#737373] hover:bg-[#262626] hover:text-[#e5e5e5]'}`}
                     >
                       {m}
                     </button>
@@ -395,97 +372,49 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
 
             <div className="relative" ref={yearPickerRef}>
               <button
-                onClick={() => {
-                  setIsYearPickerOpen(!isYearPickerOpen);
-                }}
+                onClick={() => setIsYearPickerOpen(!isYearPickerOpen)}
                 className="text-sm font-playfair tracking-wide hover:text-[#a3a3a3] transition-colors px-2 min-w-[50px] text-[#e5e5e5]"
               >
                 {year}
               </button>
-
               {isYearPickerOpen && (
-                <div
-                  className="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-1 rounded-xl flex flex-col items-center gap-0.5 w-[70px] z-50 shadow-xl bg-[#171717] border border-[#262626]"
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-1 rounded-xl flex flex-col items-center gap-0.5 w-[70px] z-50 shadow-xl bg-[#171717] border border-[#262626]"
                   onWheel={(e) => {
                     e.preventDefault();
-                    if (e.deltaY < 0) {
-                      onYearSelect(year - 1);
-                    } else {
-                      onYearSelect(year + 1);
-                    }
+                    if (e.deltaY < 0) onYearSelect(year - 1);
+                    else onYearSelect(year + 1);
                   }}
                 >
-                  {/* Arrow Up */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onYearSelect(year - 1);
-                    }}
-                    className="w-full flex items-center justify-center py-1.5 text-[#525252] hover:text-[#e5e5e5] hover:bg-[#262626] rounded transition-colors"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                    </svg>
+                  <button onClick={(e) => { e.stopPropagation(); onYearSelect(year - 1); }} className="w-full flex items-center justify-center py-1.5 text-[#525252] hover:text-[#e5e5e5] hover:bg-[#262626] rounded transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
                   </button>
-
-                  {/* Selected Year */}
-                  <div className="w-full py-1.5 text-xs text-center font-medium text-white bg-[#262626] rounded">
-                    {year}
-                  </div>
-
-                  {/* Arrow Down */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onYearSelect(year + 1);
-                    }}
-                    className="w-full flex items-center justify-center py-1.5 text-[#525252] hover:text-[#e5e5e5] hover:bg-[#262626] rounded transition-colors"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
+                  <div className="w-full py-1.5 text-xs text-center font-medium text-white bg-[#262626] rounded">{year}</div>
+                  <button onClick={(e) => { e.stopPropagation(); onYearSelect(year + 1); }} className="w-full flex items-center justify-center py-1.5 text-[#525252] hover:text-[#e5e5e5] hover:bg-[#262626] rounded transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                   </button>
                 </div>
               )}
             </div>
           </div>
 
-          <button
-            onClick={onNextMonth}
-            className="flex items-center justify-center w-6 h-6 rounded-md transition-all duration-200 text-[#737373] hover:bg-[#404040]/50 hover:text-[#e5e5e5]"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-3.5 w-3.5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
+          <button onClick={onNextMonth} className="flex items-center justify-center w-6 h-6 rounded-md transition-all duration-200 text-[#737373] hover:bg-[#404040]/50 hover:text-[#e5e5e5]">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
           </button>
         </div>
       </div>
+
       <div className="table-wrapper">
         <div className="table-container !overflow-x-auto custom-scrollbar">
           <table className="min-w-[800px] text-center" onPaste={handlePaste}>
             <thead className="sticky top-0 z-10 bg-[#0a0a0a]">
-              {/* Date Row */}
               <tr className="h-5">
                 <th className="hour-header border-none bg-[#0a0a0a]"></th>
                 {Array.from({ length: 31 }, (_, i) => i + 1).map(d => {
                   const isInvalid = d > daysInMonth;
                   const today = new Date();
-                  const isToday = !isInvalid &&
-                    today.getFullYear() === year &&
-                    today.getMonth() === month &&
-                    today.getDate() === d;
+                  const isToday = !isInvalid && today.getFullYear() === year && today.getMonth() === month && today.getDate() === d;
                   const isActiveDate = !isInvalid && activeCell?.year === year && activeCell?.month === month && activeCell?.day === d;
+                  const hasNote = !isInvalid && notesMap[d];
 
                   return (
                     <th
@@ -494,14 +423,11 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                       className={`activity-cell relative pt-3 ${isInvalid ? 'opacity-20 pointer-events-none' : ''} ${isToday ? 'font-bold text-white' : 'text-[#737373]'} ${isActiveDate ? 'bg-[#1a1a1a] text-[#e5e5e5]' : 'bg-[#0a0a0a]'} text-[10px] border-l border-[#262626] font-normal border-b-0 ${!isInvalid ? 'cursor-pointer hover:bg-[#1a1a1a]' : ''} transition-colors`}
                     >
                       {!isInvalid && d}
-                      {!isInvalid && getNotes(year, month, d).length > 0 && (
-                        <span className="absolute top-[3px] left-1/2 -translate-x-1/2 w-[3px] h-[3px] rounded-full bg-[#a3a3a3]"></span>
-                      )}
+                      {hasNote && <span className="absolute top-[3px] left-1/2 -translate-x-1/2 w-[3px] h-[3px] rounded-full bg-[#a3a3a3]"></span>}
                     </th>
                   );
                 })}
               </tr>
-              {/* Day Initial Row */}
               <tr className="h-5">
                 <th className="hour-header border-none bg-[#0a0a0a]"></th>
                 {Array.from({ length: 31 }, (_, i) => i + 1).map(d => {
@@ -509,10 +435,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                   const dayIndex = isInvalid ? 0 : new Date(year, month, d).getDay();
                   const dayAbbrev = DAY_ABBREVIATIONS[dayIndex];
                   const today = new Date();
-                  const isToday = !isInvalid &&
-                    today.getFullYear() === year &&
-                    today.getMonth() === month &&
-                    today.getDate() === d;
+                  const isToday = !isInvalid && today.getFullYear() === year && today.getMonth() === month && today.getDate() === d;
                   const isActiveDate = !isInvalid && activeCell?.year === year && activeCell?.month === month && activeCell?.day === d;
 
                   return (
@@ -532,29 +455,17 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                   <td className="hour-header">{hour.toString().padStart(2, '0')}</td>
                   {Array.from({ length: 31 }, (_, i) => i + 1).map(day => {
                     const isInvalid = day > daysInMonth;
-                    const value = isInvalid ? '' : loadActivity(year, month, day, hour);
+                    const value = isInvalid ? '' : (activityMap[`${day}-${hour}`] || '');
                     const cellId = `cell-${year}-${month + 1}-${day}-${hour}`;
                     const isSelected = !isInvalid && selectedCells.has(cellId);
                     const isCopied = !isInvalid && copiedCellIds.has(cellId);
                     const cellColor = isInvalid ? undefined : categoryMap[value];
 
-                    // Dynamic style based on category color
                     const cellStyle: React.CSSProperties = isInvalid
-                      ? {
-                        backgroundColor: '#0d0d0d',
-                        opacity: 0.3,
-                        pointerEvents: 'none',
-                      }
+                      ? { backgroundColor: '#0d0d0d', opacity: 0.3, pointerEvents: 'none' }
                       : cellColor
-                        ? {
-                          backgroundColor: cellColor,
-                          color: '#ffffff',
-                          boxShadow: `0 0 0 1px ${cellColor}33`,
-                        }
-                        : {
-                          backgroundColor: '#171717',
-                          color: '#525252',
-                        };
+                        ? { backgroundColor: cellColor, color: '#ffffff', boxShadow: `0 0 0 1px ${cellColor}33` }
+                        : { backgroundColor: '#171717', color: '#525252' };
 
                     return (
                       <td
@@ -572,7 +483,8 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                             value={value}
                             onMouseEnter={e => handleCellMouseEnter(e, day, hour)}
                             onFocus={handleCellFocus}
-                            onChange={onUpdate}
+                            onChange={() => { }} // No longer needed for triggering save, but maybe for something else? kept empty.
+                            onSave={(val) => handleSaveActivity(day, hour, val)}
                           />
                         )}
                       </td>

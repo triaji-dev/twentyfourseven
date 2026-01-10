@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import type { ActivityKey } from '../../../shared/types';
-import { saveActivity } from '../../../shared/utils/storage';
+// import { saveActivity } from '../../../shared/utils/storage'; // Removed
 import { useStore } from '../../../shared/store/useStore';
 import { useSettings } from '../../../shared/store/useSettings';
 
@@ -13,6 +13,7 @@ interface ActivityCellProps {
   onMouseEnter: (e: React.MouseEvent) => void;
   onFocus: () => void;
   onChange: () => void;
+  onSave: (value: ActivityKey) => void;
 }
 
 export const ActivityCell: React.FC<ActivityCellProps> = ({
@@ -24,6 +25,7 @@ export const ActivityCell: React.FC<ActivityCellProps> = ({
   onMouseEnter,
   onFocus,
   onChange,
+  onSave,
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState(value);
@@ -47,7 +49,8 @@ export const ActivityCell: React.FC<ActivityCellProps> = ({
     if (validKeys.includes(newValue) || newValue === '') {
       setInputValue(newValue);
       useStore.getState().pushHistory();
-      saveActivity(year, month, day, hour, newValue);
+      // saveActivity(year, month, day, hour, newValue); // Removed
+      onSave(newValue); // Call parent onSave
       setActiveCell({ year, month, day, hour });
       setActiveStatsDate({ year, month, day, hour });
       setStatsPanelMode('full');

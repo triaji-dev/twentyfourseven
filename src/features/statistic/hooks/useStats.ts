@@ -1,14 +1,21 @@
-import { useEffect } from 'react';
-import { useStore } from '../../../shared/store/useStore';
+import { useMemo } from 'react';
+import { useActivities } from '../../../hooks/useSupabaseQuery';
 
 export const useStats = (year: number, month: number) => {
-  const calculateStats = useStore(state => state.calculateStats);
-  const statsCache = useStore(state => state.statsCache);
+  const { data: activities = [] } = useActivities(year, month);
 
-  // Calculate stats on mount and when date changes
-  useEffect(() => {
-    calculateStats(year, month);
-  }, [year, month, calculateStats]);
+  return useMemo(() => {
+    const stats: Record<string, number> = {};
+    let totalHours = 0;
 
-  return statsCache || { stats: {}, totalHours: 0 };
+    activities.forEach(a => {
+      // Simplified check for single letter uppercase
+      if (/^[A-Z]$/.test(a.value)) {
+        stats[a.value] = (stats[a.value] || 0) + 1;
+        totalHours++;
+      }
+    });
+
+    return { stats, totalHours };
+  }, [activities]);
 };

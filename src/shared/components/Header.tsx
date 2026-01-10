@@ -1,9 +1,12 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { exportAllData, importAllData } from '../utils/storage';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../features/auth/AuthProvider';
+import { useSettings as useSettingsStore } from '../store/useSettings';
+import { LogOut, Settings } from 'lucide-react';
 
 export const Header: React.FC = () => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [rotation, setRotation] = useState(0);
+  const { signOut, user } = useAuth();
+  const openSettings = useSettingsStore(state => state.openSettings);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -13,54 +16,18 @@ export const Header: React.FC = () => {
   }, []);
 
   const SUBTITLES = [
-    'Accept The Quest',
-    'Roll For Initiative',
-    'Slay The Dragon',
-    'Update The Codex',
-    'Gather Experience',
-    'Chart The Map',
-    'Loot The Treasure',
-    'Rest At Bonfire',
-    'Equip New Skills',
-    'Defend The Realm',
-    'Cast The Spell',
-    'Explore The Wilds',
-    'Craft Your Legend',
-    'Unlock Achievement',
-    'Face The Boss',
-    'Level Up Now',
-    'Acquire Target',
-    'Execute Contract',
-    'Stay In Shadows',
-    'Secure The Asset',
-    'Gather Intelligence',
-    'Plan The Heist',
-    'Clean The Scene',
-    'Collect The Bounty',
-    'Maintain Stealth',
-    'Reload Weapon',
-    'Neutralize Threat',
-    'Confirm The Kill',
-    'Extract Safely',
-    'Leave No Trace',
-    'Complete Mission',
-    'Get The Gold',
-    'Walk The Path',
-    'Sharpen The Blade',
-    'Master The Craft',
-    'Serve No Master',
-    'Honor The Code',
-    'Strike With Precision',
-    'Mind Like Water',
-    'Protect The Temple',
-    'Endure The Storm',
-    'Seek Perfection',
-    'Conquer The Self',
-    'Silence The Mind',
-    'Forge Your Fate',
-    'Stand Unshaken',
-    'Face The Dawn',
-    'Leave A Legacy'
+    'Accept The Quest', 'Roll For Initiative', 'Slay The Dragon', 'Update The Codex',
+    'Gather Experience', 'Chart The Map', 'Loot The Treasure', 'Rest At Bonfire',
+    'Equip New Skills', 'Defend The Realm', 'Cast The Spell', 'Explore The Wilds',
+    'Craft Your Legend', 'Unlock Achievement', 'Face The Boss', 'Level Up Now',
+    'Acquire Target', 'Execute Contract', 'Stay In Shadows', 'Secure The Asset',
+    'Gather Intelligence', 'Plan The Heist', 'Clean The Scene', 'Collect The Bounty',
+    'Maintain Stealth', 'Reload Weapon', 'Neutralize Threat', 'Confirm The Kill',
+    'Extract Safely', 'Leave No Trace', 'Complete Mission', 'Get The Gold',
+    'Walk The Path', 'Sharpen The Blade', 'Master The Craft', 'Serve No Master',
+    'Honor The Code', 'Strike With Precision', 'Mind Like Water', 'Protect The Temple',
+    'Endure The Storm', 'Seek Perfection', 'Conquer The Self', 'Silence The Mind',
+    'Forge Your Fate', 'Stand Unshaken', 'Face The Dawn', 'Leave A Legacy'
   ];
   const [displayText, setDisplayText] = useState('');
   const [subtitleIndex, setSubtitleIndex] = useState(0);
@@ -68,7 +35,6 @@ export const Header: React.FC = () => {
 
   useEffect(() => {
     const currentText = SUBTITLES[subtitleIndex % SUBTITLES.length];
-
     let tickTime = 100;
     if (isDeleting) tickTime = 50;
 
@@ -95,31 +61,6 @@ export const Header: React.FC = () => {
 
     return () => clearTimeout(timer);
   }, [displayText, isDeleting, subtitleIndex]);
-
-  const handleDownload = () => {
-    exportAllData();
-  };
-
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    importAllData(
-      file,
-      () => {
-        window.location.reload();
-      },
-      (error) => {
-        alert(error);
-      }
-    );
-
-    e.target.value = '';
-  };
 
   return (
     <header
@@ -159,57 +100,27 @@ export const Header: React.FC = () => {
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex items-center gap-2">
+      {/* User / Action Buttons */}
+      <div className="flex items-center gap-3">
+        {user && (
+          <div className="text-[10px] text-[#525252] hidden md:block font-mono">
+            {user.user_metadata?.username || user.email?.split('@')[0]}
+          </div>
+        )}
         <button
-          onClick={handleDownload}
-          className="group relative flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200 bg-[#262626]/60 border border-[#404040]/40 hover:bg-[#404040]/80 hover:-translate-y-px"
-          title="Download Backup"
+          onClick={openSettings}
+          className="group relative flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200 bg-[#262626]/60 border border-[#404040]/40 hover:bg-[#262626] hover:border-[#525252] hover:-translate-y-px"
+          title="Settings"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-4 w-4 transition-transform duration-200 group-hover:translate-y-0.5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="#a3a3a3"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="1.5"
-              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-            />
-          </svg>
+          <Settings size={16} className="text-[#a3a3a3] group-hover:text-[#e5e5e5] transition-colors" />
         </button>
-
-        {/* Upload Button */}
         <button
-          onClick={handleUploadClick}
-          className="group relative flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200 bg-[#262626]/60 border border-[#404040]/40 hover:bg-[#404040]/80 hover:-translate-y-px"
-          title="Upload Backup"
+          onClick={signOut}
+          className="group relative flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200 bg-[#262626]/60 border border-[#404040]/40 hover:bg-[#ef4444]/20 hover:border-[#ef4444]/40 hover:-translate-y-px"
+          title="Sign Out"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-4 w-4 transition-transform duration-200 group-hover:-translate-y-0.5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="#a3a3a3"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="1.5"
-              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-            />
-          </svg>
+          <LogOut size={16} className="text-[#a3a3a3] group-hover:text-[#ef4444] transition-colors" />
         </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".json"
-          onChange={handleFileChange}
-          className="hidden"
-        />
       </div>
     </header>
   );
