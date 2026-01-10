@@ -66,18 +66,30 @@ export const api = {
   // ==========================================
 
   async fetchNotes() {
+    // 1. Lazy Cleanup: Delete notes older than 7 days
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    // Fire and forget cleanup (don't await to block render)
+    supabase
+      .from('notes')
+      .delete()
+      .not('deleted_at', 'is', null)
+      .lt('deleted_at', sevenDaysAgo.toISOString())
+      .then(({ error }) => {
+        if (error) console.error('Auto-cleanup failed:', error);
+      });
+
+    // 2. Fetch ALL notes (including deleted ones for Recycle Bin)
     const { data, error } = await supabase
       .from('notes')
       .select('*')
-      .is('deleted_at', null) // Only active notes
-      .order('is_pinned', { ascending: false }) // Pinned first
-      .order('created_at', { ascending: false }); // Newest first
+      // .is('deleted_at', null) // REMOVED: Fetch everything so client can filter
+      .order('is_pinned', { ascending: false })
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
     
-    // Map DB fields to Frontend fields if necessary (snake_case -> camelCase)
-    // Currently relying on TS to handle it, but DB returns snake_case.
-    // We should map it manually to be safe and match NoteItem interface.
     return data.map((d: any) => ({
       id: d.id,
       content: d.content,
