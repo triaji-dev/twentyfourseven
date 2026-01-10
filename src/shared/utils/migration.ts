@@ -14,37 +14,24 @@ export const migrateLocalData = async (
       try {
         const categories = JSON.parse(settingsJson);
         if (Array.isArray(categories)) {
-          console.log('Migration: Found categories array, saving...');
           await api.saveSettings(categories);
         } else if (categories && typeof categories === 'object' && categories.categories) {
              // Handle potential { categories: [...] } wrapper
-             console.log('Migration: Found wrapped categories object, saving...');
              await api.saveSettings(categories.categories);
         } else {
-            console.warn('Migration: Settings format unrecognized', categories);
             onProgress('Warning: Settings format unrecognized.');
         }
       } catch (e) {
         console.error('Migration: Failed to parse settings', e);
         onProgress('Error: Failed to migrate settings.');
       }
-    } else {
-        console.log('Migration: No settings found in localStorage.');
     }
 
     // 2. Activities
     onProgress('Migrating activities...');
     const allActivities: { year: number, month: number, day: number, hour: number, value: ActivityKey }[] = [];
     
-    console.log(`Migration: Scanning ${localStorage.length} localStorage items...`);
-    let foundKeysCount = 0;
-    
-    // DEBUG: Log first 20 keys to see what we are dealing with
-    console.log('--- DEBUG KEYS START ---');
-    for(let j=0; j<Math.min(localStorage.length, 20); j++) {
-        console.log(`Key[${j}]:`, localStorage.key(j));
-    }
-    console.log('--- DEBUG KEYS END ---');
+
 
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -62,7 +49,7 @@ export const migrateLocalData = async (
                 const hour = parseInt(parts[4]);
 
                 if (!isNaN(year) && !isNaN(month) && !isNaN(day) && !isNaN(hour)) {
-                    foundKeysCount++;
+
                     const raw = localStorage.getItem(key);
                     if (raw) {
                         // Value might be pure string or JSON string.
@@ -97,8 +84,7 @@ export const migrateLocalData = async (
                                 const day = parseInt(dStr);
                                 const hour = parseInt(hStr);
                                 if (!isNaN(day) && !isNaN(hour) && value) {
-                                    allActivities.push({ year, month, day, hour, value: value as ActivityKey }); 
-                                    foundKeysCount++;
+                                    allActivities.push({ year, month, day, hour, value: value as ActivityKey });
                                 }
                             });
                         } catch (e) {
@@ -110,20 +96,17 @@ export const migrateLocalData = async (
         }
     }
     
-    console.log(`Migration: Found ${foundKeysCount} matching keys.`);
-    console.log(`Migration: Collected ${allActivities.length} individual activity records.`);
+
 
     if (allActivities.length > 0) {
         onProgress(`Saving ${allActivities.length} activities...`);
         try {
             await api.saveActivitiesBulk(allActivities);
-            console.log('Migration: Bulk save completed.');
         } catch (e) {
             console.error('Migration: Bulk save failed', e);
             throw e; // Re-throw to be caught by main try-catch
         }
     } else {
-        console.warn('Migration: No activities found to save.');
         onProgress('Warning: No activities found to migrate.');
     }
 
@@ -144,11 +127,7 @@ export const migrateLocalData = async (
                         // Note: Parsed might be array (legacy) or object
                         let notesList: NoteItem[] = [];
                         if (Array.isArray(parsed)) {
-                            // Legacy format? Assuming object structure from useNotes analysis
-                            // If array, what structure?
-                            // useNotes logic: "if (Array.isArray(parsed)) setNotes({})" -> It treated array as invalid/empty or different format?
-                            // Let's assume object Record<string, NoteItem[]>
-                            // Actually useNotes.tsx had: if (Array.isArray(parsed)) setNotes({}) which implies it didn't support array.
+                            // Legacy format not supported or empty
                         } else {
                             Object.values(parsed).forEach((dayNotes: any) => {
                                 if (Array.isArray(dayNotes)) {
@@ -157,23 +136,34 @@ export const migrateLocalData = async (
                             });
                         }
 
+                        // Helper to ensure valid ISO string for Supabase timestamptz
+                        const safeISO = (val: any): string | undefined => {
+                            if (!val) return undefined;
+                            const d = new Date(val);
+                            return isNaN(d.getTime()) ? undefined : d.toISOString();
+                        };
+
                         for (const note of notesList) {
-                            // Create note
-                            // api.createNote accepts Partial<NoteItem>
-                            // We should preserve createdAt if possible.
-                            // NoteItem has createdAt.
                             const { type } = processNoteContent(note.content);
-                                await api.createNote({
-                                content: note.content, // Preserve original content
+                            
+                            const payload = {
+                                content: note.content,
                                 type: note.type || type,
-                                isDone: note.isDone,
+                                isDone: note.isDone, 
                                 isPinned: note.isPinned,
-                                createdAt: note.createdAt,
-                                completedAt: note.completedAt,
-                                deletedAt: note.deletedAt,
-                                updatedAt: note.updatedAt,
-                                id: note.id // Important for UPSERT/Restore
-                            });
+                                createdAt: safeISO(note.createdAt),
+                                completedAt: safeISO(note.completedAt),
+                                deletedAt: safeISO(note.deletedAt),
+                                updatedAt: safeISO(note.updatedAt),
+                                id: note.id 
+                            };
+
+                            try {
+                                await api.createNote(payload);
+                            } catch (error) {
+                                console.error(`Migration: Failed to save note ${note.id}`, error);
+                                // Continue with other notes instead of crashing entire migration
+                            }
                         }
                     } catch (e) {
                          console.error(`Migration: Failed to parse notes for ${key}`, e);
