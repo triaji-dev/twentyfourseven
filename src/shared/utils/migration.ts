@@ -23,6 +23,8 @@ export const migrateLocalData = async (
 
     // 2. Activities
     onProgress('Migrating activities...');
+    const allActivities: { year: number, month: number, day: number, hour: number, value: ActivityKey }[] = [];
+
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key?.startsWith('twentyfourseven-data-')) {
@@ -36,7 +38,6 @@ export const migrateLocalData = async (
                    try {
                        const parsed = JSON.parse(raw);
                        // parsed is object: { "1-0": "A", "1-1": "B" ... } keys are "day-hour"
-                       const promises: Promise<any>[] = [];
                        Object.entries(parsed).forEach(([cellKey, value]) => {
                            const [dStr, hStr] = cellKey.split('-');
                            const day = parseInt(dStr);
@@ -44,18 +45,20 @@ export const migrateLocalData = async (
                            const val = value as ActivityKey;
 
                            if (!isNaN(day) && !isNaN(hour) && val) {
-                               // Sequential or parallel? Parallel might hit rate limits, but let's try batching or just parallel for now.
-                               // Supabase handles concurrency well enough for single user volume.
-                               promises.push(api.saveActivity(year, month, day, hour, val));
+                               allActivities.push({ year, month, day, hour, value: val });
                            }
                        });
-                       await Promise.all(promises);
                    } catch (e) {
                        console.error(`Migration: Failed to parse activities for ${key}`, e);
                    }
                }
             }
         }
+    }
+
+    if (allActivities.length > 0) {
+        onProgress(`Saving ${allActivities.length} activities...`);
+        await api.saveActivitiesBulk(allActivities);
     }
 
     // 3. Notes

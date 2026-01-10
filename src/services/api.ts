@@ -61,6 +61,36 @@ export const api = {
     }
   },
 
+  async saveActivitiesBulk(records: { year: number, month: number, day: number, hour: number, value: ActivityKey }[]) {
+     const { data: { user } } = await supabase.auth.getUser();
+     if (!user) throw new Error('User not logged in');
+
+     if (records.length === 0) return;
+
+     // Transform to DB format
+     const dbRecords = records.map(r => ({
+       user_id: user.id,
+       date: `${r.year}-${String(r.month + 1).padStart(2, '0')}-${String(r.day).padStart(2, '0')}`,
+       hour: r.hour,
+       value: r.value
+     })).filter(r => r.value !== ''); // Ensure we don't insert empty values
+
+     // Perform bulk upsert
+     // Note: Splitting into chunks of 1000 to be safe
+     const chunkSize = 1000;
+     for (let i = 0; i < dbRecords.length; i += chunkSize) {
+        const chunk = dbRecords.slice(i, i + chunkSize);
+        const { error } = await supabase
+          .from('activities')
+          .upsert(chunk, { onConflict: 'user_id,date,hour' });
+        
+        if (error) {
+            console.error('Bulk save error:', error);
+            throw error;
+        }
+     }
+  },
+
   // ==========================================
   // NOTES
   // ==========================================
@@ -185,7 +215,7 @@ export const api = {
         user_id: user.id,
         categories: categories,
         updated_at: new Date().toISOString()
-      });
+      }, { onConflict: 'user_id' }); // Explicitly state conflict target
 
     if (error) throw error;
   }
