@@ -137,16 +137,26 @@ export const api = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not logged in');
 
+    // Use upsert to allow overwriting/restoring notes with same ID
     const { data, error } = await supabase
       .from('notes')
-      .insert({
+      .upsert({
         user_id: user.id,
+        // If ID provided (restore), use it. Otherwise Supabase generates one?
+        // upsert requires Primary Key for conflict. 
+        // If note.id is missing, upsert works as insert if we let DB auto-gen?
+        // Supabase/PG upsert works on conflict. If no ID, it inserts.
+        // But we need to pass ID if it exists.
+        ...(note.id ? { id: note.id } : {}), 
         content: note.content || '',
         type: note.type || 'text',
         is_completed: note.isDone || false,
         is_pinned: note.isPinned || false,
         created_at: note.createdAt || new Date().toISOString(),
-      })
+        completed_at: note.completedAt,
+        updated_at: note.updatedAt,
+        deleted_at: note.deletedAt
+      }, { onConflict: 'id' }) // Conflict on 'id'
       .select()
       .single();
 
