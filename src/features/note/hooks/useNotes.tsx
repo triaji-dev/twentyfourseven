@@ -593,8 +593,8 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
     lines.slice(1).forEach(line => {
       createNoteMutation.mutate({
         content: line,
-        type: note.type, // Copy type?
-        createdAt: new Date().toISOString() // Or same date?
+        type: note.type, 
+        createdAt: note.createdAt 
       });
     });
   }, [serverNotes, updateNoteMutation, createNoteMutation]);

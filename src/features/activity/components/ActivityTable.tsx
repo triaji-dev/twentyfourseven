@@ -408,7 +408,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
           <table className="min-w-[800px] text-center" onPaste={handlePaste}>
             <thead className="sticky top-0 z-10 bg-[#0a0a0a]">
               <tr className="h-5">
-                <th className="hour-header border-none bg-[#0a0a0a]"></th>
+                <th className="hour-header border-none bg-[#0a0a0a] sticky left-0 z-30"></th>
                 {Array.from({ length: 31 }, (_, i) => i + 1).map(d => {
                   const isInvalid = d > daysInMonth;
                   const today = new Date();
@@ -429,7 +429,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                 })}
               </tr>
               <tr className="h-5">
-                <th className="hour-header border-none bg-[#0a0a0a]"></th>
+                <th className="hour-header border-none bg-[#0a0a0a] sticky left-0 z-30"></th>
                 {Array.from({ length: 31 }, (_, i) => i + 1).map(d => {
                   const isInvalid = d > daysInMonth;
                   const dayIndex = isInvalid ? 0 : new Date(year, month, d).getDay();
@@ -452,7 +452,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
             <tbody>
               {Array.from({ length: 24 }, (_, hour) => (
                 <tr key={hour}>
-                  <td className="hour-header">{hour.toString().padStart(2, '0')}</td>
+                  <td className="hour-header sticky left-0 z-20 bg-[#171717]">{hour.toString().padStart(2, '0')}</td>
                   {Array.from({ length: 31 }, (_, i) => i + 1).map(day => {
                     const isInvalid = day > daysInMonth;
                     const value = isInvalid ? '' : (activityMap[`${day}-${hour}`] || '');

@@ -79,7 +79,7 @@ export const DateNavigator: React.FC<DateNavigatorProps> = ({ date, onDateChange
           disabled={disabled}
           className={`flex-1 flex items-center justify-center gap-2 px-2 text-sm font-playfair font-medium transition-colors ${disabled ? 'text-[#525252] cursor-not-allowed' : 'text-[#d4d4d4] hover:text-white'}`}
         >
-          {date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          {date.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' })}
           {(() => {
             const today = new Date();
             if (date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear()) {

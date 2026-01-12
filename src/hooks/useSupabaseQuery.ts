@@ -20,6 +20,13 @@ export const useActivities = (year: number, month: number) => {
   });
 };
 
+export const useAllActivities = () => {
+  return useQuery({
+    queryKey: ['activities', 'all'],
+    queryFn: () => api.fetchAllActivities()
+  });
+};
+
 export const useUpdateActivity = () => {
   const queryClient = useQueryClient();
 
@@ -29,6 +36,7 @@ export const useUpdateActivity = () => {
     onSuccess: (_, variables) => {
       // Invalidate relevant cache to trigger refetch
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.activities(variables.year, variables.month) });
+      queryClient.invalidateQueries({ queryKey: ['activities', 'all'] });
     },
   });
 };

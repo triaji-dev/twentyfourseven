@@ -7,6 +7,7 @@ import { useStore } from './shared/store/useStore';
 import { useKeyboardShortcuts } from './shared/hooks/useKeyboardShortcuts';
 import { useStats } from './features/statistic/hooks/useStats';
 import './index.css';
+import { useState, useEffect } from 'react';
 
 // Auth & Query Imports
 import { AuthProvider, useAuth } from './features/auth/AuthProvider';
@@ -29,13 +30,32 @@ function Dashboard() {
   useKeyboardShortcuts();
   const stats = useStats(year, month);
 
-  return (
-    <div className="p-2 min-h-screen lg:h-screen lg:overflow-hidden">
-      <Header />
+  // Mobile State
+  const [activeMobileTab, setActiveMobileTab] = useState<'activity' | 'stats' | 'notes'>('activity');
+  const [isMobile, setIsMobile] = useState(false);
 
-      <main className="main-container flex flex-col lg:flex-row gap-2 h-auto lg:h-[calc(100vh-80px)] overflow-y-auto lg:overflow-hidden">
-        {/* Activity Table - Takes remaining space */}
-        <div className="flex-1 min-w-0 min-h-[500px] lg:h-full">
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 1024);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  return (
+    <div className="min-h-[100dvh] h-[100dvh] lg:h-screen lg:overflow-hidden flex flex-col bg-[#09090b]">
+      <div className="flex-shrink-0 px-2 pt-2">
+        <Header />
+      </div>
+
+      <main className="flex-1 relative overflow-hidden lg:flex lg:flex-row lg:gap-2 lg:h-[calc(100vh-80px)] lg:pb-0 px-2">
+        {/* Activity Table */}
+        <div
+          className={`transition-all duration-300 
+            ${isMobile
+              ? `absolute inset-0 overflow-y-auto pb-20 px-2 ${activeMobileTab === 'activity' ? 'z-10 bg-[#09090b]' : 'z-0 opacity-0 pointer-events-none'}`
+              : 'lg:h-full lg:flex-1'
+            }`}
+        >
           <ActivityTable
             year={year}
             month={month}
@@ -55,22 +75,52 @@ function Dashboard() {
           />
         </div>
 
-        {/* Stats Panel - Fixed width or minimized */}
+        {/* Stats Panel */}
         <div
-          className={`transition-all duration-300 ease-in-out flex-shrink-0 w-full lg:w-[var(--stats-width)] ${statsPanelMode === 'minimized' ? 'h-[48px]' : 'h-[400px] lg:min-w-[320px]'} lg:h-full`}
+          className={`transition-all duration-300 ease-in-out lg:flex-shrink-0 lg:w-[var(--stats-width)]
+            ${isMobile
+              ? `absolute inset-0 overflow-y-auto pb-20 px-2 ${activeMobileTab === 'stats' ? 'z-10 bg-[#09090b]' : 'z-0 opacity-0 pointer-events-none'}`
+              : `${statsPanelMode === 'minimized' ? 'h-[48px]' : 'h-[400px] lg:min-w-[320px]'} lg:h-full`
+            }`}
           style={{ '--stats-width': statsPanelMode === 'minimized' ? '48px' : '25%' } as React.CSSProperties}
         >
           <Stats stats={stats} year={year} month={month} />
         </div>
 
-        {/* Notes Panel - Fixed width or minimized */}
+        {/* Notes Panel */}
         <div
-          className={`transition-all duration-300 ease-in-out flex-shrink-0 w-full lg:w-[var(--notes-width)] ${notesPanelMode === 'minimized' ? 'h-[48px]' : 'h-[400px] lg:min-w-[320px]'} lg:h-full`}
+          className={`transition-all duration-300 ease-in-out lg:flex-shrink-0 lg:w-[var(--notes-width)]
+            ${isMobile
+              ? `absolute inset-0 overflow-y-auto pb-20 px-2 ${activeMobileTab === 'notes' ? 'z-10 bg-[#09090b]' : 'z-0 opacity-0 pointer-events-none'}`
+              : `${notesPanelMode === 'minimized' ? 'h-[48px]' : 'h-[400px] lg:min-w-[320px]'} lg:h-full`
+            }`}
           style={{ '--notes-width': notesPanelMode === 'minimized' ? '48px' : '25%' } as React.CSSProperties}
         >
           <NotesPanel year={year} month={month} />
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#09090b]/90 backdrop-blur-xl border-t border-[#262626] p-2 flex justify-around z-50 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.5)]">
+        <button
+          onClick={() => setActiveMobileTab('activity')}
+          className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all duration-300 ${activeMobileTab === 'activity' ? 'bg-[#262626] text-[#e5e5e5]' : 'text-[#525252] hover:text-[#a3a3a3]'}`}
+        >
+          <span className="text-xs font-playfair font-bold tracking-widest uppercase">Activity</span>
+        </button>
+        <button
+          onClick={() => setActiveMobileTab('stats')}
+          className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all duration-300 ${activeMobileTab === 'stats' ? 'bg-[#262626] text-[#e5e5e5]' : 'text-[#525252] hover:text-[#a3a3a3]'}`}
+        >
+          <span className="text-xs font-playfair font-bold tracking-widest uppercase">Stats</span>
+        </button>
+        <button
+          onClick={() => setActiveMobileTab('notes')}
+          className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all duration-300 ${activeMobileTab === 'notes' ? 'bg-[#262626] text-[#e5e5e5]' : 'text-[#525252] hover:text-[#a3a3a3]'}`}
+        >
+          <span className="text-xs font-playfair font-bold tracking-widest uppercase">Notes</span>
+        </button>
+      </div>
 
       {/* Settings Modal */}
       <SettingsModal />

@@ -32,6 +32,48 @@ export const api = {
     return data as ActivityRecord[];
   },
 
+  // Fetch ALL activities (for stats)
+  // Fetch ALL activities (for stats)
+  async fetchAllActivities() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        console.error('fetchAllActivities: User not logged in');
+        return [];
+    }
+
+    let allData: ActivityRecord[] = [];
+    const PAGE_SIZE = 1000;
+    let page = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+        const { data, error } = await supabase
+          .from('activities')
+          .select('*')
+          .eq('user_id', user.id)
+          .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+        if (error) {
+            console.error('fetchAllActivities Error:', error);
+            throw error;
+        }
+
+        if (data) {
+            allData = [...allData, ...data as ActivityRecord[]];
+            if (data.length < PAGE_SIZE) {
+                hasMore = false;
+            } else {
+                page++;
+            }
+        } else {
+            hasMore = false;
+        }
+    }
+    
+    // console.log('fetchAllActivities Total:', allData.length);
+    return allData;
+  },
+
   async saveActivity(year: number, month: number, day: number, hour: number, value: ActivityKey) {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const { data: { user } } = await supabase.auth.getUser();

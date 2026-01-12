@@ -48,7 +48,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ year, month }) => {
             </button>
             <button
               onClick={() => setMode('minimized')}
-              className="text-[#737373] hover:text-[#e5e5e5] transition-colors p-1 rounded-md hover:bg-[#262626]"
+              className="text-[#737373] hover:text-[#e5e5e5] transition-colors p-1 rounded-md hover:bg-[#262626] hidden lg:block"
               title="Minimize"
             >
               <Minimize2 size={16} />

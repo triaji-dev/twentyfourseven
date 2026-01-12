@@ -3,6 +3,7 @@ import { getDaysInMonth } from '../../../shared/utils/storage';
 import { useSettings } from '../../../shared/store/useSettings';
 import { useStore } from '../../../shared/store/useStore';
 import type { MonthStats } from '../../../shared/types';
+import { DateNavigator } from '../../../shared/components/DateNavigator';
 
 type StatsTab = 'daily' | 'monthly' | 'alltime';
 
@@ -10,21 +11,18 @@ interface StatisticProps {
   stats: MonthStats;
   year: number;
   month: number;
+  allTimeStats: MonthStats;
+  allActivities: any[]; // using any for now to avoid extensive type imports, or import ActivityRecord
 }
 
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
-];
 
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-export const Statistic: React.FC<StatisticProps> = ({ stats, year, month }) => {
+export const Statistic: React.FC<StatisticProps> = ({ stats, year, month, allTimeStats, allActivities }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const categories = useSettings((state) => state.categories);
   const activeCell = useStore((state) => state.activeStatsDate);
-  const calculateDayStats = useStore((state) => state.calculateDayStats);
-  const calculateAllTimeStats = useStore((state) => state.calculateAllTimeStats);
+  // const calculateDayStats = useStore((state) => state.calculateDayStats); // Removed
+
   const dataVersion = useStore((state) => state.dataVersion);
 
   const [activeTab, setActiveTab] = useState<StatsTab>('daily');
@@ -40,13 +38,31 @@ export const Statistic: React.FC<StatisticProps> = ({ stats, year, month }) => {
 
   const displayStats = useMemo(() => {
     if (activeTab === 'daily' && activeCell) {
-      return calculateDayStats(activeCell.year, activeCell.month, activeCell.day);
+      // Calculate daily stats from allActivities
+      const dayStats: Record<string, number> = {};
+      let dayTotalHours = 0;
+
+      if (allActivities) {
+        const targetDateStr = `${activeCell.year}-${String(activeCell.month + 1).padStart(2, '0')}-${String(activeCell.day).padStart(2, '0')}`;
+
+        allActivities.forEach((a: any) => {
+          if (a.date === targetDateStr) {
+            const val = a.value?.trim();
+            if (val && /^[A-Z]$/.test(val)) {
+              dayStats[val] = (dayStats[val] || 0) + 1;
+              dayTotalHours++;
+            }
+          }
+        });
+      }
+      return { stats: dayStats, totalHours: dayTotalHours };
+
     } else if (activeTab === 'alltime') {
-      return calculateAllTimeStats();
+      return allTimeStats;
     }
     return stats;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, activeCell, stats, dataVersion]);
+  }, [activeTab, activeCell, stats, allTimeStats, dataVersion, allActivities]);
 
   useEffect(() => {
     setActiveTab('daily');
@@ -56,21 +72,12 @@ export const Statistic: React.FC<StatisticProps> = ({ stats, year, month }) => {
     if (activeTab === 'daily') {
       return 24;
     } else if (activeTab === 'alltime') {
-      return displayStats.totalHours;
+      return allTimeStats.totalHours;
     }
     return getDaysInMonth(year, month) * 24;
-  }, [activeTab, year, month, displayStats.totalHours]);
+  }, [activeTab, year, month, displayStats.totalHours, allTimeStats]);
 
-  const getTabTitle = () => {
-    if (activeTab === 'daily' && activeCell) {
-      const date = new Date(activeCell.year, activeCell.month, activeCell.day);
-      const dayName = DAY_NAMES[date.getDay()];
-      return `${dayName}, ${activeCell.day} ${MONTH_NAMES[activeCell.month]} ${activeCell.year}`;
-    } else if (activeTab === 'alltime') {
-      return 'All Time Statistics';
-    }
-    return `${MONTH_NAMES[month]} ${year}`;
-  };
+
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -224,9 +231,36 @@ export const Statistic: React.FC<StatisticProps> = ({ stats, year, month }) => {
         </button>
       </div>
 
-      <h2 className="text-xl font-playfair tracking-wide mb-3 text-center" style={{ color: '#a3a3a3' }}>
-        {getTabTitle()}
-      </h2>
+      <div className="flex justify-center mb-3">
+        {activeTab === 'alltime' ? (
+          <h2 className="text-xl font-playfair tracking-wide text-[#a3a3a3]">
+            All Time Statistics
+          </h2>
+        ) : (
+          <DateNavigator
+            date={
+              activeTab === 'daily' && activeCell
+                ? new Date(activeCell.year, activeCell.month, activeCell.day)
+                : new Date(year, month, 1)
+            }
+            onDateChange={(newDate) => {
+              if (activeTab === 'daily') {
+                useStore.getState().setActiveStatsDate({
+                  year: newDate.getFullYear(),
+                  month: newDate.getMonth(),
+                  day: newDate.getDate(),
+                  hour: 0
+                });
+                // Also update global current date to keep context if switching back to tables
+                useStore.getState().setCurrentDate(newDate);
+              } else {
+                useStore.getState().setCurrentDate(newDate);
+              }
+            }}
+            className="bg-transparent border-none p-0 hover:bg-transparent"
+          />
+        )}
+      </div>
 
       {displayStats.totalHours > 0 ? (
         <div className="flex justify-center mb-6 relative">

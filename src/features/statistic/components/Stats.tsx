@@ -41,14 +41,23 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
 
           <button
             onClick={() => setMode('minimized')}
-            className="text-[#737373] hover:text-[#e5e5e5] transition-colors p-1 rounded-md hover:bg-[#262626]"
+            className="text-[#737373] hover:text-[#e5e5e5] transition-colors p-1 rounded-md hover:bg-[#262626] hidden lg:block"
             title="Minimize"
           >
             <Minimize2 size={16} />
           </button>
         </div>
 
-        <Statistic stats={stats} year={year} month={month} />
+        <Statistic
+          stats={stats}
+          year={year}
+          month={month}
+          allTimeStats={{
+            stats: (stats as any).allTimeStats,
+            totalHours: (stats as any).allTimeTotalHours
+          }}
+          allActivities={(stats as any).allActivities || []}
+        />
       </div>
     </div>
   );

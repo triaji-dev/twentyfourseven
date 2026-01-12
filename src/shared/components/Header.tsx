@@ -133,15 +133,15 @@ export const Header: React.FC = () => {
 
   return (
     <header
-      className="flex items-center justify-between px-5 py-2 rounded-xl mb-2 relative z-[60] backdrop-blur-xl border border-[#404040]/50 shadow-[0_4px_24px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)]"
+      className="flex items-center justify-between px-3 md:px-5 py-1.5 md:py-2 rounded-xl mb-2 relative z-[60] backdrop-blur-xl border border-[#404040]/50 shadow-[0_4px_24px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)]"
       style={{
         background: 'linear-gradient(135deg, rgba(23, 23, 23, 0.95) 0%, rgba(38, 38, 38, 0.9) 100%)'
       }}
     >
       {/* Logo Section */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 md:gap-3">
         <div
-          className="flex items-center justify-center w-12 h-12 rounded-full"
+          className="flex items-center justify-center w-9 h-9 md:w-12 md:h-12 rounded-full"
           style={{
             background: 'linear-gradient(135deg, #000000ff 0%, #1f1f1fff 100%)',
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)'
@@ -150,7 +150,7 @@ export const Header: React.FC = () => {
           <img
             src="/logo/247.svg"
             alt="247"
-            className="w-11 h-11"
+            className="w-8 h-8 md:w-11 md:h-11"
             style={{
               filter: 'brightness(0) invert(1)',
               transform: `rotate(${rotation}deg)`,
@@ -159,10 +159,10 @@ export const Header: React.FC = () => {
           />
         </div>
         <div className="flex flex-col">
-          <span className="text-xl font-playfair tracking-wider text-[#f5f5f5]">
+          <span className="text-base md:text-xl font-playfair tracking-wider text-[#f5f5f5]">
             TwentyFourSeven
           </span>
-          <span className="text-[10px] font-normal tracking-wider uppercase min-w-[120px] text-[#525252]">
+          <span className="text-[10px] font-normal tracking-wider uppercase min-w-[120px] text-[#525252] hidden md:block">
             {displayText}
             <span className="animate-pulse ml-0.5 font-bold">|</span>
           </span>
@@ -170,7 +170,7 @@ export const Header: React.FC = () => {
       </div>
 
       {/* User / Action Buttons */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 md:gap-3 scale-90 md:scale-100 origin-right">
         {user && (
           <div className="text-[10px] text-[#525252] hidden md:block font-mono">
             {user.user_metadata?.username || user.email?.split('@')[0]}
@@ -180,23 +180,23 @@ export const Header: React.FC = () => {
         {/* Backup Button (Download) */}
         <button
           onClick={handleDownload}
-          className="group relative flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200 bg-[#262626]/60 border border-[#404040]/40 hover:bg-[#262626] hover:border-[#525252] hover:-translate-y-px"
+          className="group relative flex items-center justify-center w-8 h-8 md:w-9 md:h-9 rounded-lg transition-all duration-200 bg-[#262626]/60 border border-[#404040]/40 hover:bg-[#262626] hover:border-[#525252] hover:-translate-y-px"
           title="Backup Data"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#a3a3a3] group-hover:text-[#e5e5e5] transition-colors"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#a3a3a3] group-hover:text-[#e5e5e5] transition-colors"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
         </button>
 
         {/* Restore Button (Upload) */}
         <button
           onClick={handleUploadClick}
-          className="group relative flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200 bg-[#262626]/60 border border-[#404040]/40 hover:bg-[#262626] hover:border-[#525252] hover:-translate-y-px"
+          className="group relative flex items-center justify-center w-8 h-8 md:w-9 md:h-9 rounded-lg transition-all duration-200 bg-[#262626]/60 border border-[#404040]/40 hover:bg-[#262626] hover:border-[#525252] hover:-translate-y-px"
           title="Restore Data"
           disabled={isRestoring}
         >
           {isRestoring ? (
             <div className="w-3 h-3 border-2 border-[#a3a3a3] border-t-transparent rounded-full animate-spin" />
           ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#a3a3a3] group-hover:text-[#e5e5e5] transition-colors"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" x2="12" y1="3" y2="15" /></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#a3a3a3] group-hover:text-[#e5e5e5] transition-colors"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" x2="12" y1="3" y2="15" /></svg>
           )}
         </button>
         <input
@@ -209,10 +209,10 @@ export const Header: React.FC = () => {
 
         <button
           onClick={signOut}
-          className="group relative flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200 bg-[#262626]/60 border border-[#404040]/40 hover:bg-[#ef4444]/20 hover:border-[#ef4444]/40 hover:-translate-y-px"
+          className="group relative flex items-center justify-center w-8 h-8 md:w-9 md:h-9 rounded-lg transition-all duration-200 bg-[#262626]/60 border border-[#404040]/40 hover:bg-[#ef4444]/20 hover:border-[#ef4444]/40 hover:-translate-y-px"
           title="Sign Out"
         >
-          <LogOut size={16} className="text-[#a3a3a3] group-hover:text-[#ef4444] transition-colors" />
+          <LogOut size={14} className="text-[#a3a3a3] group-hover:text-[#ef4444] transition-colors" />
         </button>
       </div>
     </header>

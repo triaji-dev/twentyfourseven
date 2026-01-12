@@ -1,4 +1,5 @@
 import { forwardRef, useImperativeHandle, useRef, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { DateNavigator, DatePicker } from '../../../shared/components/DateNavigator';
 import { extractTags } from '../../../shared/utils/notes';
 import {
@@ -680,8 +681,15 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
                     .toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                 </span>
               </div>
-              {isInputDatePickerOpen && (
-                <div className="absolute bottom-full left-0 mb-2 z-50">
+              {isInputDatePickerOpen && createPortal(
+                <div
+                  className="fixed z-[9999]"
+                  style={{
+                    top: (inputDatePickerRef.current?.getBoundingClientRect().top ?? 0) - 8,
+                    left: (inputDatePickerRef.current?.getBoundingClientRect().left ?? 0),
+                    transform: 'translateY(-100%)'
+                  }}
+                >
                   <DatePicker
                     selectedDate={activeCell ? new Date(activeCell.year, activeCell.month, activeCell.day) : new Date()}
                     onChange={(d) => {
@@ -694,7 +702,8 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
                     }}
                     datesWithNotes={datesWithNotes}
                   />
-                </div>
+                </div>,
+                document.body
               )}
             </div>
 
@@ -722,8 +731,15 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
                 </span>
               </div>
 
-              {isInputTypeMenuOpen && (
-                <div className="absolute bottom-full left-0 mb-1 w-32 bg-[#171717] border border-[#262626] rounded-lg shadow-xl overflow-hidden z-50 py-1">
+              {isInputTypeMenuOpen && createPortal(
+                <div
+                  className="fixed z-[9999] bg-[#171717] border border-[#262626] rounded-lg shadow-xl overflow-hidden py-1 w-32"
+                  style={{
+                    top: (inputTypeMenuRef.current?.getBoundingClientRect().top ?? 0) - 4,
+                    left: (inputTypeMenuRef.current?.getBoundingClientRect().left ?? 0),
+                    transform: 'translateY(-100%)'
+                  }}
+                >
                   {(['text', 'important', 'todo'] as NoteType[]).map(type => (
                     <div
                       key={type}
@@ -740,7 +756,8 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
                       <span className="capitalize">{type}</span>
                     </div>
                   ))}
-                </div>
+                </div>,
+                document.body
               )}
             </div>
 
@@ -792,30 +809,37 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
                   )}
                 </div>
 
-                {isInputTagMenuOpen && (
-                  <div className="absolute bottom-full left-0 mb-1 w-48 bg-[#171717] border border-[#262626] rounded-lg shadow-xl overflow-hidden max-h-[150px] overflow-y-auto z-50 custom-scrollbar">
+                {isInputTagMenuOpen && createPortal(
+                  <div
+                    className="fixed z-[9999] bg-[#171717] border border-[#262626] rounded-lg shadow-xl overflow-hidden max-h-[150px] overflow-y-auto custom-scrollbar w-48"
+                    style={{
+                      top: (inputTagMenuRef.current?.getBoundingClientRect().top ?? 0) - 4,
+                      left: (inputTagMenuRef.current?.getBoundingClientRect().left ?? 0),
+                      transform: 'translateY(-100%)'
+                    }}
+                  >
                     <div className="px-3 py-1.5 text-[10px] font-semibold text-[#525252] border-b border-[#262626]">
                       Last Used / All Tags
                     </div>
                     {allTags.length === 0 && (
-                      <div className="px-3 py-2 text-[10px] text-[#525252] italic">No tags found</div>
+                      <div className="px-3 py-2 text-[10px] text-[#525252] italic">No tags created yet</div>
                     )}
                     {allTags.map(([tag]) => (
                       <div
                         key={tag}
-                        className={`px-3 py-1.5 text-[10px] cursor-pointer flex items-center justify-between hover:bg-[#262626] ${lastUsedTag === tag ? 'text-[#e5e5e5] bg-[#202020]' : 'text-[#a3a3a3]'}`}
+                        className="px-3 py-1.5 text-[10px] text-[#a3a3a3] hover:text-[#e5e5e5] hover:bg-[#202020] cursor-pointer flex items-center justify-between group"
                         onClick={() => {
-                          if (lastUsedTag === tag) setLastUsedTag(null);
-                          else setLastUsedTag(tag);
+                          setSelectedTag(tag);
+                          setLastUsedTag(tag);
                           setIsInputTagMenuOpen(false);
-                          addNoteInputRef.current?.focus();
                         }}
                       >
-                        <span>{tag.replace(/^#/, '')}</span>
-                        {lastUsedTag === tag && <CheckCircle size={10} className="text-green-400" />}
+                        <span className="truncate">#{tag}</span>
+                        {tag === lastUsedTag && <CheckCircle size={10} className="text-[#525252]" />}
                       </div>
                     ))}
-                  </div>
+                  </div>,
+                  document.body
                 )}
               </>
             </div>
