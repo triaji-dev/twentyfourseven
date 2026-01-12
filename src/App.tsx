@@ -85,7 +85,7 @@ function Dashboard() {
             }`}
           style={{ '--stats-width': statsPanelMode === 'minimized' ? '48px' : '25%' } as React.CSSProperties}
         >
-          <Stats stats={stats} year={year} month={month} />
+          <Stats stats={stats} year={year} month={month} isLoading={stats.isLoading} />
         </div>
 
         {/* Notes Panel */}

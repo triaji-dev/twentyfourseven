@@ -7,17 +7,18 @@ import { DateNavigator } from '../../../shared/components/DateNavigator';
 
 type StatsTab = 'daily' | 'monthly' | 'alltime';
 
+import { Skeleton } from '../../../shared/components/ui/Skeleton';
+
 interface StatisticProps {
   stats: MonthStats;
   year: number;
   month: number;
   allTimeStats: MonthStats;
-  allActivities: any[]; // using any for now to avoid extensive type imports, or import ActivityRecord
+  allActivities: any[];
+  isLoading?: boolean;
 }
 
-
-
-export const Statistic: React.FC<StatisticProps> = ({ stats, year, month, allTimeStats, allActivities }) => {
+export const Statistic: React.FC<StatisticProps> = ({ stats, year, month, allTimeStats, allActivities, isLoading }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const categories = useSettings((state) => state.categories);
   const activeCell = useStore((state) => state.activeStatsDate);
@@ -64,6 +65,27 @@ export const Statistic: React.FC<StatisticProps> = ({ stats, year, month, allTim
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, activeCell, stats, allTimeStats, dataVersion, allActivities]);
 
+
+  // ... (keeping existing hooks: useEffect, useMemo for totalMaxHours, useEffect for canvas, etc.)
+  // Wait, I need to keep the logic for standard flow.
+  // I will replace the RETURN statement block mainly, or insert early return?
+  // No, I prefer conditionally rendering content within layout.
+
+  // Actually, I am replacing the whole file content to be safe or just the top and return?
+  // Replace only relevant parts is cleaner but riskier with context.
+  // I will Replace component definition start and Return block.
+  // But wait, hooks run first. Functional component structure.
+
+  // Can I insert `if (isLoading) return <Skeleton... />`? 
+  // Yes, after hooks.
+
+  // BUT the user wants it to look good.
+  // I should check existing code.
+
+  // I'll stick to modifying the Definition to include prop, and the Return block.
+
+  // Let's modify the RETURN block.
+
   useEffect(() => {
     setActiveTab('daily');
   }, [activeCell]);
@@ -80,62 +102,49 @@ export const Statistic: React.FC<StatisticProps> = ({ stats, year, month, allTim
 
 
   useEffect(() => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current || isLoading) return; // Skip canvas draw if loading
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // ... (rest of canvas drawing logic)
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
     const outerRadius = 90;
     const innerRadius = 65;
     let currentAngle = -0.5 * Math.PI; // Start from top
-
     const { stats: data, totalHours } = displayStats;
-
     categories.forEach((category) => {
       const count = data[category.key] || 0;
       if (count > 0) {
         const sliceAngle = (count / totalHours) * 2 * Math.PI;
-
         ctx.beginPath();
-        // Create donut segment path
         ctx.arc(centerX, centerY, outerRadius, currentAngle, currentAngle + sliceAngle, false);
         ctx.arc(centerX, centerY, innerRadius, currentAngle + sliceAngle, currentAngle, true);
         ctx.closePath();
-
         ctx.fillStyle = category.color;
         ctx.fill();
-
-        // Segment separation
         ctx.lineWidth = 2;
         ctx.strokeStyle = '#171717';
         ctx.stroke();
-
         currentAngle += sliceAngle;
       }
     });
-
-    // Center Text
     if (totalHours > 0) {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-
-      // Total Hours
       ctx.font = '600 24px sans-serif';
       ctx.fillStyle = '#e5e5e5';
       ctx.fillText(totalHours.toString(), centerX, centerY - 8);
-
-      // Label
       ctx.font = '400 10px sans-serif';
       ctx.fillStyle = '#737373';
       ctx.fillText('HOURS', centerX, centerY + 10);
     }
-  }, [displayStats, categories]);
+  }, [displayStats, categories, isLoading]);
 
   const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (isLoading) return;
     // ... same as before
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -233,9 +242,13 @@ export const Statistic: React.FC<StatisticProps> = ({ stats, year, month, allTim
 
       <div className="flex justify-center mb-3">
         {activeTab === 'alltime' ? (
-          <h2 className="text-xl font-playfair tracking-wide text-[#a3a3a3]">
-            All Time Statistics
-          </h2>
+          <DateNavigator
+            date={new Date()} // Date doesn't matter for view all
+            onDateChange={() => { }}
+            isViewAll
+            label="All Time Statistics"
+            className="bg-transparent border-none p-0 hover:bg-transparent w-[260px]" // Consistent width
+          />
         ) : (
           <DateNavigator
             date={
@@ -243,6 +256,7 @@ export const Statistic: React.FC<StatisticProps> = ({ stats, year, month, allTim
                 ? new Date(activeCell.year, activeCell.month, activeCell.day)
                 : new Date(year, month, 1)
             }
+            variant={activeTab === 'monthly' ? 'monthly' : 'daily'}
             onDateChange={(newDate) => {
               if (activeTab === 'daily') {
                 useStore.getState().setActiveStatsDate({
@@ -257,98 +271,117 @@ export const Statistic: React.FC<StatisticProps> = ({ stats, year, month, allTim
                 useStore.getState().setCurrentDate(newDate);
               }
             }}
-            className="bg-transparent border-none p-0 hover:bg-transparent"
+            className="bg-transparent border-none p-0 hover:bg-transparent w-[260px]" // Consistent width
           />
         )}
       </div>
 
-      {displayStats.totalHours > 0 ? (
-        <div className="flex justify-center mb-6 relative">
-          <canvas
-            ref={canvasRef}
-            width="200"
-            height="200"
-            className="rounded-full cursor-crosshair"
-            onMouseMove={handleCanvasMouseMove}
-            onMouseLeave={handleCanvasMouseLeave}
-          />
-          {tooltip.visible && (
-            <div
-              className="fixed z-50 px-3 py-2 bg-[#171717] border border-[#262626] rounded-lg shadow-xl pointer-events-none transform -translate-x-1/2 -translate-y-full mt-[-8px]"
-              style={{ top: tooltip.y, left: tooltip.x }}
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: tooltip.color }} />
-                <span className="text-xs font-medium text-[#e5e5e5] whitespace-nowrap">{tooltip.category}</span>
-              </div>
-              <div className="text-xs text-[#a3a3a3]">
-                {tooltip.hours}h ({tooltip.percentage}%)
-              </div>
-              {/* Arrow */}
-              <div
-                className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-[#262626]"
-              />
-            </div>
-          )}
+      {isLoading ? (
+        <div className="flex flex-col items-center">
+          {/* Chart Skeleton */}
+          <div className="flex justify-center mb-6 relative">
+            <Skeleton className="w-[180px] h-[180px] rounded-full" />
+          </div>
+          {/* List Skeleton */}
+          <div className="w-full space-y-3">
+            <Skeleton className="h-6 w-1/3 mb-4" /> {/* Header */}
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-8 w-full rounded-md" />
+            ))}
+            <Skeleton className="h-6 w-full mt-4" /> {/* Total */}
+          </div>
         </div>
       ) : (
-        <div className="flex justify-center items-center mb-6 h-[200px]" style={{ color: '#525252' }}>
-          <span className="text-xs">No data available</span>
-        </div>
-      )}
-
-
-
-
-      <div className="space-y-3 text-xs flex-1">
-        <h3 className="text-lg font-playfair tracking-wide pb-2 mb-3" style={{ color: '#737373', borderBottom: '1px solid #262626' }}>
-          Categories
-        </h3>
-
-        {categories.map((category) => {
-          const count = displayStats.stats[category.key] || 0;
-          const percentage =
-            displayStats.totalHours > 0 ? ((count / displayStats.totalHours) * 100).toFixed(1) : 0;
-
-          if (count === 0) return null;
-
-          return (
-            <div key={category.key} className="relative py-1.5 px-2 rounded-md overflow-hidden group hover:bg-[#1a1a1a] transition-colors">
-              {/* Bar Chart Background */}
-              <div
-                className="absolute top-0 left-0 bottom-0 bg-[#404040] transition-all duration-500 ease-out"
-                style={{
-                  width: `${percentage}%`,
-                  opacity: 0.4
-                }}
+        <>
+          {displayStats.totalHours > 0 ? (
+            <div className="flex justify-center mb-6 relative">
+              <canvas
+                ref={canvasRef}
+                width="200"
+                height="200"
+                className="rounded-full cursor-crosshair"
+                onMouseMove={handleCanvasMouseMove}
+                onMouseLeave={handleCanvasMouseLeave}
               />
-
-              {/* Content */}
-              <div className="relative z-10 flex items-center justify-between">
-                <div className="flex items-center">
-                  <span
-                    className="inline-block w-2.5 h-2.5 rounded-full mr-2 shadow-sm"
-                    style={{ backgroundColor: category.color }}
+              {tooltip.visible && (
+                <div
+                  className="fixed z-50 px-3 py-2 bg-[#171717] border border-[#262626] rounded-lg shadow-xl pointer-events-none transform -translate-x-1/2 -translate-y-full mt-[-8px]"
+                  style={{ top: tooltip.y, left: tooltip.x }}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: tooltip.color }} />
+                    <span className="text-xs font-medium text-[#e5e5e5] whitespace-nowrap">{tooltip.category}</span>
+                  </div>
+                  <div className="text-xs text-[#a3a3a3]">
+                    {tooltip.hours}h ({tooltip.percentage}%)
+                  </div>
+                  {/* Arrow */}
+                  <div
+                    className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-[#262626]"
                   />
-                  <span className="font-normal" style={{ color: '#d4d4d4' }}>
-                    {category.name}
-                  </span>
                 </div>
-                <span className="font-medium font-mono" style={{ color: '#737373' }}>
-                  {count}h <span className="text-[#404040] mx-1">/</span> {percentage}%
+              )}
+            </div>
+          ) : (
+            <div className="flex justify-center items-center flex-col mb-6 h-[200px] text-[#525252]">
+              <span className="text-xs">No data available</span>
+              <span className="text-xs">Please input activity in the table</span>
+            </div>
+          )}
+
+          {displayStats.totalHours > 0 && (
+            <div className="space-y-3 text-xs flex-1">
+              <h3 className="text-lg font-playfair tracking-wide pb-2 mb-3 text-[#737373] border-b border-[#262626]">
+                Categories
+              </h3>
+
+              {categories.map((category) => {
+                const count = displayStats.stats[category.key] || 0;
+                const percentage =
+                  displayStats.totalHours > 0 ? ((count / displayStats.totalHours) * 100).toFixed(1) : 0;
+
+                if (count === 0) return null;
+
+                return (
+                  <div key={category.key} className="relative py-1.5 px-2 rounded-md overflow-hidden group hover:bg-[#1a1a1a] transition-colors">
+                    {/* Bar Chart Background */}
+                    <div
+                      className="absolute top-0 left-0 bottom-0 bg-[#404040] transition-all duration-500 ease-out"
+                      style={{
+                        width: `${percentage}%`,
+                        opacity: 0.4
+                      }}
+                    />
+
+                    {/* Content */}
+                    <div className="relative z-10 flex items-center justify-between">
+                      <div className="flex items-center">
+                        <span
+                          className="inline-block w-2.5 h-2.5 rounded-full mr-2 shadow-sm"
+                          style={{ backgroundColor: category.color }}
+                        />
+                        <span className="font-normal text-[#d4d4d4]">
+                          {category.name}
+                        </span>
+                      </div>
+                      <span className="font-medium font-mono text-[#737373]">
+                        {count}h <span className="text-[#404040] mx-1">/</span> {percentage}%
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+
+              <div className="pt-3 mt-3 font-normal flex justify-between border-t border-[#262626] text-[#a3a3a3]">
+                <span>Total Activity</span>
+                <span>
+                  {displayStats.totalHours}{activeTab !== 'alltime' ? ` / ${totalMaxHours}h` : 'h'}
                 </span>
               </div>
             </div>
-          );
-        })}
-
-        <div className="pt-3 mt-3 font-normal flex justify-between" style={{ borderTop: '1px solid #262626', color: '#a3a3a3' }}>
-          <span>Total Activity</span>
-          <span>
-            {displayStats.totalHours}{activeTab !== 'alltime' ? ` / ${totalMaxHours}h` : 'h'}
-          </span>
-        </div>
-      </div>
+          )}
+        </>
+      )}
     </div>
   );
 };

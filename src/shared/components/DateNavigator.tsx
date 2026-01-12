@@ -9,9 +9,11 @@ interface DateNavigatorProps {
   children?: React.ReactNode;
   isViewAll?: boolean;
   disabled?: boolean;
+  variant?: 'daily' | 'monthly';
+  label?: string;
 }
 
-export const DateNavigator: React.FC<DateNavigatorProps> = ({ date, onDateChange, className, datesWithNotes, children, isViewAll, disabled }) => {
+export const DateNavigator: React.FC<DateNavigatorProps> = ({ date, onDateChange, className, datesWithNotes, children, isViewAll, disabled, variant = 'daily', label = 'All Notes' }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -26,17 +28,25 @@ export const DateNavigator: React.FC<DateNavigatorProps> = ({ date, onDateChange
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handlePrevDay = (e: React.MouseEvent) => {
+  const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent header click handling
     const newDate = new Date(date);
-    newDate.setDate(date.getDate() - 1);
+    if (variant === 'monthly') {
+      newDate.setMonth(date.getMonth() - 1);
+    } else {
+      newDate.setDate(date.getDate() - 1);
+    }
     onDateChange(newDate);
   };
 
-  const handleNextDay = (e: React.MouseEvent) => {
+  const handleNext = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent header click handling
     const newDate = new Date(date);
-    newDate.setDate(date.getDate() + 1);
+    if (variant === 'monthly') {
+      newDate.setMonth(date.getMonth() + 1);
+    } else {
+      newDate.setDate(date.getDate() + 1);
+    }
     onDateChange(newDate);
   };
 
@@ -50,7 +60,7 @@ export const DateNavigator: React.FC<DateNavigatorProps> = ({ date, onDateChange
       <div ref={containerRef} className={finalClassName} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center flex-1 justify-center">
           <span className="px-2 py-1 text-sm font-playfair font-medium text-[#d4d4d4]">
-            All Notes
+            {label}
           </span>
         </div>
 
@@ -67,7 +77,7 @@ export const DateNavigator: React.FC<DateNavigatorProps> = ({ date, onDateChange
     <div ref={containerRef} className={finalClassName} onClick={(e) => e.stopPropagation()}>
       <div className="flex items-center flex-1">
         <button
-          onClick={handlePrevDay}
+          onClick={handlePrev}
           disabled={disabled}
           className={`p-1 text-[#737373] hover:text-[#e5e5e5] hover:bg-[#262626] rounded transition-colors ${disabled ? 'opacity-30 cursor-not-allowed pointer-events-none' : ''}`}
         >
@@ -76,11 +86,14 @@ export const DateNavigator: React.FC<DateNavigatorProps> = ({ date, onDateChange
 
         <button
           onClick={() => !disabled && setIsOpen(!isOpen)}
-          disabled={disabled}
+          disabled={disabled || variant === 'monthly'} // Disable popup for monthly variant for now if not needed, or enable it later
           className={`flex-1 flex items-center justify-center gap-2 px-2 text-sm font-playfair font-medium transition-colors ${disabled ? 'text-[#525252] cursor-not-allowed' : 'text-[#d4d4d4] hover:text-white'}`}
         >
-          {date.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' })}
-          {(() => {
+          {variant === 'monthly'
+            ? date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+            : date.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' })
+          }
+          {variant === 'daily' && (() => {
             const today = new Date();
             if (date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear()) {
               return (
@@ -92,7 +105,7 @@ export const DateNavigator: React.FC<DateNavigatorProps> = ({ date, onDateChange
         </button>
 
         <button
-          onClick={handleNextDay}
+          onClick={handleNext}
           disabled={disabled}
           className={`p-1 text-[#737373] hover:text-[#e5e5e5] hover:bg-[#262626] rounded transition-colors ${disabled ? 'opacity-30 cursor-not-allowed pointer-events-none' : ''}`}
         >
@@ -106,7 +119,7 @@ export const DateNavigator: React.FC<DateNavigatorProps> = ({ date, onDateChange
         </div>
       )}
 
-      {isOpen && (
+      {isOpen && variant === 'daily' && (
         <div className="absolute top-full left-0 mt-2 z-50">
           <DatePicker
             selectedDate={date}

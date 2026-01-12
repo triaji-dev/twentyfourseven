@@ -52,31 +52,26 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
           {toasts.map(toast => (
             <div
               key={toast.id}
-              className={`
-                flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border backdrop-blur-md min-w-[300px] animate-in slide-in-from-bottom-2 fade-in duration-300
-                ${toast.type === 'success' ? 'bg-[#1a1a1a]/90 border-green-500/30 text-green-100' : ''}
-                ${toast.type === 'error' ? 'bg-[#1a1a1a]/90 border-red-500/30 text-red-100' : ''}
-                ${toast.type === 'info' ? 'bg-[#1a1a1a]/90 border-blue-500/30 text-blue-100' : ''}
-              `}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg border border-[#262626] bg-[#171717] shadow-xl min-w-[280px] max-w-[400px] animate-in slide-in-from-bottom-5 fade-in duration-200 group relative"
             >
-              {toast.type === 'success' && <CheckCircle size={18} className="text-green-500 shrink-0" />}
-              {toast.type === 'error' && <AlertCircle size={18} className="text-red-500 shrink-0" />}
-              {toast.type === 'info' && <Info size={18} className="text-blue-500 shrink-0" />}
+              {toast.type === 'success' && <CheckCircle size={16} className="text-green-500 shrink-0" />}
+              {toast.type === 'error' && <AlertCircle size={16} className="text-red-500 shrink-0" />}
+              {toast.type === 'info' && <Info size={16} className="text-blue-500 shrink-0" />}
 
-              <p className="text-sm font-medium flex-1">{toast.message}</p>
+              <p className="text-[13px] text-[#e5e5e5] font-medium leading-tight flex-1 tracking-wide">{toast.message}</p>
 
               <button
                 onClick={() => removeToast(toast.id)}
-                className="opacity-70 hover:opacity-100 transition-opacity"
+                className="opacity-0 group-hover:opacity-100 transition-opacity text-[#737373] hover:text-[#e5e5e5]"
               >
-                <X size={16} />
+                <X size={14} />
               </button>
             </div>
           ))}
         </div>,
         document.body
       )}
-    </ToastContext.Provider>
+    </ToastContext.Provider >
   );
 };
 

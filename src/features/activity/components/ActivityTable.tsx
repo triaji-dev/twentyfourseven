@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useEffect, useState, useRef } from 'react';
 import { PaintBucket, Check, Plus } from 'lucide-react';
+import { Skeleton } from '../../../shared/components/ui/Skeleton';
 import { ActivityCell } from './ActivityCell';
 import { DAY_ABBREVIATIONS, MONTH_NAMES } from '../../../shared/constants';
 import { useStore } from '../../../shared/store/useStore';
@@ -46,7 +47,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
   const setActiveCell = useStore((state) => state.setActiveCell);
 
   // React Query Hooks (Server State)
-  const { data: activities = [] } = useActivities(year, month);
+  const { data: activities = [], isLoading } = useActivities(year, month);
   const updateActivityMutation = useUpdateActivity();
   const { data: settings } = useSettings();
   const updateSettingsMutation = useUpdateSettings();
@@ -466,6 +467,17 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                       : cellColor
                         ? { backgroundColor: cellColor, color: '#ffffff', boxShadow: `0 0 0 1px ${cellColor}33` }
                         : { backgroundColor: '#171717', color: '#525252' };
+
+                    if (isLoading && !isInvalid) {
+                      return (
+                        <td
+                          key={`cell-${year}-${month + 1}-${day}-${hour}-loading`}
+                          className={`activity-cell ${(hour + 1) % 6 === 0 ? 'border-b-gray-700/50 border-b' : ''} bg-[#171717] p-[1px]`}
+                        >
+                          <Skeleton className="w-full h-full rounded-[1px] opacity-10" />
+                        </td>
+                      );
+                    }
 
                     return (
                       <td

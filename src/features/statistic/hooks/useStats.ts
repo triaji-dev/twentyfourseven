@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useAllActivities } from '../../../hooks/useSupabaseQuery';
 
 export const useStats = (year: number, month: number) => {
-  const { data: allActivities = [] } = useAllActivities();
+  const { data: allActivities = [], isLoading } = useAllActivities();
 
   return useMemo(() => {
     const stats: Record<string, number> = {};
@@ -28,6 +28,6 @@ export const useStats = (year: number, month: number) => {
       }
     });
 
-    return { stats, totalHours, allTimeStats, allTimeTotalHours, allActivities };
-  }, [allActivities, year, month]);
+    return { stats, totalHours, allTimeStats, allTimeTotalHours, allActivities, isLoading };
+  }, [allActivities, year, month, isLoading]);
 };

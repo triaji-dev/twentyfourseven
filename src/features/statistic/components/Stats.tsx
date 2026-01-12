@@ -8,9 +8,10 @@ interface StatsProps {
   stats: MonthStats;
   year: number;
   month: number;
+  isLoading?: boolean;
 }
 
-export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
+export const Stats: React.FC<StatsProps> = ({ stats, year, month, isLoading }) => {
   const mode = useStore(state => state.statsPanelMode);
   const setMode = useStore(state => state.setStatsPanelMode);
 
@@ -52,6 +53,7 @@ export const Stats: React.FC<StatsProps> = ({ stats, year, month }) => {
           stats={stats}
           year={year}
           month={month}
+          isLoading={isLoading}
           allTimeStats={{
             stats: (stats as any).allTimeStats,
             totalHours: (stats as any).allTimeTotalHours
