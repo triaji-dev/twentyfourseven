@@ -530,10 +530,16 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
     if (lines[index]) {
       const line = lines[index];
       // Toggle [ ] <-> [x]
-      if (line.includes('[ ]')) {
-        lines[index] = line.replace('[ ]', '[x]');
-      } else if (line.includes('[x]')) {
-        lines[index] = line.replace('[x]', '[ ]');
+      // Toggle [ ] <-> [x] with regex to handle case sensitivity and spacing
+      // Matching NoteContent.tsx which supports [x] and [X]
+      const checkboxRegex = /^(\s*)\[(\s*|x|X)\]/;
+      const match = line.match(checkboxRegex);
+
+      if (match) {
+        const [_, indent, content] = match;
+        const isChecked = content.trim().toLowerCase() === 'x';
+        const newState = isChecked ? '[ ]' : '[x]';
+        lines[index] = line.replace(checkboxRegex, `${indent}${newState}`);
       }
 
       const newContent = lines.join('\n');
