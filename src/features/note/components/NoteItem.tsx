@@ -136,6 +136,7 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
   const contextMenuRef = React.useRef<HTMLDivElement>(null);
   const typeMenuRef = React.useRef<HTMLButtonElement>(null);
   const [isExpanded, setIsExpanded] = React.useState(false);
+  const moreActionsButtonRef = React.useRef<HTMLButtonElement>(null);
 
   // Simple heuristic for long content
   const isLongContent = React.useMemo(() => {
@@ -170,10 +171,10 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
           onNoteClick(date);
         }
       }}
-      className={`group relative flex transition-all duration-300 ease-out animate-[fadeIn_0.3s_ease-out] ${isNewlyAdded ? 'bg-gray-500/10' : ''} ${isMicro ? "h-[18px] items-center gap-1 py-0 px-0.5 border-transparent rounded hover:bg-[#1a1a1a]" :
+      className={`group relative flex transition-all duration-300 ease-out animate-[fadeIn_0.3s_ease-out] ${activeContextMenu === note.id ? 'z-50' : 'z-0'} ${isNewlyAdded ? 'bg-gray-500/10' : ''} ${isMicro ? "h-[18px] items-center gap-1 py-0 px-0.5 border-transparent rounded hover:bg-[#1a1a1a]" :
         isCompact ? "items-start gap-1 py-0 px-1 border-transparent rounded" : "items-start gap-2 p-2 rounded-lg border"
         } ${isCopying ? '!bg-[#404040] !duration-100' : ((note.isPinned ? 'border-[#404040] bg-[#1a1a1a]' : 'border-[#222] hover:border-[#333] hover:bg-[#1a1a1a]'))
-        } ${isNoteDone ? 'opacity-50' : 'opacity-100'} ${isSelectMode || isViewAll ? 'cursor-pointer' : ''} ${isSelected ? '!bg-green-500/10 !border-green-500/30 shadow-[0_0_15px_rgba(34,197,94,0.05)]' : ''}`}
+        } ${isNoteDone && activeContextMenu !== note.id ? 'opacity-50' : 'opacity-100'} ${isSelectMode || isViewAll ? 'cursor-pointer' : ''} ${isSelected ? '!bg-green-500/10 !border-green-500/30 shadow-[0_0_15px_rgba(34,197,94,0.05)]' : ''}`}
     >
       {/* Selection Checkbox */}
       {isSelectMode && (
@@ -371,6 +372,7 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
           {!showRecycleBin ? (
             <>
               <button
+                ref={moreActionsButtonRef}
                 onClick={(e) => { e.stopPropagation(); onContextMenuToggle(activeContextMenu === note.id ? null : note.id); }}
                 className={`${isMicro ? 'p-0.5' : 'p-1'} transition-colors rounded hover:bg-[#262626] ${activeContextMenu === note.id ? 'text-[#e5e5e5] bg-[#262626]' : 'text-[#737373] hover:text-[#e5e5e5]'}`}
                 title="More actions"
@@ -379,10 +381,35 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
               </button>
 
               {activeContextMenu === note.id && (
-                <div ref={contextMenuRef} className="absolute right-0 top-full mt-1 bg-[#171717] border border-[#262626] rounded-lg shadow-xl z-[60] py-1 min-w-[100px] note-context-menu" onClick={e => e.stopPropagation()}>
+                <div
+                  ref={contextMenuRef}
+                  className="absolute bg-[#171717] border border-[#262626] rounded-lg shadow-xl z-[60] py-1 min-w-[100px] note-context-menu animate-in fade-in zoom-in-95 duration-100"
+                  onClick={e => e.stopPropagation()}
+                  style={(() => {
+                    if (!moreActionsButtonRef.current) return {};
+                    const rect = moreActionsButtonRef.current.getBoundingClientRect();
+                    const spaceBelow = window.innerHeight - rect.bottom;
+                    const menuHeight = 280; // Approximate max height
+
+                    if (spaceBelow < menuHeight) {
+                      return {
+                        bottom: '100%',
+                        right: 0,
+                        marginBottom: '4px',
+                        transformOrigin: 'bottom right'
+                      };
+                    }
+                    return {
+                      top: '100%',
+                      right: 0,
+                      marginTop: '4px',
+                      transformOrigin: 'top right'
+                    };
+                  })()}
+                >
                   <button
                     onClick={(e) => { e.stopPropagation(); onToggleSelect(note.id); onContextMenuToggle(null); }}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[#c0c0c0] hover:bg-[#262626] hover:text-[#c0c0c0] transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[#d4d4d4] hover:bg-[#262626] hover:text-white transition-colors"
                   >
                     <ListChecks size={12} /> Select
                   </button>
