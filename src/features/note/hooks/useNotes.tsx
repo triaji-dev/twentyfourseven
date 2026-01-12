@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { useToast } from '../../../shared/components/ui/Toast';
 import { useStore } from '../../../shared/store/useStore';
 import { NoteItem, NoteType } from '../../../shared/types';
 import { processNoteContent, extractTags } from '../../../shared/utils/notes';
@@ -13,10 +14,17 @@ interface UseNotesProps {
 export const useNotes = ({ year, month }: UseNotesProps) => {
   const activeCell = useStore((state) => state.activeCell);
   const setActiveCell = useStore((state) => state.setActiveCell);
+  const { showSuccess, showError } = useToast();
   // triggerUpdate removed as React Query handles invalidation
 
   // Server State
-  const { data: serverNotes = [] } = useSupabaseNotes();
+  const {
+    data: serverNotes = [],
+    isLoading: isNotesLoading,
+    isFetching: isNotesFetching,
+    isError: isNotesError,
+    error: notesError
+  } = useSupabaseNotes();
   const createNoteMutation = useCreateNote();
   const updateNoteMutation = useUpdateNote();
   const deleteNoteMutation = useDeleteNote();
@@ -259,45 +267,17 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
       createNoteMutation.mutate({
         content,
         type,
-        createdAt: targetDate.toISOString(), // Use active cell date or now
-        // NOTE: createNoteMutation creates new ID server-side? 
-        // Or client-side ID? api.createNote accepts Partial<NoteItem>.
-        // If API doesn't assign ID, we should (but usually API/DB does).
-        // Let's assume API assigns ID or defaults.
-        // Wait, standard Supabase table has uuid default.
-        // But local logic used Math.random().
-        // Let's rely on server ID if possible, or generate one if our types require it for optimistic update.
-        // NoteItem requires ID. 
-        // For simple mutation, we pass content/type/createdAt.
-        // If we need ID for immediate UI update before refetch, optimistic updates needed.
-        // For now, standard mutations.
+        createdAt: targetDate.toISOString(),
       }, {
         onSuccess: () => {
           setNewNote('');
-          // If we want to scroll to it, we need the ID.
-          // If api.createNote returns the items, we can use it.
-          // Let's assume it does (select() called in supabase).
-
-          // If API returns array/object:
-          /*
-          setTimeout(() => {
-             const targetId = `note-${newItem.id}`;
-             const element = document.getElementById(targetId);
-             if (element) {
-               element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-             }
-             setNewlyAddedIds(prev => new Set(prev).add(newItem.id));
-             setTimeout(() => {
-               setNewlyAddedIds(prev => {
-                 const next = new Set(prev);
-                 next.delete(newItem.id);
-                 return next;
-               });
-             }, 1000);
-           }, 100);
-           */
+          showSuccess('Note created successfully');
+        },
+        onError: () => {
+          showError('Failed to create note');
         }
       });
+
 
       // Since createNoteMutation is async, we clear input immediately for better UX
       setNewNote('');
@@ -337,10 +317,12 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
         type: newType,
         updatedAt: new Date().toISOString()
       }
+    }, {
+      onError: () => showError('Failed to update note')
     });
 
     setEditingId(null);
-  }, [editContent, serverNotes, updateNoteMutation]);
+  }, [editContent, serverNotes, updateNoteMutation, showError]);
 
   // Handle toggling todo status
   const handleToggleTodo = useCallback((_: Date, noteId: string) => {
@@ -404,8 +386,11 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
       updates: {
         deletedAt: new Date().toISOString()
       }
+    }, {
+      onSuccess: () => showSuccess('Note moved to recycle bin'),
+      onError: () => showError('Failed to delete note')
     });
-  }, [updateNoteMutation]);
+  }, [updateNoteMutation, showSuccess, showError]);
 
   // Handle batch delete
   const handleBatchDelete = useCallback(() => {
@@ -418,9 +403,12 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
       });
     });
 
+    const count = selectedNoteIds.size;
+    showSuccess(`${count} note${count > 1 ? 's' : ''} moved to recycle bin`);
+
     setIsSelectMode(false);
     setSelectedNoteIds(new Set());
-  }, [selectedNoteIds, updateNoteMutation]);
+  }, [selectedNoteIds, updateNoteMutation, showSuccess]);
 
   // Handle batch merge
   const handleBatchMerge = useCallback(() => {
@@ -470,24 +458,31 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
       // Let's Cast to any if needed or ensure API handles it.
       // Ideally sends null to DB.
       updates: { deletedAt: null as any, updatedAt: new Date().toISOString() }
+    }, {
+      onSuccess: () => showSuccess('Note restored'),
+      onError: () => showError('Failed to restore note')
     });
-  }, [updateNoteMutation]);
+  }, [updateNoteMutation, showSuccess, showError]);
 
   // Handle permanent delete
   const handlePermanentDelete = useCallback((_: Date, noteId: string) => {
-    deleteNoteMutation.mutate(noteId);
-  }, [deleteNoteMutation]);
+    deleteNoteMutation.mutate(noteId, {
+      onSuccess: () => showSuccess('Note permanently deleted'),
+      onError: () => showError('Failed to delete note permanently')
+    });
+  }, [deleteNoteMutation, showSuccess, showError]);
 
   // Handle empty bin
   const handleEmptyBin = useCallback(() => {
     // Find all soft-deleted notes
     const deleted = serverNotes.filter(n => n.deletedAt);
     deleted.forEach(n => {
-      // Permanently delete from bin? Or restore? 
-      // "Empty Bin" means permanent delete.
       deleteNoteMutation.mutate(n.id);
     });
-  }, [serverNotes, deleteNoteMutation]);
+    if (deleted.length > 0) {
+      showSuccess('Recycle bin emptied');
+    }
+  }, [serverNotes, deleteNoteMutation, showSuccess]);
 
   // Handle restore all
   const handleRestoreAll = useCallback(() => {
@@ -498,7 +493,10 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
         updates: { deletedAt: null as any, updatedAt: new Date().toISOString() }
       });
     });
-  }, [serverNotes, updateNoteMutation]);
+    if (deleted.length > 0) {
+      showSuccess('All notes restored');
+    }
+  }, [serverNotes, updateNoteMutation, showSuccess]);
 
   const handleToggleSelect = useCallback((noteId: string) => {
     setSelectedNoteIds(prev => {
@@ -593,8 +591,8 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
     lines.slice(1).forEach(line => {
       createNoteMutation.mutate({
         content: line,
-        type: note.type, 
-        createdAt: note.createdAt 
+        type: note.type,
+        createdAt: note.createdAt
       });
     });
   }, [serverNotes, updateNoteMutation, createNoteMutation]);
@@ -621,7 +619,7 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
 
   return {
     notes,
-    allTimeNotes, // Now derived from server
+    allTimeNotes,
     activeCell,
     newNote,
     setNewNote,
@@ -708,6 +706,16 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
     handleUnpinAll: () => { /* TODO */ }, // Missing impl in my manual rewrite but easy to add
     activeType,
     lastUsedType,
+
     setLastUsedType,
+    // Query States
+    isNotesLoading,
+    isNotesFetching,
+    isNotesError,
+    notesError,
+    // Mutation States
+    isCreating: createNoteMutation.isPending,
+    isUpdating: updateNoteMutation.isPending,
+    isDeleting: deleteNoteMutation.isPending,
   };
 };

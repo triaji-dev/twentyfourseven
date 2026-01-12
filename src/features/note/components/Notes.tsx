@@ -4,8 +4,10 @@ import { DateNavigator, DatePicker } from '../../../shared/components/DateNaviga
 import { extractTags } from '../../../shared/utils/notes';
 import {
   X, Grid2x2, Square, Rows4, Rows3, Rows2, FoldVertical, UnfoldVertical,
-  Calendar, Tag, Type, CheckCircle, AlertCircle, Link as LinkIcon
+  Calendar, Tag, Type, CheckCircle, AlertCircle, Link as LinkIcon, RefreshCw
 } from 'lucide-react';
+import { Spinner } from '../../../shared/components/ui/Spinner';
+import { Skeleton } from '../../../shared/components/ui/Skeleton';
 import { NoteType } from '../../../shared/types';
 import { TYPE_PRIORITY } from '../types';
 import { useNotes } from '../hooks/useNotes';
@@ -115,6 +117,12 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
     activeType,
     lastUsedType,
     setLastUsedType,
+
+    // Query States
+    isNotesLoading,
+    isNotesFetching,
+    isNotesError,
+    notesError,
   } = useNotes({ year, month });
 
   /* Header DatePicker State */
@@ -426,6 +434,12 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
                 >
                   <GlobalIcon size={14} />
                 </button>
+                {/* Background Fetching Indicator */}
+                {isNotesFetching && !isNotesLoading && (
+                  <div className="w-8 h-8 flex items-center justify-center">
+                    <Spinner size={14} />
+                  </div>
+                )}
                 <div ref={datePickerRef}>
                   <button
                     onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
@@ -504,7 +518,39 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
 
         {/* Scrollable List */}
         <div ref={listRef} className="flex-1 overflow-y-auto custom-scrollbar pr-2">
-          {filteredNotes.length === 0 ? (
+          {isNotesLoading ? (
+            <div className="space-y-4 pt-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="space-y-2">
+                  <div className="flex items-center justify-between mb-2 px-3 py-2 bg-[#1e1e1e] rounded-lg border border-transparent">
+                    <Skeleton className="h-4 w-32 bg-[#2a2a2a]" />
+                    <Skeleton className="h-4 w-8 bg-[#2a2a2a]" />
+                  </div>
+                  <div className="space-y-1">
+                    <Skeleton className="h-16 w-full rounded-md bg-[#1a1a1a]" />
+                    <Skeleton className="h-16 w-full rounded-md bg-[#1a1a1a]" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : isNotesError ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center h-full">
+              <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
+                <AlertCircle size={24} className="text-red-500" />
+              </div>
+              <div className="text-[#e5e5e5] font-medium mb-1">Failed to load notes</div>
+              <div className="text-[#525252] text-xs max-w-[200px] mb-4">
+                {(notesError as Error)?.message || 'Something went wrong while fetching your notes.'}
+              </div>
+              <button
+                onClick={() => window.location.reload()}
+                className="flex items-center gap-2 px-3 py-1.5 bg-[#262626] hover:bg-[#303030] text-[#a3a3a3] text-xs rounded transition-colors"
+              >
+                <RefreshCw size={12} />
+                <span>Reload</span>
+              </button>
+            </div>
+          ) : filteredNotes.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="text-[#525252] text-xs">No notes found</div>
               <div className="text-[#303030] text-xs mt-1">
@@ -684,6 +730,10 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
               {isInputDatePickerOpen && createPortal(
                 <div
                   className="fixed z-[9999]"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
                   style={{
                     top: (inputDatePickerRef.current?.getBoundingClientRect().top ?? 0) - 8,
                     left: (inputDatePickerRef.current?.getBoundingClientRect().left ?? 0),
@@ -734,6 +784,10 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
               {isInputTypeMenuOpen && createPortal(
                 <div
                   className="fixed z-[9999] bg-[#171717] border border-[#262626] rounded-lg shadow-xl overflow-hidden py-1 w-32"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
                   style={{
                     top: (inputTypeMenuRef.current?.getBoundingClientRect().top ?? 0) - 4,
                     left: (inputTypeMenuRef.current?.getBoundingClientRect().left ?? 0),
@@ -775,11 +829,11 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
                       <span className="text-[#c0c0c0] font-medium">#{selectedTag.replace(/^#/, '')}</span>
                     )}
                     {extractTags(newNote)
-                      .filter(t => t !== selectedTag)
+                      .filter(t => t.toLowerCase() !== (selectedTag || '').toLowerCase())
                       .map(t => (
                         <span key={t} className="text-[#737373]">#{t.replace(/^#/, '')}</span>
                       ))}
-                    {!selectedTag && lastUsedTag && !extractTags(newNote).includes(lastUsedTag) && (
+                    {!selectedTag && lastUsedTag && !extractTags(newNote).some(t => t.toLowerCase() === lastUsedTag.toLowerCase()) && (
                       <span className="text-[#c0c0c0] font-medium">#{lastUsedTag.replace(/^#/, '')}</span>
                     )}
                     {!selectedTag && extractTags(newNote).length === 0 && !lastUsedTag && (
@@ -812,6 +866,10 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
                 {isInputTagMenuOpen && createPortal(
                   <div
                     className="fixed z-[9999] bg-[#171717] border border-[#262626] rounded-lg shadow-xl overflow-hidden max-h-[150px] overflow-y-auto custom-scrollbar w-48"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
                     style={{
                       top: (inputTagMenuRef.current?.getBoundingClientRect().top ?? 0) - 4,
                       left: (inputTagMenuRef.current?.getBoundingClientRect().left ?? 0),
@@ -834,7 +892,7 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
                           setIsInputTagMenuOpen(false);
                         }}
                       >
-                        <span className="truncate">#{tag}</span>
+                        <span className="truncate">{tag}</span>
                         {tag === lastUsedTag && <CheckCircle size={10} className="text-[#525252]" />}
                       </div>
                     ))}

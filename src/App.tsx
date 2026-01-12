@@ -14,6 +14,7 @@ import { AuthProvider, useAuth } from './features/auth/AuthProvider';
 import { AuthPage } from './features/auth/AuthPage';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient';
+import { ToastProvider } from './shared/components/ui/Toast';
 
 function Dashboard() {
   const currentDate = useStore((state) => state.currentDate);
@@ -145,9 +146,11 @@ function AppContent() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </ToastProvider>
     </QueryClientProvider>
   );
 }

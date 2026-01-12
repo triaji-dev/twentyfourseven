@@ -164,7 +164,7 @@ export const NoteFilters: React.FC<NoteFiltersProps> = ({
 
                   {allTags
                     .filter(([tag]) => tag.toLowerCase().includes(tagSearchQuery.toLowerCase()))
-                    .filter(([tag]) => tag !== lastUsedTag)
+                    .filter(([tag]) => tag.toLowerCase() !== (lastUsedTag || '').toLowerCase())
                     .map(([tag, count]) => (
                       <button
                         key={tag}
