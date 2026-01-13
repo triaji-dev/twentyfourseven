@@ -45,6 +45,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
   const selectRectangle = useStore((state) => state.selectRectangle);
   const activeCell = useStore((state) => state.activeCell);
   const setActiveCell = useStore((state) => state.setActiveCell);
+  const setActiveStatsDate = useStore((state) => state.setActiveStatsDate);
 
   // React Query Hooks (Server State)
   const { data: activities = [], isLoading } = useActivities(year, month);
@@ -180,7 +181,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
 
   return (
     <section className="table-section p-2 lg:col-span-3 rounded-xl bg-[#171717] border border-[#262626]">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <h2 className="text-md font-playfair tracking-wider pl-2 text-white">Activity</h2>
           <div className="relative" ref={categoryDropdownRef}>
@@ -408,7 +409,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
         <div className="table-container !overflow-x-auto custom-scrollbar">
           <table className="min-w-[800px] text-center" onPaste={handlePaste}>
             <thead className="sticky top-0 z-10 bg-[#0a0a0a]">
-              <tr className="h-5">
+              <tr className="h-4">
                 <th className="hour-header border-none bg-[#0a0a0a] sticky left-0 z-30"></th>
                 {Array.from({ length: 31 }, (_, i) => i + 1).map(d => {
                   const isInvalid = d > daysInMonth;
@@ -420,16 +421,21 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                   return (
                     <th
                       key={`date-${d}`}
-                      onClick={() => !isInvalid && setActiveCell({ year, month, day: d, hour: 0 })}
+                      onClick={() => {
+                        if (!isInvalid) {
+                          setActiveCell({ year, month, day: d, hour: 0 });
+                          setActiveStatsDate({ year, month, day: d, hour: 0 });
+                        }
+                      }}
                       className={`activity-cell relative pt-3 ${isInvalid ? 'opacity-20 pointer-events-none' : ''} ${isToday ? 'font-bold text-white' : 'text-[#737373]'} ${isActiveDate ? 'bg-[#1a1a1a] text-[#e5e5e5]' : 'bg-[#0a0a0a]'} text-[10px] border-l border-[#262626] font-normal border-b-0 ${!isInvalid ? 'cursor-pointer hover:bg-[#1a1a1a]' : ''} transition-colors`}
                     >
                       {!isInvalid && d}
-                      {hasNote && <span className="absolute top-[3px] left-1/2 -translate-x-1/2 w-[3px] h-[3px] rounded-full bg-[#a3a3a3]"></span>}
+                      {hasNote && <span className="absolute top-[3px] left-1/2 -translate-x-1/2 w-[3px] h-[2px] rounded-full bg-[#a3a3a3]"></span>}
                     </th>
                   );
                 })}
               </tr>
-              <tr className="h-5">
+              <tr className="h-4">
                 <th className="hour-header border-none bg-[#0a0a0a] sticky left-0 z-30"></th>
                 {Array.from({ length: 31 }, (_, i) => i + 1).map(d => {
                   const isInvalid = d > daysInMonth;

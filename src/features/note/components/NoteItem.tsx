@@ -173,7 +173,7 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
       }}
       className={`group relative flex transition-all duration-300 ease-out animate-[fadeIn_0.3s_ease-out] ${activeContextMenu === note.id ? 'z-50' : 'z-0'} ${isNewlyAdded ? 'bg-gray-500/10' : ''} ${isMicro ? "h-[18px] items-center gap-1 py-0 px-0.5 border-transparent rounded hover:bg-[#1a1a1a]" :
         isCompact ? "items-start gap-1 py-0 px-1 border-transparent rounded" : "items-start gap-2 p-2 rounded-lg border"
-        } ${isCopying ? '!bg-[#404040] !duration-100' : ((note.isPinned ? 'border-[#404040] bg-[#1a1a1a]' : 'border-[#222] hover:border-[#333] hover:bg-[#1a1a1a]'))
+        } ${isCopying ? '!bg-[#404040] !duration-100' : (note.isPinned ? 'border-[#eab308]/50 bg-[#eab308]/10' : 'border-[#222] hover:border-[#333] hover:bg-[#1a1a1a]')
         } ${isNoteDone && activeContextMenu !== note.id ? 'opacity-50' : 'opacity-100'} ${isSelectMode || isViewAll ? 'cursor-pointer' : ''} ${isSelected ? '!bg-green-500/10 !border-green-500/30 shadow-[0_0_15px_rgba(34,197,94,0.05)]' : ''}`}
     >
       {/* Selection Checkbox */}
@@ -285,7 +285,20 @@ export const NoteItemComponent: React.FC<NoteItemProps> = ({
         {/* Full mode action bar */}
         <div className={`flex items-center justify-between mt-4 ${isCompact || isMicro ? "hidden" : ""}`}>
           <span className="text-[11px] text-[#525252] flex items-center gap-1">
-            {new Date(note.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {(() => {
+              const d = new Date(note.createdAt);
+              const isValid = !isNaN(d.getTime());
+              if (!isValid) return '';
+              const midnight = new Date(d);
+              midnight.setHours(0, 0, 0, 0);
+              const isMidnight = d.getTime() === midnight.getTime();
+              // If exactly midnight (often migrated data) or user wants "Created Date", show Date
+              // If it has specific time, show time.
+              // Requirement: "Fix 00.00 Created Date" -> Avoid showing just 00:00 if it's not meaningful.
+              return isMidnight
+                ? d.toLocaleDateString([], { day: 'numeric', month: 'short' })
+                : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+            })()}
             {note.updatedAt && (
               <span className="text-[#525252] opacity-75" title={`Last modified: ${new Date(note.updatedAt).toLocaleString()}`}>
                 • Edited {new Date(note.updatedAt).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}

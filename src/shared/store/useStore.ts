@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { getDaysInMonth, loadActivity, saveActivity } from '../utils/storage';
 import type { MonthStats, ActivityKey } from '../types';
 
@@ -133,7 +134,9 @@ export function restoreCellValues(
   });
 }
 
-export const useStore = create<AppState>((set, get) => ({
+export const useStore = create<AppState>()(
+  persist(
+    (set, get) => ({
   // Initial state
   currentDate: new Date(),
   selectedCells: new Set(),
@@ -577,4 +580,12 @@ export const useStore = create<AppState>((set, get) => ({
     calculateStats(year, month);
   },
   triggerUpdate: () => set(state => ({ dataVersion: state.dataVersion + 1 })),
-}));
+  }),
+  {
+    name: 'twentyfourseven-ui-store',
+    partialize: (state) => ({ 
+      statsPanelMode: state.statsPanelMode,
+      notesPanelMode: state.notesPanelMode 
+    }),
+  }
+));

@@ -43,7 +43,7 @@ function Dashboard() {
   }, []);
 
   return (
-    <div className="min-h-[100dvh] h-[100dvh] lg:h-screen lg:overflow-hidden flex flex-col bg-[#09090b]">
+    <div className="min-h-[100dvh] h-[100dvh] lg:h-screen lg:overflow-hidden flex flex-col bg-[#09090b] lg:pb-2">
       <div className="flex-shrink-0 px-2 pt-2">
         <Header />
       </div>
@@ -51,7 +51,7 @@ function Dashboard() {
       <main className="flex-1 relative overflow-hidden lg:flex lg:flex-row lg:gap-2 lg:h-[calc(100vh-80px)] lg:pb-0 px-2">
         {/* Activity Table */}
         <div
-          className={`transition-all duration-300 
+          className={`transition-all duration-300 min-w-0
             ${isMobile
               ? `absolute inset-0 overflow-y-auto pb-20 px-2 ${activeMobileTab === 'activity' ? 'z-10 bg-[#09090b]' : 'z-0 opacity-0 pointer-events-none'}`
               : 'lg:h-full lg:flex-1'

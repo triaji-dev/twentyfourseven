@@ -241,7 +241,12 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
 
       let targetDate: Date;
       if (activeCell) {
-        targetDate = new Date(activeCell.year, activeCell.month, activeCell.day);
+        const today = new Date();
+        if (activeCell.year === today.getFullYear() && activeCell.month === today.getMonth() && activeCell.day === today.getDate()) {
+          targetDate = new Date();
+        } else {
+          targetDate = new Date(activeCell.year, activeCell.month, activeCell.day);
+        }
       } else {
         targetDate = new Date();
       }

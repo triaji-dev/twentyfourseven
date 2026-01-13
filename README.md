@@ -6,7 +6,7 @@
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Installation
 1.  **Install dependencies:**
@@ -26,7 +26,7 @@
 
 ---
 
-## 🏗️ Technical Architecture
+## Technical Architecture
 
 **Tech Stack:**
 - **Framework:** React + Vite
@@ -34,6 +34,7 @@
 - **Styling:** TailwindCSS + Vanilla CSS Variables
 - **State Management:** Zustand
 - **Icons:** Lucide React
+- **Data Fetching:** Tanstack Query
 
 The project follows a modular **Feature-First** directory structure:
 
