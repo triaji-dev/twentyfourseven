@@ -1,44 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../services/api';
-import { ActivityKey, NoteItem } from '../shared/types';
+import { NoteItem } from '../shared/types';
 
-// Keys for Query Cache
 export const QUERY_KEYS = {
-  activities: (year: number, month: number) => ['activities', year, month],
   notes: ['notes'],
   settings: ['settings'],
-};
-
-// ==========================================
-// HOOKS: ACTIVITIES
-// ==========================================
-
-export const useActivities = (year: number, month: number) => {
-  return useQuery({
-    queryKey: QUERY_KEYS.activities(year, month),
-    queryFn: () => api.fetchActivities(year, month),
-  });
-};
-
-export const useAllActivities = () => {
-  return useQuery({
-    queryKey: ['activities', 'all'],
-    queryFn: () => api.fetchAllActivities()
-  });
-};
-
-export const useUpdateActivity = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (variables: { year: number; month: number; day: number; hour: number; value: ActivityKey }) =>
-      api.saveActivity(variables.year, variables.month, variables.day, variables.hour, variables.value),
-    onSuccess: (_, variables) => {
-      // Invalidate relevant cache to trigger refetch
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.activities(variables.year, variables.month) });
-      queryClient.invalidateQueries({ queryKey: ['activities', 'all'] });
-    },
-  });
 };
 
 // ==========================================

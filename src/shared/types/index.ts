@@ -1,26 +1,9 @@
-// Dynamic activity key - any single uppercase letter
-export type ActivityKey = string;
-
 export interface DynamicCategory {
-  key: string;        // Single uppercase letter (A-Z)
-  name: string;       // Display name
-  color: string;      // Hex color for background
+  key: string;
+  name: string;
+  color: string;
 }
 
-export interface CellData {
-  year: number;
-  month: number;
-  day: number;
-  hour: number;
-  value: ActivityKey;
-}
-
-export interface MonthStats {
-  stats: Record<string, number>;
-  totalHours: number;
-}
-
-// Default categories to use on first load
 export const DEFAULT_CATEGORIES: DynamicCategory[] = [
   { key: 'S', name: 'Sleep', color: '#10b981' },
   { key: 'F', name: 'Family', color: '#f97316' },
@@ -38,7 +21,7 @@ export interface NoteItem {
   createdAt: string; // ISO string
   type?: NoteType;
   isDone?: boolean;
-  isPinned?: boolean; 
+  isPinned?: boolean;
   completedAt?: string; // ISO string
   updatedAt?: string; // ISO string for last modified
   deletedAt?: string; // ISO string for recycle bin

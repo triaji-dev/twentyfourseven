@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useToast } from '../../../shared/components/ui/Toast';
-import { useStore } from '../../../shared/store/useStore';
 import { NoteItem, NoteType } from '../../../shared/types';
 import { processNoteContent, extractTags } from '../../../shared/utils/notes';
 import { NoteGroup, DateViewState, CompletedFilter, SuggestionSource } from '../types';
@@ -12,8 +11,8 @@ interface UseNotesProps {
 }
 
 export const useNotes = ({ year, month }: UseNotesProps) => {
-  const activeCell = useStore((state) => state.activeCell);
-  const setActiveCell = useStore((state) => state.setActiveCell);
+  const today = new Date();
+  const [selectedDate, setSelectedDate] = useState<{ year: number; month: number; day: number } | null>(null);
   const { showSuccess, showError } = useToast();
   // triggerUpdate removed as React Query handles invalidation
 
@@ -148,10 +147,10 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
       initialRender.current = false;
       return;
     }
-    if (activeCell) {
+    if (selectedDate) {
       setIsViewAll(false);
     }
-  }, [activeCell]);
+  }, [selectedDate]);
 
   // Calculate all tags
   const allTags = useMemo(() => {
@@ -179,13 +178,12 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
 
   // Handle date change
   const handleDateChange = useCallback((date: Date) => {
-    setActiveCell({
+    setSelectedDate({
       year: date.getFullYear(),
       month: date.getMonth(),
       day: date.getDate(),
-      hour: 0
     });
-  }, [setActiveCell]);
+  }, []);
 
   // Check for tag suggestions
   const checkTagSuggestions = useCallback((text: string, cursor: number, source: 'add' | 'edit') => {
@@ -240,12 +238,11 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
       e.preventDefault();
 
       let targetDate: Date;
-      if (activeCell) {
-        const today = new Date();
-        if (activeCell.year === today.getFullYear() && activeCell.month === today.getMonth() && activeCell.day === today.getDate()) {
+      if (selectedDate) {
+        if (selectedDate.year === today.getFullYear() && selectedDate.month === today.getMonth() && selectedDate.day === today.getDate()) {
           targetDate = new Date();
         } else {
-          targetDate = new Date(activeCell.year, activeCell.month, activeCell.day);
+          targetDate = new Date(selectedDate.year, selectedDate.month, selectedDate.day);
         }
       } else {
         targetDate = new Date();
@@ -291,7 +288,7 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
         e.target.style.height = 'auto';
       }
     }
-  }, [newNote, activeCell, selectedTag, lastUsedTag, activeType, createNoteMutation]);
+  }, [newNote, selectedDate, today, selectedTag, lastUsedTag, activeType, createNoteMutation]);
 
   // Handle starting edit
   const handleStartEdit = useCallback((note: NoteItem) => {
@@ -625,7 +622,7 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
   return {
     notes,
     allTimeNotes,
-    activeCell,
+    activeCell: selectedDate,
     newNote,
     setNewNote,
     editingId,
