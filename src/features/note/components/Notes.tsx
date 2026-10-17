@@ -193,6 +193,52 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
     }), 200);
   };
 
+  // Mobile swipe navigation for dates
+  const touchStartPos = useRef<{ x: number; y: number } | null>(null);
+  const [swipeAnimClass, setSwipeAnimClass] = useState<'animate-slide-left' | 'animate-slide-right' | ''>('');
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT' || target.isContentEditable) {
+      return;
+    }
+    touchStartPos.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+    };
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartPos.current) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+
+    const diffX = touchEndX - touchStartPos.current.x;
+    const diffY = touchEndY - touchStartPos.current.y;
+    touchStartPos.current = null;
+
+    if (Math.abs(diffX) > 45 && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
+      const baseDate = activeCell
+        ? new Date(activeCell.year, activeCell.month, activeCell.day)
+        : new Date();
+
+      if (diffX > 0) {
+        // Swipe Right -> Previous Day (enters from left)
+        setSwipeAnimClass('animate-slide-right');
+        const prevDay = new Date(baseDate);
+        prevDay.setDate(prevDay.getDate() - 1);
+        handleDateChange(prevDay);
+      } else {
+        // Swipe Left -> Next Day (enters from right)
+        setSwipeAnimClass('animate-slide-left');
+        const nextDay = new Date(baseDate);
+        nextDay.setDate(nextDay.getDate() + 1);
+        handleDateChange(nextDay);
+      }
+      setTimeout(() => setSwipeAnimClass(''), 300);
+    }
+  };
+
   // Filter logic
   const getFilteredNotes = () => {
     let result: Array<{ date: Date; notes: typeof allTimeNotes[0]['notes'] }> = [];
@@ -208,21 +254,15 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
           }];
         }
       } else {
-        const key = `twentyfourseven-notes-${activeCell.year}-${activeCell.month}`;
-        try {
-          const saved = localStorage.getItem(key);
-          if (saved) {
-            const parsed = JSON.parse(saved);
-            const dayNotes = parsed[activeCell.day];
-            if (dayNotes) {
-              result = [{
-                date: new Date(activeCell.year, activeCell.month, activeCell.day),
-                notes: dayNotes.filter(filterBin)
-              }];
-            }
-          }
-        } catch (e) {
-          result = [];
+        const dayGroup = allTimeNotes.find(item => {
+          const d = item.date;
+          return d.getFullYear() === activeCell.year && d.getMonth() === activeCell.month && d.getDate() === activeCell.day;
+        });
+        if (dayGroup) {
+          result = [{
+            date: dayGroup.date,
+            notes: dayGroup.notes.filter(filterBin)
+          }];
         }
       }
     } else {
@@ -414,16 +454,26 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
       )}
 
       {/* Notes List */}
-      <div className="flex-1 flex flex-col min-h-0">
+      <div
+        className="flex-1 flex flex-col min-h-0"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         <div className="mb-3 shrink-0">
           {/* Fixed Header */}
 
           <DateNavigator
             date={activeCell ? new Date(activeCell.year, activeCell.month, activeCell.day) : new Date()}
-            onDateChange={handleDateChange}
+            onDateChange={(newDate) => {
+              const currentD = activeCell ? new Date(activeCell.year, activeCell.month, activeCell.day) : new Date();
+              setSwipeAnimClass(newDate.getTime() > currentD.getTime() ? 'animate-slide-left' : 'animate-slide-right');
+              handleDateChange(newDate);
+              setTimeout(() => setSwipeAnimClass(''), 300);
+            }}
             datesWithNotes={datesWithNotes}
             isViewAll={isViewAll || showRecycleBin || showPinnedOnly}
             disabled={isSelectMode}
+            animationClass={swipeAnimClass}
           >
             {isViewAll && (
               <>
@@ -517,8 +567,9 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
         </div>
 
         {/* Scrollable List */}
-        <div ref={listRef} className="flex-1 overflow-y-auto custom-scrollbar pr-2">
-          {isNotesLoading ? (
+        <div ref={listRef} className="flex-1 overflow-y-auto custom-scrollbar pr-2 overflow-x-hidden">
+          <div className={`min-h-full ${swipeAnimClass}`}>
+            {isNotesLoading ? (
             <div className="space-y-4 pt-2">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="space-y-2">
@@ -705,6 +756,7 @@ export const Notes = forwardRef<NotesHandle, NotesProps>(({ year, month }, ref) 
               })}
             </>
           )}
+          </div>
         </div>
       </div>
 

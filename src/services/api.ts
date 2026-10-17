@@ -7,24 +7,26 @@ import { NoteItem, NoteType } from '../shared/types';
 
 export const api = {
   async fetchNotes() {
-    // Lazy Cleanup: Delete notes older than 7 days
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    // Fire and forget cleanup (don't await to block render)
     supabase
       .from('notes')
       .delete()
+      .eq('user_id', user.id)
       .not('deleted_at', 'is', null)
       .lt('deleted_at', sevenDaysAgo.toISOString())
       .then(({ error }) => {
         if (error) console.error('Auto-cleanup failed:', error);
       });
 
-    // Fetch ALL notes (including deleted ones for Recycle Bin)
     const { data, error } = await supabase
       .from('notes')
       .select('*')
+      .eq('user_id', user.id)
       .order('is_pinned', { ascending: false })
       .order('created_at', { ascending: false });
 

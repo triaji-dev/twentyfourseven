@@ -15,7 +15,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ year, month }) => {
   const setMode = useStore(state => state.setNotesPanelMode);
 
   return (
-    <div className="stats-panel flex flex-col h-full bg-[#171717]/80 backdrop-blur-md rounded-xl border border-[#262626] shadow-2xl relative overflow-hidden transition-all duration-300">
+    <div className="stats-panel flex flex-col h-full w-full max-w-[480px] mx-auto bg-[#171717]/80 backdrop-blur-md rounded-xl border border-[#262626] shadow-2xl relative overflow-hidden transition-all duration-300">
 
       {/* Minimized Content */}
       <div

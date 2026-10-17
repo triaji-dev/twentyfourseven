@@ -11,9 +11,10 @@ interface DateNavigatorProps {
   disabled?: boolean;
   variant?: 'daily' | 'monthly';
   label?: string;
+  animationClass?: string;
 }
 
-export const DateNavigator: React.FC<DateNavigatorProps> = ({ date, onDateChange, className, datesWithNotes, children, isViewAll, disabled, variant = 'daily', label = 'All Notes' }) => {
+export const DateNavigator: React.FC<DateNavigatorProps> = ({ date, onDateChange, className, datesWithNotes, children, isViewAll, disabled, variant = 'daily', label = 'All Notes', animationClass }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -84,25 +85,28 @@ export const DateNavigator: React.FC<DateNavigatorProps> = ({ date, onDateChange
           <ChevronLeft size={16} />
         </button>
 
-        <button
-          onClick={() => !disabled && setIsOpen(!isOpen)}
-          disabled={disabled || variant === 'monthly'} // Disable popup for monthly variant for now if not needed, or enable it later
-          className={`flex-1 flex items-center justify-center gap-2 px-2 text-sm font-playfair font-medium transition-colors ${disabled ? 'text-[#525252] cursor-not-allowed' : 'text-[#d4d4d4] hover:text-white'}`}
-        >
-          {variant === 'monthly'
-            ? date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-            : date.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' })
-          }
-          {variant === 'daily' && (() => {
-            const today = new Date();
-            if (date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear()) {
-              return (
-                <span className="ml-1 px-1.5 py-0.5 rounded-md bg-[#262626] border border-[#404040] text-[8px] font-bold text-[#a3a3a3] tracking-wider uppercase">Today</span>
-              );
+        <div className="flex-1 flex items-center justify-center overflow-hidden">
+          <button
+            key={date.toDateString()}
+            onClick={() => !disabled && setIsOpen(!isOpen)}
+            disabled={disabled || variant === 'monthly'}
+            className={`flex items-center justify-center gap-2 px-2 text-sm font-playfair font-medium transition-colors ${animationClass || ''} ${disabled ? 'text-[#525252] cursor-not-allowed' : 'text-[#d4d4d4] hover:text-white'}`}
+          >
+            {variant === 'monthly'
+              ? date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+              : date.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' })
             }
-            return null;
-          })()}
-        </button>
+            {variant === 'daily' && (() => {
+              const today = new Date();
+              if (date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear()) {
+                return (
+                  <span className="ml-1 px-1.5 py-0.5 rounded-md bg-[#262626] border border-[#404040] text-[8px] font-bold text-[#a3a3a3] tracking-wider uppercase">Today</span>
+                );
+              }
+              return null;
+            })()}
+          </button>
+        </div>
 
         <button
           onClick={handleNext}

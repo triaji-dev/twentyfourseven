@@ -1,10 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../services/api';
 import { NoteItem } from '../shared/types';
+import { useAuth } from '../features/auth/AuthProvider';
 
 export const QUERY_KEYS = {
-  notes: ['notes'],
-  settings: ['settings'],
+  notes: ['notes'] as const,
+  userNotes: (userId?: string) => ['notes', userId ?? 'anonymous'] as const,
+  settings: ['settings'] as const,
+  userSettings: (userId?: string) => ['settings', userId ?? 'anonymous'] as const,
 };
 
 // ==========================================
@@ -12,9 +15,12 @@ export const QUERY_KEYS = {
 // ==========================================
 
 export const useNotes = () => {
+  const { user } = useAuth();
+
   return useQuery({
-    queryKey: QUERY_KEYS.notes,
+    queryKey: QUERY_KEYS.userNotes(user?.id),
     queryFn: api.fetchNotes,
+    enabled: !!user?.id,
   });
 };
 
@@ -57,9 +63,12 @@ export const useDeleteNote = () => {
 // ==========================================
 
 export const useSettings = () => {
+  const { user } = useAuth();
+
   return useQuery({
-    queryKey: QUERY_KEYS.settings,
+    queryKey: QUERY_KEYS.userSettings(user?.id),
     queryFn: api.fetchSettings,
+    enabled: !!user?.id,
   });
 };
 

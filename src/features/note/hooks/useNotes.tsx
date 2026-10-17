@@ -4,6 +4,7 @@ import { NoteItem, NoteType } from '../../../shared/types';
 import { processNoteContent, extractTags } from '../../../shared/utils/notes';
 import { NoteGroup, DateViewState, CompletedFilter, SuggestionSource } from '../types';
 import { useNotes as useSupabaseNotes, useCreateNote, useUpdateNote, useDeleteNote } from '../../../hooks/useSupabaseQuery';
+import { useStore } from '../../../shared/store/useStore';
 
 interface UseNotesProps {
   year: number;
@@ -12,7 +13,9 @@ interface UseNotesProps {
 
 export const useNotes = ({ year, month }: UseNotesProps) => {
   const today = new Date();
-  const [selectedDate, setSelectedDate] = useState<{ year: number; month: number; day: number } | null>(null);
+  const selectedDate = useStore(state => state.selectedDate);
+  const setSelectedDate = useStore(state => state.setSelectedDate);
+  const setCurrentDate = useStore(state => state.setCurrentDate);
   const { showSuccess, showError } = useToast();
   // triggerUpdate removed as React Query handles invalidation
 
@@ -145,10 +148,15 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
   useEffect(() => {
     if (initialRender.current) {
       initialRender.current = false;
+      if (selectedDate) {
+        setIsViewAll(false);
+      }
       return;
     }
     if (selectedDate) {
       setIsViewAll(false);
+    } else {
+      setIsViewAll(true);
     }
   }, [selectedDate]);
 
@@ -183,7 +191,8 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
       month: date.getMonth(),
       day: date.getDate(),
     });
-  }, []);
+    setCurrentDate(date);
+  }, [setSelectedDate, setCurrentDate]);
 
   // Check for tag suggestions
   const checkTagSuggestions = useCallback((text: string, cursor: number, source: 'add' | 'edit') => {
@@ -623,6 +632,7 @@ export const useNotes = ({ year, month }: UseNotesProps) => {
     notes,
     allTimeNotes,
     activeCell: selectedDate,
+    setSelectedDate,
     newNote,
     setNewNote,
     editingId,

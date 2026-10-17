@@ -226,4 +226,34 @@
   h2 {
     @apply font-light;
   }
+
+  @keyframes slideInFromRight {
+    0% {
+      transform: translateX(36px);
+      opacity: 0.2;
+    }
+    100% {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideInFromLeft {
+    0% {
+      transform: translateX(-36px);
+      opacity: 0.2;
+    }
+    100% {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  .animate-slide-left {
+    animation: slideInFromRight 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-slide-right {
+    animation: slideInFromLeft 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
 }

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
+import { queryClient } from '../../lib/queryClient';
 
 interface AuthContextType {
   user: User | null;
@@ -30,7 +31,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Listen for changes on auth state (logged in, signed out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      setUser(session?.user ?? null);
+      const nextUser = session?.user ?? null;
+      setUser((currentUser) => {
+        if (currentUser?.id !== nextUser?.id) {
+          queryClient.clear();
+        }
+        return nextUser;
+      });
       setLoading(false);
     });
 
@@ -69,6 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
+    queryClient.clear();
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   };
